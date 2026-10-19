@@ -1,7 +1,10 @@
 "use client";
 
+import { updateProfile } from "@/app/actions/settings";
+import { notify } from "@/components/ui/toast";
+
 import { pluralRu } from "@/lib/format";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -96,6 +99,8 @@ export function ProfileForm({ user }: { user: UserView }) {
     });
   }
 
+  const [saving, startTransition] = useTransition();
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -138,10 +143,22 @@ export function ProfileForm({ user }: { user: UserView }) {
 
     const clean: Draft = { ...draft, nickname, faculty, bio };
 
-    // TODO(supabase): update users set nickname, faculty, bio, interests, goals where id = auth.uid()
-    setDraft(clean);
-    setSaved(clean);
-    setConfirmed(true);
+    startTransition(async () => {
+      const result = await updateProfile({
+        nickname: clean.nickname,
+        faculty: clean.faculty,
+        bio: clean.bio,
+        interests: clean.interests,
+        goals: clean.goals,
+      });
+      if (!result.ok) {
+        notify(result.error);
+        return;
+      }
+      setDraft(clean);
+      setSaved(clean);
+      setConfirmed(true);
+    });
   }
 
   const problemCount = Object.keys(errors).length;
@@ -279,12 +296,12 @@ export function ProfileForm({ user }: { user: UserView }) {
 
             {confirmed && !dirty ? (
               <p role="status" className="pb-2 text-center text-[12px] text-ink-soft">
-                Сохранено. Пока без базы данных изменения живут только в этом браузере.
+                Сохранено. Так тебя теперь видят другие.
               </p>
             ) : null}
 
-            <Button type="submit" size="lg" full disabled={!dirty}>
-              Сохранить
+            <Button type="submit" size="lg" full disabled={!dirty || saving}>
+              {saving ? "Сохраняем…" : "Сохранить"}
             </Button>
           </div>
         </div>

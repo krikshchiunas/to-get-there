@@ -133,6 +133,30 @@ export function toDatetimeLocal(value: Timestamp | Date): string {
 }
 
 /**
+ * Берлинское время из поля `datetime-local` -> абсолютный ISO.
+ *
+ * Поле отдаёт «2026-10-20T19:30» без часового пояса. На сервере (Vercel
+ * работает в UTC) такая строка прочиталась бы как 19:30 UTC, то есть 21:30
+ * по Берлину — ровно та ошибка, что однажды сдвинула все идеи в сиде.
+ * Поэтому время явно трактуется как берлинское, с летним или зимним
+ * смещением на эту дату.
+ */
+export function berlinLocalToIso(local: string): string | null {
+  const match = local.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  const [, ymd, hh, mm] = match;
+
+  const probe = new Date(`${ymd}T${hh}:${mm}:00Z`);
+  if (Number.isNaN(probe.getTime())) return null;
+
+  const label = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "longOffset" }).format(probe);
+  const offset = label.match(/GMT([+-]\d{2}:\d{2})/)?.[1] ?? "+01:00";
+
+  const result = new Date(`${ymd}T${hh}:${mm}:00${offset}`);
+  return Number.isNaN(result.getTime()) ? null : result.toISOString();
+}
+
+/**
  * How much time pressure a departure carries. Drives the one hot color in
  * the palette: only `now` and `soon` are allowed to use it.
  */

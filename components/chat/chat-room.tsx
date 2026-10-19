@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createPoll, sendMessage, setPinned, vote } from "@/app/actions/chat";
+import { notify } from "@/components/ui/toast";
 import { IconButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { Icon } from "@/components/ui/icon";
@@ -134,11 +136,35 @@ export function ChatRoom({
       role: rights.role === "guest" ? "participant" : rights.role,
     };
     setMessages((previous) => [...previous, message]);
+    return message.id;
+  }
+
+  const [, startTransition] = useTransition();
+
+  /** Убрать оптимистичное сообщение, если сервер его не принял. */
+  function dropMessage(localId: string) {
+    setMessages((previous) => previous.filter((message) => message.id !== localId));
   }
 
   function handleSend(text: string) {
-    // TODO(supabase): insert into messages (post_id, author_id, content)
-    appendMessage(text, null);
+    const localId = appendMessage(text, null);
+    startTransition(async () => {
+      const result = await sendMessage(postId, text);
+      if (!result.ok) {
+        dropMessage(localId);
+        notify(result.error);
+        return;
+      }
+      // Временный id меняется на настоящий — иначе закрепить его было бы нельзя.
+      const real = result.data;
+      if (real) {
+        setMessages((previous) =>
+          previous.map((message) =>
+            message.id === localId ? { ...message, id: real.id, created_at: real.created_at } : message,
+          ),
+        );
+      }
+    });
   }
 
   function handleSendMedia(fileName: string) {
@@ -147,7 +173,19 @@ export function ChatRoom({
   }
 
   function handleTogglePin(messageId: string) {
-    // TODO(supabase): update messages set is_pinned — one pinned message per post
+    const before = messages;
+    const target = before.find((message) => message.id === messageId);
+    if (!target) return;
+    const pin = !target.is_pinned;
+
+    startTransition(async () => {
+      const result = await setPinned(postId, messageId, pin);
+      if (!result.ok) {
+        setMessages(before);
+        notify(result.error);
+      }
+    });
+
     setMessages((previous) => {
       const target = previous.find((message) => message.id === messageId);
       if (!target) return previous;
@@ -160,7 +198,15 @@ export function ChatRoom({
   }
 
   function handleVote(pollId: string, optionIndex: number) {
-    // TODO(supabase): upsert into poll_votes (poll_id, user_id, option_index)
+    const before = polls;
+    startTransition(async () => {
+      const result = await vote(postId, pollId, optionIndex);
+      if (!result.ok) {
+        setPolls(before);
+        notify(result.error);
+      }
+    });
+
     setPolls((previous) =>
       previous.map((poll) => {
         if (poll.id !== pollId) return poll;
@@ -183,7 +229,6 @@ export function ChatRoom({
   }
 
   function handleCreatePoll(question: string, options: string[]) {
-    // TODO(supabase): insert into polls (post_id, created_by, question, options)
     const poll: PollView = {
       id: nextLocalId(`poll-${postId}`),
       post_id: postId,
@@ -198,6 +243,19 @@ export function ChatRoom({
     };
     setPolls((previous) => [...previous, poll]);
     setPollOpen(false);
+
+    startTransition(async () => {
+      const result = await createPoll(postId, question, options);
+      if (!result.ok) {
+        setPolls((previous) => previous.filter((item) => item.id !== poll.id));
+        notify(result.error);
+        return;
+      }
+      const real = result.data;
+      if (real) {
+        setPolls((previous) => previous.map((item) => (item.id === poll.id ? { ...item, id: real.id } : item)));
+      }
+    });
   }
 
   function jumpToMessage(messageId: string) {

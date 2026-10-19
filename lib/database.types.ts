@@ -562,6 +562,7 @@ export type Database = {
         Returns: boolean
       }
       can_enter_post_chat: { Args: { member: string; post: string }; Returns: boolean }
+      cast_vote: { Args: { option_index: number; poll: string }; Returns: undefined }
       can_join_post: { Args: { member: string; post: string }; Returns: boolean }
       can_message_user: { Args: { sender: string; target: string }; Returns: boolean }
       can_moderate: {

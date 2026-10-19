@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { updateNotificationSettings } from "@/app/actions/settings";
+import { notify } from "@/components/ui/toast";
+
+import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/field";
@@ -117,11 +120,20 @@ export function NotificationForm({ user }: { user: UserView }) {
     setConfirmed(false);
   }
 
+  const [saving, startTransition] = useTransition();
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // TODO(supabase): update users set notification_settings = $1 where id = auth.uid()
-    setSaved({ ...draft });
-    setConfirmed(true);
+    const next = { ...draft };
+    startTransition(async () => {
+      const result = await updateNotificationSettings(next);
+      if (!result.ok) {
+        notify(result.error);
+        return;
+      }
+      setSaved(next);
+      setConfirmed(true);
+    });
   }
 
   return (
@@ -164,12 +176,12 @@ export function NotificationForm({ user }: { user: UserView }) {
               <p role="status" className="pb-2 text-center text-[12px] text-ink-soft">
                 {offCount === 0
                   ? "Сохранено. Все уведомления включены."
-                  : "Сохранено. Пока без базы данных настройки живут только в этом браузере."}
+                  : "Сохранено."}
               </p>
             ) : null}
 
-            <Button type="submit" size="lg" full disabled={!dirty}>
-              Сохранить
+            <Button type="submit" size="lg" full disabled={!dirty || saving}>
+              {saving ? "Сохраняем…" : "Сохранить"}
             </Button>
           </div>
         </div>

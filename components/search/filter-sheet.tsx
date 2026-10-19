@@ -204,8 +204,6 @@ export function FilterSheet({
           >
             Сбросить
           </Button>
-          {/* TODO(supabase): вместо локального состояния — select из
-              public.active_posts с теми же условиями (дата, окно времени, гео). */}
           <Button
             size="lg"
             className="flex-1"

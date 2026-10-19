@@ -402,13 +402,15 @@ export function SearchScreen({
       </Sheet>
 
       <FilterSheet
-          cities={cities}
+        cities={cities}
         open={filterOpen}
         filters={filters}
         onClose={() => setFilterOpen(false)}
         onApply={(next) => {
-          // TODO(supabase): здесь будет повторный запрос к public.active_posts
-          // с новыми условиями; пока меняется только локальное состояние.
+          // Фильтры сужают уже загруженный набор (filterPosts), без похода на
+          // сервер. Когда идей станет столько, что набор не поместится в одну
+          // загрузку, источником станет searchPosts из lib/data/search.ts —
+          // он уже фильтрует в базе.
           setFilters(next);
           setFilterOpen(false);
         }}

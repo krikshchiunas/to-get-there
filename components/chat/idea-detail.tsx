@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { closePost, joinPost, removeParticipant } from "@/app/actions/posts";
+import { setModerator, updateModeratorPermissions } from "@/app/actions/moderation";
+import { notify } from "@/components/ui/toast";
 import type { ReactNode } from "react";
 import { AvatarLink, AvatarStack } from "@/components/ui/avatar";
 import { IconButton } from "@/components/ui/button";
@@ -122,9 +125,32 @@ export function IdeaDetail({
           ? "Мест нет, все заняты. Присоединиться не получится."
           : null;
 
+  const [, startTransition] = useTransition();
+
+  /**
+   * Оптимистичное изменение с откатом: экран меняется сразу, а если сервер
+   * отказал, возвращается к состоянию до нажатия и говорит почему.
+   */
+  function commit(rollback: () => void, run: () => Promise<{ ok: boolean; error?: string }>) {
+    startTransition(async () => {
+      const result = await run();
+      if (!result.ok) {
+        rollback();
+        notify(result.error ?? "Не получилось. Попробуй ещё раз.");
+      }
+    });
+  }
+
   function handleJoin() {
-    // TODO(supabase): insert into post_participants (post_id, user_id) values (post.id, auth.uid())
     if (joined) return;
+    const beforeParticipants = participants;
+    commit(
+      () => {
+        setJoined(false);
+        setParticipants(beforeParticipants);
+      },
+      () => joinPost(post.id),
+    );
     setJoined(true);
     setParticipants((previous) => {
       if (previous.some((row) => row.user_id === viewer.id)) return previous;
@@ -142,12 +168,14 @@ export function IdeaDetail({
   }
 
   function handleRemove(userId: string) {
-    // TODO(supabase): delete from post_participants where post_id = post.id and user_id = userId
+    const before = participants;
     setParticipants((previous) => previous.filter((row) => row.user_id !== userId));
+    commit(() => setParticipants(before), () => removeParticipant(post.id, userId));
   }
 
   function handleSetModerator(userId: string, moderator: boolean) {
-    // TODO(supabase): insert into post_moderators (post_id, user_id, permissions) on appoint, delete that row on withdraw
+    const before = participants;
+    commit(() => setParticipants(before), () => setModerator(post.id, userId, moderator));
     setParticipants((previous) =>
       previous.map((row) =>
         row.user_id === userId
@@ -162,15 +190,16 @@ export function IdeaDetail({
   }
 
   function handlePermissionChange(userId: string, next: ModeratorPermissions) {
-    // TODO(supabase): update post_moderators set permissions = next where post_id = post.id and user_id = userId
+    const before = participants;
+    commit(() => setParticipants(before), () => updateModeratorPermissions(post.id, userId, next));
     setParticipants((previous) =>
       previous.map((row) => (row.user_id === userId ? { ...row, permissions: next } : row)),
     );
   }
 
   function handleCloseSignup() {
-    // TODO(supabase): update posts set is_closed = true where id = post.id
     setClosed(true);
+    commit(() => setClosed(false), () => closePost(post.id));
   }
 
   const moderators = participants.filter((row) => row.role === "moderator");

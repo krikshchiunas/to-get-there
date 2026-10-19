@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { markConversationRead, sendDirectMessage } from "@/app/actions/dm";
+import { notify } from "@/components/ui/toast";
 import { IconButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { Icon } from "@/components/ui/icon";
@@ -39,7 +41,12 @@ export function Conversation({
 }) {
   const [appended, setAppended] = useState<DirectMessage[]>([]);
 
-  const thread = useMemo(() => [...messages, ...appended], [messages, appended]);
+  // После отправки сервер присылает то же сообщение повторно (revalidate):
+  // локальная копия к этому моменту уже несёт настоящий id и уступает ему.
+  const thread = useMemo(() => {
+    const known = new Set(messages.map((message) => message.id));
+    return [...messages, ...appended.filter((message) => !known.has(message.id))];
+  }, [messages, appended]);
 
   const groups = useMemo(() => {
     const out: DayGroup[] = [];
@@ -64,12 +71,35 @@ export function Conversation({
     window.scrollTo({ top: document.documentElement.scrollHeight });
   }, [thread]);
 
+  const [, startTransition] = useTransition();
+
+  // Открыл переписку — всё присланное собеседником прочитано.
+  useEffect(() => {
+    void markConversationRead(partner.id);
+  }, [partner.id]);
+
   function handleSend(content: string) {
-    // TODO(supabase): insert into direct_messages
+    const localId = `local-${Date.now()}`;
+    startTransition(async () => {
+      const result = await sendDirectMessage(partner.id, content);
+      if (!result.ok) {
+        setAppended((previous) => previous.filter((message) => message.id !== localId));
+        notify(result.error);
+        return;
+      }
+      const real = result.data;
+      if (real) {
+        setAppended((previous) =>
+          previous.map((message) =>
+            message.id === localId ? { ...message, id: real.id, created_at: real.created_at } : message,
+          ),
+        );
+      }
+    });
     setAppended((previous) => [
       ...previous,
       {
-        id: `local-${Date.now()}`,
+        id: localId,
         sender_id: viewerId,
         receiver_id: partner.id,
         content,

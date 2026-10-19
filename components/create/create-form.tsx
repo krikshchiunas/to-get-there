@@ -1,37 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { createPost } from "@/app/actions/posts";
+import { viewerLocation } from "@/lib/access";
 import type { FormEvent, ReactNode } from "react";
-import { Avatar } from "@/components/ui/avatar";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { CharCount, Field, RadioRow, TextArea, TextInput } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import {
-  eventTimeTone,
-  listBody,
-  listMeta,
-  listTime,
-  listTitle,
-  verifiedSize,
-} from "@/components/ui/list-row";
-import { Pill } from "@/components/ui/pill";
-import { Seats } from "@/components/ui/seats";
-import { Verified } from "@/components/ui/verified";
-import {
   DAY_MS,
   HOUR_MS,
-  formatDayLabel,
-  formatTime,
   pluralRu,
   toDatetimeLocal,
-  urgencyOf,
+  berlinLocalToIso,
 } from "@/lib/format";
 
 import type { Category, ChatAccess, UserView } from "@/lib/types";
 import { CATEGORY_GROUP_ID, CategoryPicker } from "./category-picker";
 import {
   GeoPicker,
-  describeGeo,
   geoError,
   geoFocusId,
   initialGeo,
@@ -65,17 +53,6 @@ const FIELD_ORDER: readonly FieldKey[] = [
 type Errors = Partial<Record<FieldKey, string>>;
 
 /** What the form hands over once everything checks out. */
-interface CreatedIdea {
-  /** The clock at the moment of creation — the summary is formatted against it. */
-  at: Date;
-  title: string;
-  description: string;
-  category: Category;
-  starts_at: Date;
-  place: string;
-  max_participants: number | null;
-  chat_access: ChatAccess;
-}
 
 const accessLabels: Record<ChatAccess, string> = {
   everyone: "Все",
@@ -83,11 +60,6 @@ const accessLabels: Record<ChatAccess, string> = {
   friends: "Только друзья",
 };
 
-const accessSummaries: Record<ChatAccess, string> = {
-  everyone: "В чат может зайти любой",
-  followers: "В чат могут зайти только твои подписчики",
-  friends: "В чат могут зайти только твои друзья",
-};
 
 /** "символ" / "символа" / "символов" — for the over-the-limit errors. */
 const charForms: [string, string, string] = ["символ", "символа", "символов"];
@@ -124,6 +96,9 @@ export function CreateForm({
   cities: string[];
 }) {
   const getCategory = (id: string) => categories.find((category) => category.id === id);
+  const router = useRouter();
+  const [submitting, startTransition] = useTransition();
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const defaultStart = toDatetimeLocal(nextFullHourTomorrow(now));
 
   const [title, setTitle] = useState("");
@@ -134,7 +109,6 @@ export function CreateForm({
   const [maxParticipants, setMaxParticipants] = useState("");
   const [chatAccess, setChatAccess] = useState<ChatAccess>("everyone");
   const [errors, setErrors] = useState<Errors>({});
-  const [created, setCreated] = useState<CreatedIdea | null>(null);
 
   function dismissError(key: FieldKey) {
     setErrors((previous) => {
@@ -145,21 +119,6 @@ export function CreateForm({
     });
   }
 
-  function resetForm() {
-    setTitle("");
-    setDescription("");
-    setCategoryId(null);
-    setStartsAt(defaultStart);
-    setGeo(initialGeo);
-    setMaxParticipants("");
-    setChatAccess("everyone");
-    setErrors({});
-    setCreated(null);
-    window.scrollTo({ top: 0 });
-    window.requestAnimationFrame(() => {
-      document.getElementById(FIELD_IDS.title)?.focus();
-    });
-  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -225,23 +184,64 @@ export function CreateForm({
 
     if (!category) return;
 
-    // TODO(supabase): insert into posts, then router.push('/post/' + id)
-    setCreated({
-      at,
-      title: cleanTitle,
-      description: cleanDescription,
-      category,
-      starts_at: departure,
-      place: describeGeo(geo),
-      max_participants: seats,
-      chat_access: chatAccess,
+    const startIso = berlinLocalToIso(startsAt);
+    if (!startIso) {
+      setErrors({ startsAt: "Дата или время заполнены не до конца. Укажи и то и другое." });
+      return;
+    }
+
+    // Место: в режиме радиуса — точка, где стоит зритель; в режиме области —
+    // место встречи текстом (координаты появятся с картой); в режиме города —
+    // только город. Город обязателен в любом режиме.
+    const geoInput =
+      geo.mode === "radius"
+        ? {
+            geoMode: "radius" as const,
+            geoCity: viewer.university.city,
+            geoAddress: viewerLocation.label,
+            geoLat: viewerLocation.lat,
+            geoLng: viewerLocation.lng,
+            geoRadiusM: geo.radius_m,
+          }
+        : geo.mode === "area"
+          ? {
+              geoMode: "area" as const,
+              geoCity: viewer.university.city,
+              geoAddress: geo.meeting_point.trim(),
+              geoLat: null,
+              geoLng: null,
+              geoRadiusM: null,
+            }
+          : {
+              geoMode: "city" as const,
+              geoCity: geo.city.trim(),
+              geoAddress: null,
+              geoLat: null,
+              geoLng: null,
+              geoRadiusM: null,
+            };
+
+    setSubmitError(null);
+    startTransition(async () => {
+      const result = await createPost({
+        title: cleanTitle,
+        description: cleanDescription,
+        categoryId: category.id,
+        dateStart: startIso,
+        maxParticipants: seats,
+        chatAccess,
+        ...geoInput,
+      });
+
+      if (!result.ok) {
+        setSubmitError(result.error);
+        return;
+      }
+      // Сразу в чат своей идеи: автор уже в нём, его посадил триггер.
+      if (result.data) router.push(`/post/${result.data.id}`);
     });
-    window.scrollTo({ top: 0 });
   }
 
-  if (created) {
-    return <CreatedPanel idea={created} author={viewer} onAgain={resetForm} />;
-  }
 
   const problemCount = FIELD_ORDER.filter((key) => errors[key] !== undefined).length;
 
@@ -421,8 +421,13 @@ export function CreateForm({
                   : `Осталось заполнить или исправить ${problemCount} ${pluralRu(problemCount, ["поле", "поля", "полей"])}.`}
               </p>
             ) : null}
-            <Button type="submit" size="lg" full>
-              Создать идею
+            {submitError ? (
+              <p role="alert" className="mb-3 text-[14px] leading-[1.4] text-heat">
+                {submitError}
+              </p>
+            ) : null}
+            <Button type="submit" size="lg" full disabled={submitting}>
+              {submitting ? "Публикуем…" : "Создать идею"}
             </Button>
           </div>
         </div>
@@ -445,113 +450,6 @@ function Group({
     <section className={`space-y-6 ${first ? "" : "mt-8 border-t border-line pt-8"}`}>
       <h2 className="text-[13px] font-medium text-ink-faint">{title}</h2>
       {children}
-    </section>
-  );
-}
-
-/** Replaces the form once an idea is complete: the same idea, read back. */
-function CreatedPanel({
-  idea,
-  author,
-  onAgain,
-}: {
-  idea: CreatedIdea;
-  /** Автор идеи: превью повторяет строку ленты, а там слева аватар. */
-  author: UserView;
-  onAgain: () => void;
-}) {
-  const urgency = urgencyOf(idea.starts_at, idea.at);
-
-  return (
-    <section className="u-rise px-4 pt-6 pb-10">
-      <div className="flex items-center gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-signal-wash text-signal">
-          <Icon name="check" size={21} />
-        </span>
-        <h2 className="text-[20px] font-semibold">Идея создана</h2>
-      </div>
-
-      {/* Превью — ровно та же строка, что в ленте: аватар слева как якорь,
-          «ник · вуз» и время в первой строке, название, две строки описания,
-          одна строка метаданных. Геометрия берётся из `list-row`, чтобы она
-          не разъехалась с лентой. Рамки, скругления и второго фона здесь нет:
-          в ленте их тоже нет, а человек должен узнать свою идею. */}
-      <p className="mt-6 text-[13px] font-medium text-ink-faint">Вот как она выглядит в ленте:</p>
-
-      <article className="mt-1.5 flex gap-3">
-        <Avatar user={author} size="md" />
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="flex min-w-0 items-center gap-1 text-[15px] font-medium">
-              <span className="truncate">{author.nickname}</span>
-              {author.is_verified ? (
-                <Verified size={verifiedSize} className="shrink-0" />
-              ) : null}
-            </span>
-
-            <span aria-hidden className="text-[14px] text-ink-soft">
-              ·
-            </span>
-            <span className="truncate text-[14px] text-ink-soft">
-              {author.university.short_name}
-            </span>
-
-            <time
-              dateTime={idea.starts_at.toISOString()}
-              className={`${listTime} ml-auto pl-2 ${eventTimeTone(urgency)}`}
-            >
-              <span className="sr-only">Начало в </span>
-              {formatTime(idea.starts_at)}
-            </time>
-          </div>
-
-          <h3 className={`mt-0.5 ${listTitle}`}>{idea.title}</h3>
-
-          <p className={`u-clamp-2 mt-0.5 ${listBody}`}>{idea.description}</p>
-
-          {/* Одна строка: день и места остаются целыми, длинный адрес ужимается. */}
-          <p className={`mt-1.5 flex items-center gap-x-1.5 whitespace-nowrap ${listMeta}`}>
-            <span className="u-tnum shrink-0">{formatDayLabel(idea.starts_at, idea.at)}</span>
-            <span aria-hidden className="shrink-0">
-              ·
-            </span>
-            <span className="min-w-0 truncate">{idea.place}</span>
-            <span aria-hidden className="shrink-0">
-              ·
-            </span>
-            <Seats count={1} max={idea.max_participants} className="shrink-0" />
-          </p>
-        </div>
-      </article>
-
-      {/* Категория и доступ в чат в строке ленты не показываются — они стоят
-          под превью как то, что выбрал автор, а не как часть строки. */}
-      <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[14px] text-ink-soft">
-        <Pill icon={idea.category.icon}>{idea.category.name}</Pill>
-        <span className="flex items-center gap-1.5">
-          <Icon
-            name={idea.chat_access === "everyone" ? "chat" : "lock"}
-            size={14}
-            className="shrink-0"
-          />
-          {accessSummaries[idea.chat_access]}
-        </span>
-      </p>
-
-      <p className="mt-4 text-[13px] leading-[1.4] text-ink-soft">
-        Пока идея живёт только в этом браузере. Когда подключим базу, она попадёт в ленту и
-        откроется чат.
-      </p>
-
-      <div className="mt-7 flex flex-col gap-2.5 sm:flex-row">
-        <Button type="button" size="lg" full onClick={onAgain}>
-          Создать ещё идею
-        </Button>
-        <ButtonLink href="/" variant="quiet" size="lg" full>
-          К идеям
-        </ButtonLink>
-      </div>
     </section>
   );
 }

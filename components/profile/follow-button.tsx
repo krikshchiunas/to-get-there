@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { setFollow } from "@/app/actions/social";
+import { notify } from "@/components/ui/toast";
 import { Button, type ButtonSize } from "@/components/ui/button";
 import type { UserView } from "@/lib/types";
 
@@ -27,11 +29,18 @@ export function FollowButton({
   full?: boolean;
 }) {
   const [following, setFollowing] = useState(user.viewer_follows);
+  const [pending, startTransition] = useTransition();
 
   function toggle() {
-    // TODO(supabase): insert into follows (follower_id, following_id) on follow,
-    // delete from follows where follower_id = auth.uid() and following_id = user.id on unfollow.
-    setFollowing((current) => !current);
+    const next = !following;
+    setFollowing(next);
+    startTransition(async () => {
+      const result = await setFollow(user.id, next);
+      if (!result.ok) {
+        setFollowing(!next);
+        notify(result.error);
+      }
+    });
   }
 
   const becomesFriend = user.follows_viewer;
@@ -46,6 +55,7 @@ export function FollowButton({
 
   return (
     <Button
+      disabled={pending}
       variant={following ? "quiet" : "primary"}
       size={size}
       full={full}

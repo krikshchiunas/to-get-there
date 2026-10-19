@@ -66,14 +66,10 @@ export async function vote(postId: string, pollId: string, optionIndex: number):
     return { ok: false, error: "Такого варианта нет." };
   }
 
-  // Один голос на человека: повторный голос меняет вариант. Триггер
-  // poll_votes_check_option не даст указать на несуществующий вариант.
-  const { error } = await actor.supabase
-    .from("poll_votes")
-    .upsert(
-      { poll_id: pollId, user_id: actor.viewerId, option_index: optionIndex },
-      { onConflict: "poll_id,user_id" },
-    );
+  // Один голос на человека: повторный голос меняет вариант. Не upsert —
+  // он обновил бы и poll_id/user_id, а на них нет прав (см. 0015).
+  // Триггер poll_votes_check_option не даст указать на несуществующий вариант.
+  const { error } = await actor.supabase.rpc("cast_vote", { poll: pollId, option_index: optionIndex });
 
   if (error) {
     if (error.code === "42501") return { ok: false, error: "Голосовать могут только участники чата." };

@@ -1,5 +1,7 @@
 "use client";
 
+import { markAllNotificationsRead, markNotificationRead } from "@/app/actions/notifications";
+import { notify } from "@/components/ui/toast";
 import { groupHeading, listLead, listStamp } from "@/components/ui/list-row";
 import Link from "next/link";
 import { createContext, useContext, useMemo, useState } from "react";
@@ -68,12 +70,24 @@ export function NotificationsProvider({
       items,
       isRead: (id) => read.has(id),
       markRead: (id) => {
-        // TODO(supabase): update notifications set is_read = true where id = $1 and user_id = auth.uid()
+        if (read.has(id)) return;
         setReadIds((current) => (current.includes(id) ? current : [...current, id]));
+        void markNotificationRead(id).then((result) => {
+          if (!result.ok) {
+            setReadIds((current) => current.filter((value) => value !== id));
+            notify(result.error);
+          }
+        });
       },
       markAllRead: () => {
-        // TODO(supabase): update notifications set is_read = true where user_id = auth.uid() and is_read = false
+        const before = readIds;
         setReadIds(items.map((item) => item.notification.id));
+        void markAllNotificationsRead().then((result) => {
+          if (!result.ok) {
+            setReadIds(before);
+            notify(result.error);
+          }
+        });
       },
       unreadCount: items.filter((item) => !read.has(item.notification.id)).length,
     };

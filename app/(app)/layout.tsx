@@ -1,4 +1,5 @@
 import { Nav } from "@/components/nav/bottom-nav";
+import { ToastHost } from "@/components/ui/toast";
 import { getUnreadDirectTotal, getUnreadNotificationCount, getViewer } from "@/lib/data";
 
 /**
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Место под фиксированную нижнюю панель на телефоне. */}
         <main className="u-column pb-24 md:pb-10">{children}</main>
       </div>
+      <ToastHost />
     </div>
   );
 }

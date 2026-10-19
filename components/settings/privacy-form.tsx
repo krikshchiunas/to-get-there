@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { updatePrivacy } from "@/app/actions/settings";
+import { notify } from "@/components/ui/toast";
+
+import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, RadioRow, Switch } from "@/components/ui/field";
@@ -107,11 +110,20 @@ export function PrivacyForm({ user }: { user: UserView }) {
     setConfirmed(false);
   }
 
+  const [saving, startTransition] = useTransition();
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // TODO(supabase): update users set privacy_settings = $1 where id = auth.uid()
-    setSaved({ ...draft });
-    setConfirmed(true);
+    const next = { ...draft };
+    startTransition(async () => {
+      const result = await updatePrivacy(next);
+      if (!result.ok) {
+        notify(result.error);
+        return;
+      }
+      setSaved(next);
+      setConfirmed(true);
+    });
   }
 
   return (
@@ -169,12 +181,12 @@ export function PrivacyForm({ user }: { user: UserView }) {
           <div className="pb-[4.25rem] md:pb-3">
             {confirmed && !dirty ? (
               <p role="status" className="pb-2 text-center text-[12px] text-ink-soft">
-                Сохранено. Пока без базы данных настройки живут только в этом браузере.
+                Сохранено.
               </p>
             ) : null}
 
-            <Button type="submit" size="lg" full disabled={!dirty}>
-              Сохранить
+            <Button type="submit" size="lg" full disabled={!dirty || saving}>
+              {saving ? "Сохраняем…" : "Сохранить"}
             </Button>
           </div>
         </div>
