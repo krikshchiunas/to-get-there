@@ -66,9 +66,3 @@ export function chatAccessReason(post: PostView): string | null {
     : `Зайти в чат могут только друзья ${post.author.nickname}.`;
 }
 
-/** Где стоит зритель — для фильтра «радиус вокруг меня». */
-export const viewerLocation = {
-  lat: 52.5106,
-  lng: 13.3274,
-  label: "TU Berlin, Charlottenburg",
-} as const;

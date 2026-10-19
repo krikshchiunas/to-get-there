@@ -2,6 +2,7 @@
 
 /** Идея: создать, вступить, выйти или удалить участника, закрыть набор. */
 
+import { isValidCoord, roundCoord, STORED_DIGITS } from "@/lib/place";
 import { revalidatePath } from "next/cache";
 import type { ChatAccess, GeoMode, GeoRadius } from "@/lib/types";
 import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
@@ -39,13 +40,29 @@ function validate(input: CreatePostInput): string | null {
   } else if (input.geoRadiusM != null) {
     return "Радиус задаётся только в режиме «Радиус вокруг меня».";
   }
-  if (input.geoMode === "area" && !input.geoAddress?.trim()) return "Укажи место встречи.";
+  if (input.geoMode === "area" && !input.geoAddress?.trim()) return "Опиши, как найти друг друга на месте.";
   if ((input.geoLat == null) !== (input.geoLng == null)) return "Координаты задаются парой.";
+  if (input.geoLat != null && !isValidCoord(input.geoLat, input.geoLng)) return "Точка на карте не распознана.";
+  if (input.geoMode !== "city" && input.geoLat == null) return "Отметь место на карте.";
 
   if (input.maxParticipants != null && (input.maxParticipants < 2 || input.maxParticipants > 500)) {
     return "Участников — от 2 до 500, или без ограничения.";
   }
   return null;
+}
+
+/**
+ * Сколько точности оставить. Идею видят все вошедшие, поэтому в режиме
+ * радиуса точка — около километра: для поиска «рядом» хватает, а где
+ * автор живёт, по ней не понять. Область автор показал сам — до ~10 м.
+ * В режиме города точки нет вовсе.
+ */
+function storedPoint(input: CreatePostInput): { geo_lat: number | null; geo_lng: number | null } {
+  if (input.geoMode === "city" || input.geoLat == null || input.geoLng == null) {
+    return { geo_lat: null, geo_lng: null };
+  }
+  const digits = STORED_DIGITS[input.geoMode];
+  return { geo_lat: roundCoord(input.geoLat, digits), geo_lng: roundCoord(input.geoLng, digits) };
 }
 
 export async function createPost(input: CreatePostInput): Promise<ActionResult<{ id: string }>> {
@@ -73,8 +90,7 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
       geo_mode: input.geoMode,
       geo_city: input.geoCity.trim(),
       geo_address: input.geoAddress?.trim() || null,
-      geo_lat: input.geoLat,
-      geo_lng: input.geoLng,
+      ...storedPoint(input),
       geo_radius_m: input.geoRadiusM,
       max_participants: input.maxParticipants,
       chat_access: input.chatAccess,

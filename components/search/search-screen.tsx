@@ -10,6 +10,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Sheet } from "@/components/ui/sheet";
 import { formatDayLabel, formatMinutesOfDay, formatRadius, pluralRu } from "@/lib/format";
 import { filterPosts, filterUsers } from "@/lib/search-filter";
+import { usePlace } from "@/lib/use-place";
 import {
   emptyFilters,
   type Category,
@@ -115,7 +116,9 @@ export function SearchScreen({
 
   // Набор приходит с сервера один раз, а сужается здесь — так ввод в поле
   // отзывается мгновенно, без похода на сервер на каждую букву.
-  const ideas = useMemo(() => filterPosts(posts, filters, now), [posts, filters, now]);
+  const { place: originPlace, locate, resetToCampus, locating, error: locateError } = usePlace(viewer.university);
+  const origin = useMemo(() => ({ lat: originPlace.lat, lng: originPlace.lng }), [originPlace.lat, originPlace.lng]);
+  const ideas = useMemo(() => filterPosts(posts, filters, now, origin), [posts, filters, now, origin]);
   const people = useMemo(
     () => filterUsers(searchablePeople, filters.query, viewer.id),
     [searchablePeople, filters.query, viewer.id],
@@ -403,6 +406,11 @@ export function SearchScreen({
 
       <FilterSheet
         cities={cities}
+        place={originPlace}
+        onLocate={locate}
+        onResetToCampus={resetToCampus}
+        locating={locating}
+        locateError={locateError}
         open={filterOpen}
         filters={filters}
         onClose={() => setFilterOpen(false)}

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPost } from "@/app/actions/posts";
-import { viewerLocation } from "@/lib/access";
+import { usePlace } from "@/lib/use-place";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { CharCount, Field, RadioRow, TextArea, TextInput } from "@/components/ui/field";
@@ -97,6 +97,7 @@ export function CreateForm({
 }) {
   const getCategory = (id: string) => categories.find((category) => category.id === id);
   const router = useRouter();
+  const { place, locate, resetToCampus, locating, error: locateError } = usePlace(viewer.university);
   const [submitting, startTransition] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const defaultStart = toDatetimeLocal(nextFullHourTomorrow(now));
@@ -190,17 +191,17 @@ export function CreateForm({
       return;
     }
 
-    // Место: в режиме радиуса — точка, где стоит зритель; в режиме области —
-    // место встречи текстом (координаты появятся с картой); в режиме города —
-    // только город. Город обязателен в любом режиме.
+    // Место. Радиус — точка отсчёта (кампус или геолокация); сервер огрубит
+    // её до километра. Область — точка, выбранная на карте, и подсказка
+    // словами. Город — только город. Город обязателен в любом режиме.
     const geoInput =
       geo.mode === "radius"
         ? {
             geoMode: "radius" as const,
             geoCity: viewer.university.city,
-            geoAddress: viewerLocation.label,
-            geoLat: viewerLocation.lat,
-            geoLng: viewerLocation.lng,
+            geoAddress: place.source === "campus" ? `Рядом с кампусом ${viewer.university.short_name}` : null,
+            geoLat: place.lat,
+            geoLng: place.lng,
             geoRadiusM: geo.radius_m,
           }
         : geo.mode === "area"
@@ -208,8 +209,8 @@ export function CreateForm({
               geoMode: "area" as const,
               geoCity: viewer.university.city,
               geoAddress: geo.meeting_point.trim(),
-              geoLat: null,
-              geoLng: null,
+              geoLat: geo.point?.lat ?? null,
+              geoLng: geo.point?.lng ?? null,
               geoRadiusM: null,
             }
           : {
@@ -328,6 +329,11 @@ export function CreateForm({
             cities={cities}
             value={geo}
             error={errors.geo}
+            place={place}
+            onLocate={locate}
+            onResetToCampus={resetToCampus}
+            locating={locating}
+            locateError={locateError}
             onChange={(next) => {
               setGeo(next);
               dismissError("geo");

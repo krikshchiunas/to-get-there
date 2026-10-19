@@ -8,22 +8,28 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
-import { distanceMetres, FEED_GRACE_MS, minutesOfDay } from "@/lib/format";
+import { berlinLocalToIso, DAY_MS, distanceMetres, FEED_GRACE_MS, minutesOfDay } from "@/lib/format";
 import type { PostView, SearchFilters, UserView } from "@/lib/types";
 import { POST_SELECT, toPostViews, type PostRow } from "./feed";
 import { toUserViews } from "./people";
 import { requireViewerId } from "./session";
 import type { Tables } from "@/lib/database.types";
 
-/** Где стоит зритель — для фильтра «радиус вокруг меня». */
-export const viewerLocation = { lat: 52.5106, lng: 13.3274, label: "TU Berlin, Charlottenburg" };
-
 /** PostgREST-фильтр `or` ломается на запятых и скобках внутри значения. */
 function escapeForOr(value: string): string {
   return value.replace(/[,().*]/g, " ").trim();
 }
 
-export async function searchPosts(filters: SearchFilters, now: Date): Promise<PostView[]> {
+/** Начало дня по Берлину, `YYYY-MM-DD` → ISO. */
+function berlinDayStart(day: string): string | null {
+  return berlinLocalToIso(`${day}T00:00`);
+}
+
+export async function searchPosts(
+  filters: SearchFilters,
+  now: Date,
+  origin: { lat: number; lng: number } | null = null,
+): Promise<PostView[]> {
   const supabase = await createClient();
   const cutoff = new Date(now.getTime() - FEED_GRACE_MS).toISOString();
 
@@ -42,8 +48,17 @@ export async function searchPosts(filters: SearchFilters, now: Date): Promise<Po
   }
 
   if (filters.category_ids.length) query = query.in("category_id", filters.category_ids);
-  if (filters.date_from) query = query.gte("date_start", `${filters.date_from}T00:00:00`);
-  if (filters.date_to) query = query.lte("date_start", `${filters.date_to}T23:59:59`);
+  // Границы дней — по Берлину, а не по UTC: иначе вечер на стыке дней
+  // попадал бы не в тот день.
+  const from = filters.date_from ? berlinDayStart(filters.date_from) : null;
+  if (from) query = query.gte("date_start", from);
+  if (filters.date_to) {
+    // Конец дня — полночь следующего по Берлину. Полдень UTC как опора не
+    // даёт перехода на летнее время сдвинуть дату.
+    const next = new Date(new Date(`${filters.date_to}T12:00:00Z`).getTime() + DAY_MS).toISOString().slice(0, 10);
+    const end = berlinDayStart(next);
+    if (end) query = query.lt("date_start", end);
+  }
   if (filters.geo_mode === "city" && filters.geo_city) {
     query = query.ilike("geo_city", filters.geo_city.trim());
   }
@@ -64,8 +79,8 @@ export async function searchPosts(filters: SearchFilters, now: Date): Promise<Po
   if (filters.geo_mode === "radius" && filters.geo_radius_m) {
     const radius = filters.geo_radius_m;
     posts = posts.filter((post) => {
-      if (post.geo_lat == null || post.geo_lng == null) return false;
-      return distanceMetres(viewerLocation, { lat: post.geo_lat, lng: post.geo_lng }) <= radius;
+      if (!origin || post.geo_lat == null || post.geo_lng == null) return false;
+      return distanceMetres(origin, { lat: post.geo_lat, lng: post.geo_lng }) <= radius;
     });
   }
 

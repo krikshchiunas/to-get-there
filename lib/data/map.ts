@@ -110,6 +110,8 @@ export function toUniversity(row: UniversityRow): University {
     city: row.city,
     country: row.country,
     short_name: row.short_name,
+    campus_lat: row.campus_lat,
+    campus_lng: row.campus_lng,
   };
 }
 

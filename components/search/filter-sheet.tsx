@@ -7,7 +7,8 @@ import { Icon } from "@/components/ui/icon";
 import { ChipButton } from "@/components/ui/pill";
 import { Sheet } from "@/components/ui/sheet";
 import { formatMinutesOfDay, formatRadius } from "@/lib/format";
-import { viewerLocation } from "@/lib/access";
+import { PlaceLine } from "@/components/map/place-line";
+import type { Place } from "@/lib/place";
 import { emptyFilters, type GeoMode, type GeoRadius, type SearchFilters } from "@/lib/types";
 
 /**
@@ -156,6 +157,11 @@ export function FilterSheet({
   cities,
   onClose,
   onApply,
+  place,
+  onLocate,
+  onResetToCampus,
+  locating,
+  locateError,
 }: {
   open: boolean;
   filters: SearchFilters;
@@ -163,6 +169,12 @@ export function FilterSheet({
   cities: string[];
   onClose: () => void;
   onApply: (next: SearchFilters) => void;
+  /** Откуда считать радиус (lib/use-place.ts). */
+  place: Place;
+  onLocate: () => void;
+  onResetToCampus: () => void;
+  locating: boolean;
+  locateError: string | null;
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftFrom(filters));
 
@@ -402,10 +414,13 @@ export function FilterSheet({
             // Без плашки под этим блоком: чипы радиуса сами на заливке
             // `bg-sunken`, на второй такой же заливке их не видно.
             <div className="space-y-2.5">
-              <p className="flex items-center gap-1.5 text-[14px] text-ink-soft">
-                <Icon name="place" size={14} className="shrink-0" />
-                {viewerLocation.label}
-              </p>
+              <PlaceLine
+                place={place}
+                onLocate={onLocate}
+                onResetToCampus={onResetToCampus}
+                locating={locating}
+                locateError={locateError}
+              />
               <div role="group" aria-label="Радиус" className="flex flex-wrap gap-2">
                 {radii.map((metres) => (
                   <ChipButton

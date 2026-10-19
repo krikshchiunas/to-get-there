@@ -22,6 +22,9 @@ export interface University {
   country: string;
   /** Two letter code shown on cards where the full name will not fit. */
   short_name: string;
+  /** Главный кампус — точка отсчёта для «рядом со мной» (0021). */
+  campus_lat: number | null;
+  campus_lng: number | null;
 }
 
 export interface Category {

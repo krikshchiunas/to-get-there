@@ -6,14 +6,20 @@
  * Supabase, ни про моки, и потому работает и на сервере, и в браузере.
  */
 
-import { distanceMetres, isInFeed, minutesOfDay } from "./format";
+import { dayKey, distanceMetres, isInFeed, minutesOfDay } from "./format";
 import type { PostView, SearchFilters, UserView } from "./types";
 
-/** Где стоит зритель — для фильтра «радиус вокруг меня». */
-export { viewerLocation } from "./access";
-import { viewerLocation } from "./access";
-
-export function filterPosts(posts: PostView[], filters: SearchFilters, now: Date): PostView[] {
+/**
+ * `origin` — откуда считать «радиус вокруг меня»: кампус или геолокация
+ * (lib/use-place.ts). Без неё радиус не отбирает ничего — честнее, чем
+ * считать от выдуманной точки.
+ */
+export function filterPosts(
+  posts: PostView[],
+  filters: SearchFilters,
+  now: Date,
+  origin: { lat: number; lng: number } | null,
+): PostView[] {
   const needle = filters.query.trim().toLowerCase();
 
   const matched = posts.filter((post) => {
@@ -37,7 +43,9 @@ export function filterPosts(posts: PostView[], filters: SearchFilters, now: Date
       return false;
     }
 
-    const day = post.date_start.slice(0, 10);
+    // День — по Берлину: идея в 00:30 относится к своему дню, а не к
+    // вчерашнему по UTC.
+    const day = dayKey(post.date_start);
     if (filters.date_from && day < filters.date_from) return false;
     if (filters.date_to && day > filters.date_to) return false;
 
@@ -52,8 +60,8 @@ export function filterPosts(posts: PostView[], filters: SearchFilters, now: Date
     }
 
     if (filters.geo_mode === "radius" && filters.geo_radius_m) {
-      if (post.geo_lat == null || post.geo_lng == null) return false;
-      const metres = distanceMetres(viewerLocation, { lat: post.geo_lat, lng: post.geo_lng });
+      if (!origin || post.geo_lat == null || post.geo_lng == null) return false;
+      const metres = distanceMetres(origin, { lat: post.geo_lat, lng: post.geo_lng });
       if (metres > filters.geo_radius_m) return false;
     }
 

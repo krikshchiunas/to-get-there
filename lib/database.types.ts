@@ -377,6 +377,8 @@ export type Database = {
       }
       universities: {
         Row: {
+          campus_lat: number | null
+          campus_lng: number | null
           city: string
           country: string
           domain: string
@@ -385,6 +387,8 @@ export type Database = {
           short_name: string
         }
         Insert: {
+          campus_lat?: number | null
+          campus_lng?: number | null
           city: string
           country?: string
           domain: string
@@ -393,6 +397,8 @@ export type Database = {
           short_name: string
         }
         Update: {
+          campus_lat?: number | null
+          campus_lng?: number | null
           city?: string
           country?: string
           domain?: string

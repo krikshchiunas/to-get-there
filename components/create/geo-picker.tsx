@@ -1,11 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Field, RadioRow, TextInput } from "@/components/ui/field";
-import { Icon } from "@/components/ui/icon";
 import { ChipButton } from "@/components/ui/pill";
 import { formatRadius } from "@/lib/format";
-import { viewerLocation } from "@/lib/access";
+import { AREA_RADIUS_M, type Place } from "@/lib/place";
 import type { GeoMode, GeoRadius } from "@/lib/types";
+import type { LatLng } from "@/components/map/map-view";
+import { PlaceLine } from "@/components/map/place-line";
+
+// Leaflet живёт только в браузере; пока грузится — заливка того же размера.
+const MapView = dynamic(() => import("@/components/map/map-view").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div className="h-56 rounded-field bg-sunken" aria-hidden />,
+});
+
+export { AREA_RADIUS_M };
 
 /**
  * How the author pins the place down. Three mutually exclusive modes, each
@@ -15,7 +25,9 @@ import type { GeoMode, GeoRadius } from "@/lib/types";
 export interface GeoDraft {
   mode: GeoMode;
   radius_m: GeoRadius;
-  /** Free text while the map area picker is not built yet. */
+  /** Область: центр, выбранный на карте. */
+  point: LatLng | null;
+  /** Как найти друг друга на месте — словами. */
   meeting_point: string;
   city: string;
 }
@@ -23,6 +35,7 @@ export interface GeoDraft {
 export const initialGeo: GeoDraft = {
   mode: "radius",
   radius_m: 2000,
+  point: null,
   meeting_point: "",
   city: "",
 };
@@ -51,8 +64,11 @@ export function geoFocusId(geo: GeoDraft): string {
 
 /** Null when the place is complete. Says what to do, not what went wrong. */
 export function geoError(geo: GeoDraft): string | null {
+  if (geo.mode === "area" && !geo.point) {
+    return "Сдвинь карту так, чтобы булавка стояла на месте встречи.";
+  }
   if (geo.mode === "area" && !geo.meeting_point.trim()) {
-    return "Впиши место встречи словами — карты пока нет.";
+    return "Опиши словами, как найти друг друга на месте.";
   }
   if (geo.mode === "city" && !geo.city.trim()) {
     return "Укажи город, в котором всё пройдёт.";
@@ -61,10 +77,10 @@ export function geoError(geo: GeoDraft): string | null {
 }
 
 /** One line for a card or a summary: where this idea happens. */
-export function describeGeo(geo: GeoDraft): string {
+export function describeGeo(geo: GeoDraft, place: Place): string {
   switch (geo.mode) {
     case "radius":
-      return `В радиусе ${formatRadius(geo.radius_m)} от ${viewerLocation.label}`;
+      return `В радиусе ${formatRadius(geo.radius_m)}: ${place.label.toLowerCase()}`;
     case "area":
       return geo.meeting_point.trim();
     case "city":
@@ -77,13 +93,29 @@ export function GeoPicker({
   value,
   onChange,
   error,
+  place,
+  onLocate,
+  onResetToCampus,
+  locating,
+  locateError,
 }: {
   /** Города, где сейчас есть идеи. */
   cities: string[];
   value: GeoDraft;
   onChange: (next: GeoDraft) => void;
   error?: string;
+  /** Точка отсчёта: кампус или, если разрешено, где человек сейчас. */
+  place: Place;
+  onLocate: () => void;
+  onResetToCampus: () => void;
+  locating: boolean;
+  locateError: string | null;
 }) {
+  function setMode(raw: string) {
+    const mode = toMode(raw);
+    // В область — начать с точки отсчёта, а не с пустой карты.
+    onChange({ ...value, mode, point: mode === "area" && !value.point ? { lat: place.lat, lng: place.lng } : value.point });
+  }
 
   return (
     <div className="space-y-3">
@@ -92,7 +124,7 @@ export function GeoPicker({
           name="create-geo-mode"
           value="radius"
           checked={value.mode === "radius"}
-          onChange={(raw) => onChange({ ...value, mode: toMode(raw) })}
+          onChange={setMode}
           label="Радиус вокруг меня"
           description="Идею увидят те, кто рядом."
           icon="place"
@@ -101,7 +133,7 @@ export function GeoPicker({
           name="create-geo-mode"
           value="area"
           checked={value.mode === "area"}
-          onChange={(raw) => onChange({ ...value, mode: toMode(raw) })}
+          onChange={setMode}
           label="Область на карте"
           description="Участок, внутри которого будет место встречи."
           icon="pin"
@@ -110,7 +142,7 @@ export function GeoPicker({
           name="create-geo-mode"
           value="city"
           checked={value.mode === "city"}
-          onChange={(raw) => onChange({ ...value, mode: toMode(raw) })}
+          onChange={setMode}
           label="Указать город"
           description="Для всего, что не привязано к одной точке."
           icon="globe"
@@ -122,10 +154,13 @@ export function GeoPicker({
         // на второй такой же заливке их не видно. Метка места, чипы и подсказка
         // лежат прямо на фоне — так же, как в фильтрах поиска.
         <div className="space-y-2.5">
-          <p className="flex items-center gap-1.5 text-[14px] text-ink-soft">
-            <Icon name="place" size={14} className="shrink-0" />
-            Ты здесь: {viewerLocation.label}
-          </p>
+          <PlaceLine
+            place={place}
+            onLocate={onLocate}
+            onResetToCampus={onResetToCampus}
+            locating={locating}
+            locateError={locateError}
+          />
           <div
             id={GEO_FIELD_IDS.radius}
             tabIndex={-1}
@@ -143,41 +178,39 @@ export function GeoPicker({
               </ChipButton>
             ))}
           </div>
+          <MapView
+            center={place}
+            radiusM={value.radius_m}
+            zoom={zoomForRadius(value.radius_m)}
+            label={`Радиус ${formatRadius(value.radius_m)} вокруг: ${place.label}`}
+          />
           <p className="text-[13px] text-ink-soft">
-            Идею ищут от твоего местоположения. Точный адрес остаётся только у тебя.
+            Другие видят только город и радиус. Точка хранится с точностью около километра, адреса
+            в ней нет.
           </p>
         </div>
       ) : null}
 
       {value.mode === "area" ? (
         <div className="space-y-3">
-          {/* Заглушка карты — заливка без рамки: пунктир в приложении больше
-              не встречается, а линия вокруг весит больше, чем сама заливка. */}
-          <div className="relative flex h-36 flex-col items-center justify-center rounded-field bg-sunken px-4 text-center">
-            <span aria-hidden className="absolute inset-x-8 top-1/2 h-px bg-line" />
-            <span aria-hidden className="absolute inset-y-6 left-1/2 w-px bg-line" />
-            <span
-              aria-hidden
-              className="relative flex size-9 items-center justify-center rounded-full bg-sunken"
-            >
-              <span className="size-2.5 rounded-full bg-signal" />
-            </span>
-            <p className="relative mt-2.5 text-[14px]">{viewerLocation.label}</p>
-            <p className="relative mt-0.5 text-[13px] text-ink-soft">
-              Карты пока нет, только твоя точка
-            </p>
-          </div>
+          <MapView
+            center={value.point ?? place}
+            radiusM={AREA_RADIUS_M}
+            zoom={16}
+            label="Карта: сдвинь её так, чтобы булавка стояла на месте встречи. Стрелки двигают карту."
+            onPick={(point) => onChange({ ...value, point })}
+          />
 
           <p className="text-[13px] text-ink-soft">
-            Выделить область на карте можно будет, когда карту встроим. Пока опиши место встречи
-            словами.
+            Сдвинь карту — булавка в центре и есть место встречи. Участники увидят круг около
+            {" "}{AREA_RADIUS_M} м вокруг неё.
           </p>
 
           <Field
             label="Место встречи"
             required
             htmlFor={GEO_FIELD_IDS.meetingPoint}
-            hint="Так точно, чтобы тебя нашли."
+            hint="Как найти друг друга на месте."
             error={error}
           >
             <TextInput
@@ -225,4 +258,13 @@ export function GeoPicker({
       ) : null}
     </div>
   );
+}
+
+/** Масштаб, при котором круг радиуса помещается в карту. */
+function zoomForRadius(metres: number): number {
+  if (metres <= 500) return 15;
+  if (metres <= 1000) return 14;
+  if (metres <= 2000) return 13;
+  if (metres <= 5000) return 12;
+  return 11;
 }

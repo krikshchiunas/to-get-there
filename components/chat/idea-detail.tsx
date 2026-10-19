@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import dynamic from "next/dynamic";
+import { AREA_RADIUS_M } from "@/lib/place";
 import { useLiveRefresh } from "@/lib/live";
+
+// Leaflet — только в браузере и только там, где карта нужна.
+const MapView = dynamic(() => import("@/components/map/map-view").then((m) => m.MapView), {
+  ssr: false,
+  loading: () => <div className="h-48 rounded-field bg-sunken" aria-hidden />,
+});
 import { useSyncedState } from "@/lib/use-synced-state";
 import { closePost, joinPost, removeParticipant } from "@/app/actions/posts";
 import { setModerator, updateModeratorPermissions } from "@/app/actions/moderation";
@@ -302,6 +310,20 @@ export function IdeaDetail({
               <Seats count={participantCount} max={post.max_participants} />
             </Fact>
           </ul>
+
+          {/* Карта — только для «области»: это место автор показал сам. В
+              режиме радиуса точка — где был автор, её не рисуем. */}
+          {post.geo_mode === "area" && post.geo_lat != null && post.geo_lng != null ? (
+            <div className="mt-4">
+              <MapView
+                center={{ lat: post.geo_lat, lng: post.geo_lng }}
+                radiusM={AREA_RADIUS_M}
+                zoom={16}
+                className="h-48"
+                label={`Карта: место встречи около ${place}, круг около ${AREA_RADIUS_M} метров.`}
+              />
+            </div>
+          ) : null}
 
           {exitReason ? (
             <div className="mt-5 rounded-field bg-sunken p-4">

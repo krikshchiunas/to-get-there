@@ -43,7 +43,7 @@ import { loadViewer } from "./social";
 /** Источник данных. Снять флаг — значит перевести экраны на базу. */
 export const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
-export { canEnterChat, chatAccessReason, canMessage, canSeeProfile, canSeeInterests, viewerLocation }
+export { canEnterChat, chatAccessReason, canMessage, canSeeProfile, canSeeInterests }
   from "@/lib/access";
 
 /* ── зритель ────────────────────────────────────────────────────── */

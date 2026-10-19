@@ -248,3 +248,27 @@
     }
   }
 }
+
+/* ── карта (components/map/map-view.tsx) ──────────────────────────────── */
+
+.tgt-map .leaflet-container {
+  font: inherit;
+  background: var(--c-sunken, transparent);
+}
+.tgt-map .leaflet-control-attribution {
+  font-size: 10px;
+}
+.tgt-map .leaflet-container:focus-visible {
+  outline: 2px solid var(--c-signal);
+  outline-offset: -2px;
+}
+
+/* Светлые тайлы OSM в тёмной теме — приглушить, а не слепить. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tgt-map .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+  }
+}
+:root[data-theme="dark"] .tgt-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
