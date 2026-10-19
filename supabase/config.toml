@@ -1,0 +1,94 @@
+# ╔════════════════════════════════════════════════════════════════════════╗
+# ║ config.toml — the local Supabase stack                                 ║
+# ╚════════════════════════════════════════════════════════════════════════╝
+#
+# Used by `supabase start`, `supabase db reset` and `supabase db push`.
+# Deliberately short: the Supabase CLI rejects keys it does not know, so
+# anything not needed here is left at its default rather than written out.
+#
+# Ports are the CLI defaults, so `supabase status` matches the values in
+# .env.local.example without editing.
+
+project_id = "to-get-there"
+
+[api]
+enabled = true
+port = 54321
+# `graphql_public` stays exposed because the CLI ships it; the app only ever
+# talks to `public`. The `extensions` schema is on the search path so
+# pg_trgm's operators resolve without qualification in ad-hoc SQL.
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+# The feed reads a day or two of ideas at a time; a thousand rows is already
+# far more than any screen asks for.
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Postgres 15. The migrations use `security_invoker` views (0007), which is a
+# 15 feature — do not lower this.
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+# `supabase db reset` replays supabase/migrations in order and then runs this
+# file. Keep it enabled: a database without the dataset shows empty screens
+# and looks broken.
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+# The idea chat, direct messages, the poll tally, the roster and the
+# notification badge all subscribe (see 0009).
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+# Local mail catcher. Registration (stage 6) sends a confirmation link to a
+# university address; during development it lands here instead.
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+# Per-bucket limits are set in migration 0009 (avatars 2 MiB, post-media and
+# verification 10 MiB each); this is the ceiling for the whole service.
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# Sign-up is open at the API level; the university-mail rule is enforced in
+# the database by supabase/later/auth_bridge.sql, which refuses an address
+# whose domain is not in public.universities.
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# A university address has to be confirmed — it is the only identity check
+# that happens before the Верификация screen.
+enable_confirmations = true
+max_frequency = "60s"
+
+[auth.sms]
+enable_signup = false
+enable_confirmations = false
+
+[analytics]
+enabled = false
