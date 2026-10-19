@@ -1,7 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Golos_Text } from "next/font/google";
-import { Nav } from "@/components/nav/bottom-nav";
-import { getUnreadDirectTotal, getUnreadNotificationCount, getViewer } from "@/lib/data";
 import "./globals.css";
 
 /**
@@ -36,29 +34,10 @@ export const viewport: Viewport = {
   ],
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [viewer, unreadChats, unreadNotifications] = await Promise.all([
-    await getViewer(),
-    await getUnreadDirectTotal(),
-    await getUnreadNotificationCount(),
-  ]);
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" className={sans.variable}>
-      <body className="min-h-dvh antialiased">
-        <div className="mx-auto flex w-full max-w-[48rem]">
-          <Nav
-            unreadChats={unreadChats}
-            unreadNotifications={unreadNotifications}
-            profileNickname={viewer.nickname}
-          />
-
-          <div className="min-w-0 flex-1 border-line md:border-r">
-            {/* Room for the fixed bottom bar on phones. */}
-            <main className="u-column pb-24 md:pb-10">{children}</main>
-          </div>
-        </div>
-      </body>
+      <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );
 }

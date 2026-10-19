@@ -10,7 +10,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ConversationView, DirectMessage, UserView } from "@/lib/types";
 import { isFriend } from "@/lib/types";
-import { getViewerId } from "./session";
+import { requireViewerId } from "./session";
 import { getUserById } from "./people";
 
 /** Тот же ключ, что считает генерируемая колонка в 0005. */
@@ -35,7 +35,7 @@ export async function getThread(partnerId: string): Promise<DirectMessage[]> {
   const { data } = await supabase
     .from("direct_messages")
     .select("*")
-    .eq("conversation_key", conversationKey(getViewerId(), partnerId))
+    .eq("conversation_key", conversationKey(await requireViewerId(), partnerId))
     .order("created_at", { ascending: true });
 
   return (data ?? []).map((row) => ({
@@ -50,7 +50,7 @@ export async function getThread(partnerId: string): Promise<DirectMessage[]> {
 
 export async function getConversations(): Promise<ConversationView[]> {
   const supabase = await createClient();
-  const viewerId = getViewerId();
+  const viewerId = await requireViewerId();
 
   const { data } = await supabase
     .from("direct_messages")

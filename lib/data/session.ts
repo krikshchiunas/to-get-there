@@ -1,28 +1,50 @@
 /**
  * Кто смотрит приложение.
  *
- * Регистрация — последний этап (docs/ROADMAP.md), поэтому сессии ещё нет и
- * `public.current_user_id()` в базе возвращает NULL. До тех пор зритель —
- * тот же человек, что и в моках: mara_t. Его идентификатор зашит здесь
- * одним значением, чтобы на этапе 6 заменить ровно одну функцию, а не
- * искать подстановки по всему слою данных.
+ * В режиме базы зритель — это владелец сессии Supabase, сопоставленный со
+ * своей строкой в public.users через `current_user_id()`. Сопоставление
+ * делает база, а не приложение: та же функция стоит во всех политиках RLS,
+ * поэтому здесь и там зритель гарантированно один и тот же человек.
  *
- * Важное следствие: читать базу так можно (политики пропускают по
- * `app_flags.open_read`), а писать — нет. Любая вставка проверяется через
- * `current_user_id()`, который без сессии NULL, и RLS её отклонит. Поэтому
- * на этом этапе переводится только чтение.
+ * В режиме моков (`NEXT_PUBLIC_USE_MOCKS` не "false") зритель — mara_t, как
+ * на этапах 1–4, чтобы локальная разработка не требовала входа.
  */
+
+import { cache } from "react";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 /** mara_t — тот же, кого lib/mock/users.ts зовёт `currentUser`. */
 export const DEV_VIEWER_ID = "33333333-3333-3333-3333-000000000001";
 
+const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
+
 /**
- * Идентификатор зрителя.
+ * Идентификатор зрителя в public.users или null без входа.
  *
- * TODO(этап 6): заменить на чтение сессии —
- *   const { data } = await supabase.auth.getUser();
- *   return data.user ? await supabase.rpc("current_user_id") : null;
+ * `getUser()`, а не `getSession()`: первый проверяет токен на сервере
+ * Supabase, второй доверяет cookie, которую можно подделать.
  */
-export function getViewerId(): string {
-  return DEV_VIEWER_ID;
+export const getViewerId = cache(async (): Promise<string | null> => {
+  if (usingMocks) return DEV_VIEWER_ID;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase.rpc("current_user_id");
+  return data ?? null;
+});
+
+/**
+ * Зритель для запросов, которым без него нечего показывать. Middleware уже
+ * не пускает на такие экраны без входа; редирект здесь — страховка на случай,
+ * если сессия истекла между проверкой и запросом.
+ */
+export async function requireViewerId(): Promise<string> {
+  const id = await getViewerId();
+  if (!id) redirect("/auth/login");
+  return id;
 }

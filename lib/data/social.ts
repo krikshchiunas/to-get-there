@@ -11,7 +11,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { UserView } from "@/lib/types";
-import { getViewerId } from "./session";
+import { requireViewerId } from "./session";
 import { noSocialFacts, toUserView, type SocialFacts } from "./map";
 
 export interface ViewerEdges {
@@ -24,7 +24,7 @@ export interface ViewerEdges {
 
 export const loadViewerEdges = cache(async (): Promise<ViewerEdges> => {
   const supabase = await createClient();
-  const viewerId = getViewerId();
+  const viewerId = await requireViewerId();
 
   const [following, followers] = await Promise.all([
     supabase.from("follows").select("following_id").eq("follower_id", viewerId),
@@ -47,7 +47,7 @@ export interface ViewerMemberships {
 
 export const loadViewerMemberships = cache(async (): Promise<ViewerMemberships> => {
   const supabase = await createClient();
-  const viewerId = getViewerId();
+  const viewerId = await requireViewerId();
 
   const [participations, moderations] = await Promise.all([
     supabase.from("post_participants").select("post_id").eq("user_id", viewerId),
@@ -63,7 +63,7 @@ export const loadViewerMemberships = cache(async (): Promise<ViewerMemberships> 
 /** Профиль самого зрителя. Нужен ленте, чтобы знать его университет. */
 export const loadViewer = cache(async (): Promise<UserView> => {
   const supabase = await createClient();
-  const viewerId = getViewerId();
+  const viewerId = await requireViewerId();
 
   const { data, error } = await supabase
     .from("users")

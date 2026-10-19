@@ -17,7 +17,7 @@ import {
   toUserView,
 } from "./map";
 import { loadFollowCounts } from "./social";
-import { getViewerId } from "./session";
+import { requireViewerId } from "./session";
 import { POST_SELECT, toPostViews, type PostRow } from "./feed";
 
 type UserWithUniversity = Tables<"users"> & { university: Tables<"universities"> | null };
@@ -133,7 +133,7 @@ export async function getPinnedMessage(postId: string): Promise<MessageView | un
 
 export async function getPolls(postId: string): Promise<PollView[]> {
   const supabase = await createClient();
-  const viewerId = getViewerId();
+  const viewerId = await requireViewerId();
 
   const { data } = await supabase
     .from("polls")
@@ -176,7 +176,7 @@ export async function getPolls(postId: string): Promise<PollView[]> {
 }
 
 export async function getViewerPermissions(postId: string): Promise<ModeratorPermissions | null> {
-  const viewerId = getViewerId();
+  const viewerId = await requireViewerId();
   const roles = await loadChatRoles(postId);
   if (roles.authorId === viewerId) {
     return { can_post_media: true, can_pin: true, can_poll: true, can_kick: true };
@@ -193,7 +193,7 @@ export async function getMyIdeaChats(): Promise<
   Array<{ post: PostView; last_message: MessageView | undefined; participant_count: number }>
 > {
   const supabase = await createClient();
-  const viewerId = getViewerId();
+  const viewerId = await requireViewerId();
 
   const { data: memberships } = await supabase
     .from("post_participants")

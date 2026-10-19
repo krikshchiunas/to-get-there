@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { SettingsLink, SettingsRowSoon } from "@/components/settings/settings-link";
+import { SettingsLink } from "@/components/settings/settings-link";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
 import { getViewer } from "@/lib/data";
+import { Button } from "@/components/ui/button";
+import { signOut } from "@/app/auth/actions";
 
 export const metadata: Metadata = {
   title: "Настройки",
@@ -77,19 +79,26 @@ export default async function SettingsPage() {
         </Group>
 
         <Group
-          title="Появится к запуску"
-          description="Университетская почта и выход из аккаунта придут вместе с регистрацией на финальном этапе — пока входить некуда."
+          title="Аккаунт"
+          description="Университет закреплён за аккаунтом по почте, с которой ты регистрировался: он решает, какую ленту «Университет» ты видишь."
         >
-          <SettingsRowSoon
-            icon="book"
-            label="Подтвердить университетскую почту"
-            description={`Адрес вида имя@${viewer.university.domain} — он решает, в какую ленту «Университет» ты попадаешь.`}
-          />
-          <SettingsRowSoon
-            icon="close"
-            label="Выйти"
-            description="Пока приложение работает на тестовых данных, без входа."
-          />
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-soft">
+              <Icon name="book" size={18} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px]">{viewer.university.name}</span>
+              <span className="block text-[14px] text-ink-soft">
+                Почта на домене {viewer.university.domain}
+              </span>
+            </span>
+          </div>
+
+          <form action={signOut} className="px-4 py-3">
+            <Button type="submit" variant="danger" size="md" full>
+              Выйти
+            </Button>
+          </form>
         </Group>
       </div>
     </>

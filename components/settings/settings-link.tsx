@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
-import { Pill } from "@/components/ui/pill";
 import type { IconName } from "@/lib/types";
 
 /**
@@ -52,27 +51,3 @@ export function SettingsLink({
  * Строка того, чего ещё нет. Намеренно не контрол: нажимать нечего, поэтому
  * здесь нет ни кнопки, ни ссылки — только пометка «скоро».
  */
-export function SettingsRowSoon({
-  icon,
-  label,
-  description,
-}: {
-  icon: IconName;
-  label: string;
-  description: string;
-}) {
-  return (
-    <div className="u-feed-divider flex items-center gap-3 px-4 py-3.5">
-      <span aria-hidden className="flex w-avatar shrink-0 justify-center text-ink-faint">
-        <Icon name={icon} size={20} />
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <p className="text-[15px] leading-[1.4] text-ink-soft">{label}</p>
-        <p className="mt-0.5 text-[14px] leading-[1.4] text-ink-faint">{description}</p>
-      </div>
-
-      <Pill>скоро</Pill>
-    </div>
-  );
-}

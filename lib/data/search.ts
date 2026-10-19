@@ -12,7 +12,7 @@ import { distanceMetres, FEED_GRACE_MS, minutesOfDay } from "@/lib/format";
 import type { PostView, SearchFilters, UserView } from "@/lib/types";
 import { POST_SELECT, toPostViews, type PostRow } from "./feed";
 import { toUserViews } from "./people";
-import { getViewerId } from "./session";
+import { requireViewerId } from "./session";
 import type { Tables } from "@/lib/database.types";
 
 /** Где стоит зритель — для фильтра «радиус вокруг меня». */
@@ -94,7 +94,7 @@ export async function searchUsers(query: string): Promise<UserView[]> {
     .from("users")
     .select("*,university:universities(*)")
     .eq("privacy_settings->>visible_in_search", "true")
-    .neq("id", getViewerId())
+    .neq("id", await requireViewerId())
     .or(`nickname.ilike.%${needle}%,faculty.ilike.%${needle}%`)
     .order("nickname");
 
