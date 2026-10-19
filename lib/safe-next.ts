@@ -22,6 +22,12 @@ export function safeNext(raw: FormDataEntryValue | null): string {
   }
 
   if (url.origin !== INTERNAL_ORIGIN) return "/";
+
+  // Разбор нормализует точечные сегменты: "/.//evil.com" и "/a/..//evil.com"
+  // дают путь "//evil.com" при нашем же источнике. Поэтому проверяется уже
+  // результат нормализации, а не только вход.
+  const out = url.pathname + url.search + url.hash;
+  if (!out.startsWith("/") || out.startsWith("//") || out.startsWith("/\\")) return "/";
   if (url.pathname.startsWith("/auth")) return "/";
-  return url.pathname + url.search + url.hash;
+  return out;
 }
