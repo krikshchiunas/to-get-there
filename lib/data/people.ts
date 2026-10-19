@@ -111,3 +111,18 @@ export async function getPastPostsByAuthor(authorId: string, now: Date): Promise
     .filter((post) => !isInFeed(post, now))
     .sort((a, b) => b.date_start.localeCompare(a.date_start));
 }
+
+/** Заблокированные зрителем, последние сверху. Их профили зрителю видны (0029). */
+export async function getBlockedUsers(): Promise<UserView[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("user_blocks")
+    .select(`blocked:users!user_blocks_blocked_id_fkey(${USER_SELECT})`)
+    .order("created_at", { ascending: false });
+
+  const rows = (data ?? []).flatMap((row) => {
+    const blocked = (row as unknown as { blocked: UserWithUniversity | null }).blocked;
+    return blocked ? [blocked] : [];
+  });
+  return toUserViews(rows);
+}

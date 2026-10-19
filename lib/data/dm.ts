@@ -23,22 +23,42 @@ export function canMessage(partner: UserView): boolean {
   }
 }
 
+/** Последние сообщения переписки — тот же предел и та же причина, что у чата идеи. */
+export const THREAD_HISTORY_LIMIT = 300;
+
 export async function getThread(partnerId: string): Promise<DirectMessage[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("direct_messages")
     .select("*")
     .eq("conversation_key", conversationKey(await requireViewerId(), partnerId))
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(THREAD_HISTORY_LIMIT);
 
-  return (data ?? []).map((row) => ({
+  return (data ?? []).reverse().map((row) => ({
     id: row.id,
     sender_id: row.sender_id,
     receiver_id: row.receiver_id,
     content: row.content,
     media_url: row.media_url,
+    reply_to_id: row.reply_to_id,
     created_at: row.created_at,
   }));
+}
+
+/**
+ * Когда собеседник последний раз открывал переписку. null — не открывал
+ * или кто-то из двоих выключил «Прочитано»: тогда строку не отдаёт RLS (0032).
+ */
+export async function getPartnerReadAt(partnerId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("direct_message_reads")
+    .select("read_at")
+    .eq("user_id", partnerId)
+    .eq("partner_id", await requireViewerId())
+    .maybeSingle();
+  return data?.read_at ?? null;
 }
 
 /**
@@ -74,6 +94,7 @@ export async function getConversations(): Promise<ConversationView[]> {
           receiver_id: fromViewer ? partner.id : viewerId,
           content: row.last_content ?? "",
           media_url: row.last_media_url,
+          reply_to_id: null,
           created_at: row.last_created_at!,
         },
         unread_count: row.unread_count ?? 0,

@@ -8,11 +8,16 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
+
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
 
 export async function getActor() {
+  // Моки — витрина без базы: записывать некуда (см. noActor).
+  if (usingMocks) return null;
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -32,6 +37,13 @@ export const notSignedIn: ActionResult = {
   error: "Сессия закончилась. Войди снова.",
 };
 
+/** Почему действовать некому: в демо-режиме — не сессия виновата. */
+export function noActor(): ActionResult {
+  return usingMocks
+    ? { ok: false, error: "Это демо без базы: изменения не сохраняются." }
+    : notSignedIn;
+}
+
 /** Коды Postgres и PostgREST — на русский и словами пользователя. */
 export function explainDbError(error: { code?: string; message?: string } | null): string {
   if (!error) return "Не получилось. Попробуй ещё раз.";
@@ -46,6 +58,8 @@ export function explainDbError(error: { code?: string; message?: string } | null
       return "То, к чему это относится, уже удалено.";
     case "PGRST116":
       return "Не нашлось — возможно, это уже удалили.";
+    case "P0429": // ограничение частоты, 0031
+      return "Слишком часто. Подожди минуту и попробуй снова.";
   }
   return "Не получилось. Попробуй ещё раз.";
 }

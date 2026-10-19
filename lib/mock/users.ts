@@ -11,6 +11,7 @@ export const defaultPrivacy: PrivacySettings = {
   who_can_see_profile: "everyone",
   who_can_see_interests: "everyone",
   visible_in_search: true,
+  read_receipts: true,
 };
 
 /** Everything is on by default; each one can be switched off in settings. */
@@ -67,6 +68,7 @@ function build(seed: Seed): UserView {
     following_count: seed.following,
     viewer_follows: seed.viewer_follows ?? false,
     follows_viewer: seed.follows_viewer ?? false,
+    viewer_blocked: false,
   };
 }
 

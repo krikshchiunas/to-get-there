@@ -82,6 +82,7 @@ function toMessages(seed: ThreadSeed): DirectMessage[] {
       receiver_id: m.from === "me" ? seed.partner_id : currentUser.id,
       content: m.content,
       media_url: m.media ?? null,
+      reply_to_id: null,
       created_at: minutesAgo(m.minutes_ago),
     }))
     .sort((a, b) => a.created_at.localeCompare(b.created_at));

@@ -9,7 +9,7 @@ import { AvatarLink } from "@/components/ui/avatar";
 import { Pill } from "@/components/ui/pill";
 import { TimeFromNow } from "@/components/ui/time-from-now";
 import { Verified } from "@/components/ui/verified";
-import type { ChatRole, MessageView, PollView } from "@/lib/types";
+import type { ChatRole, MessageView, PollView, ReplyPreview } from "@/lib/types";
 import { PollCard } from "./poll-card";
 
 /** Consecutive messages from one person stay together inside this window. */
@@ -93,6 +93,51 @@ function ChatImage({
   );
 }
 
+/**
+ * Цитата над ответом: кому и что. Нажатие ведёт к исходному, если оно есть
+ * в загруженной истории; удалённое исходное — просто серая строка.
+ */
+export function ReplyQuote({
+  reply,
+  onJump,
+  tone = "default",
+}: {
+  reply: ReplyPreview | null | undefined;
+  onJump?: (messageId: string) => void;
+  /** На заливке своего пузыря в личке — светлая линия. */
+  tone?: "default" | "inverse";
+}) {
+  const line = tone === "inverse" ? "border-signal-ink/50" : "border-signal/60";
+  const meta = tone === "inverse" ? "text-signal-ink/80" : "text-ink-soft";
+
+  if (!reply) {
+    return (
+      <p className={`mb-1 border-l-2 pl-2.5 text-[13px] italic ${line} ${meta}`}>Исходное сообщение удалено</p>
+    );
+  }
+
+  const preview = reply.content || (reply.has_media ? "Фото" : "Сообщение");
+  const body = (
+    <>
+      <span className={`block text-[13px] font-medium ${meta}`}>{reply.author_nickname}</span>
+      <span className={`block truncate text-[13px] ${meta}`}>{preview}</span>
+    </>
+  );
+
+  return onJump ? (
+    <button
+      type="button"
+      onClick={() => onJump(reply.id)}
+      className={`mb-1 block w-full max-w-full min-w-0 border-l-2 pl-2.5 text-left ${line}`}
+    >
+      <span className="sr-only">Ответ на сообщение. Перейти к нему: </span>
+      {body}
+    </button>
+  ) : (
+    <div className={`mb-1 min-w-0 border-l-2 pl-2.5 ${line}`}>{body}</div>
+  );
+}
+
 /** True when this message tucks under the one before it. */
 function tucksUnder(previous: Entry | undefined, message: MessageView): boolean {
   if (!previous || previous.kind !== "message") return false;
@@ -109,25 +154,30 @@ function tucksUnder(previous: Entry | undefined, message: MessageView): boolean 
  * лежат одной читаемой колонкой: аватар слева — якорь, текст без пузыря.
  * Своё сообщение отличается лёгкой заливкой на самом тексте, а не прыжком
  * в правый ряд: в групповом чате правый ряд ломает порядок чтения.
+ *
+ * Действия с сообщением — за «⋯» справа: на телефоне кнопка видна всегда
+ * (наведения там нет), с мышью — при наведении и фокусе, чтобы колонка не
+ * рябила иконками.
  */
 export function MessageList({
   messages,
   polls,
   viewerId,
-  canPin,
   canVote,
   flashId,
-  onTogglePin,
+  onOpenActions,
+  onJump,
   onVote,
 }: {
   messages: MessageView[];
   polls: PollView[];
   viewerId: string;
-  canPin: boolean;
   canVote: boolean;
-  /** Message briefly highlighted after a jump from the pinned bar. */
+  /** Message briefly highlighted after a jump from the pinned bar or a reply. */
   flashId: string | null;
-  onTogglePin: (messageId: string) => void;
+  /** «⋯» у сообщения: ответить, скопировать, закрепить, удалить, пожаловаться. */
+  onOpenActions: (message: MessageView) => void;
+  onJump: (messageId: string) => void;
   onVote: (pollId: string, optionIndex: number) => void;
 }) {
   const entries: Entry[] = [
@@ -160,15 +210,18 @@ export function MessageList({
         }
 
         const message = entry.message;
-        const tucked = tucksUnder(entries[index - 1], message);
+        // Ответ всегда со своей шапкой: цитата без ника читается как чужая реплика.
+        const tucked = tucksUnder(entries[index - 1], message) && !message.reply_to_id;
         const own = message.author_id === viewerId;
         const text = message.content.trim();
+        // Ещё не принято сервером — действовать с ним нечем.
+        const pending = message.id.includes("-local-");
 
         return (
           <li
             key={message.id}
             id={`msg-${message.id}`}
-            className={`flex scroll-mt-28 gap-3 px-4 py-2 ${
+            className={`group flex scroll-mt-28 gap-3 px-4 py-2 transition-colors ${
               flashId === message.id ? "bg-sunken" : ""
             }`}
           >
@@ -188,6 +241,12 @@ export function MessageList({
                   </Link>
                   {message.author.is_verified ? <Verified size={13} /> : null}
                   <RoleMarker role={message.role} />
+                  {message.is_pinned ? (
+                    <span className="inline-flex items-center gap-1 text-[12px] text-ink-faint">
+                      <Icon name="pin" size={12} />
+                      закреплено
+                    </span>
+                  ) : null}
                   <TimeFromNow
                     value={message.created_at}
                     mode="stamp"
@@ -196,10 +255,14 @@ export function MessageList({
                 </div>
               )}
 
+              {message.reply_to_id ? (
+                <ReplyQuote reply={message.reply_to} onJump={message.reply_to ? onJump : undefined} />
+              ) : null}
+
               {text ? (
                 <p
-                  className={`text-[15px] leading-[1.45] whitespace-pre-line text-ink ${
-                    own ? "w-fit rounded-2xl bg-signal-wash px-3.5 py-2" : ""
+                  className={`text-[15px] leading-[1.45] whitespace-pre-line text-ink [overflow-wrap:anywhere] ${
+                    own ? "w-fit max-w-full rounded-2xl bg-signal-wash px-3.5 py-2" : ""
                   }`}
                 >
                   {text}
@@ -216,23 +279,20 @@ export function MessageList({
               ) : null}
             </div>
 
-            {canPin ? (
-              <div className="shrink-0">
+            {pending ? null : (
+              <div className="shrink-0 pointer-fine:opacity-0 pointer-fine:transition-opacity pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100">
                 <IconButton
                   type="button"
                   variant="ghost"
-                  label={
-                    message.is_pinned
-                      ? "Открепить"
-                      : `Закрепить сообщение от ${message.author.nickname}`
-                  }
-                  onClick={() => onTogglePin(message.id)}
-                  className={message.is_pinned ? "text-signal" : ""}
+                  label={`Действия с сообщением от ${message.author.nickname}`}
+                  aria-haspopup="dialog"
+                  onClick={() => onOpenActions(message)}
+                  className="text-ink-faint"
                 >
-                  <Icon name="pin" size={17} />
+                  <Icon name="more" size={17} />
                 </IconButton>
               </div>
-            ) : null}
+            )}
           </li>
         );
       })}

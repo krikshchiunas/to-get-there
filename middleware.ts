@@ -8,14 +8,16 @@
  *      видели бы просроченную сессию;
  *   3. не пускает на экраны приложения без входа.
  *
- * Экраны /auth/* открыты всем: иначе на страницу входа нельзя было бы
- * попасть. В режиме моков защита выключена — локальная разработка идёт от
+ * Открыты всем: /auth/* (иначе на страницу входа нельзя было бы попасть),
+ * /legal/* (Impressum и Datenschutzerklärung по закону доступны без входа)
+ * и /api/health (мониторинг). В режиме моков защита выключена — локальная разработка идёт от
  * имени mara_t без входа.
  */
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { contentSecurityPolicy, createNonce } from "@/lib/csp";
+import { isPublicPath } from "@/lib/public-paths";
 
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
@@ -69,9 +71,7 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
-
-  if (!user && !isAuthRoute) {
+  if (!user && !isPublicPath(request.nextUrl.pathname)) {
     const login = request.nextUrl.clone();
     login.pathname = "/auth/login";
     login.search = "";
@@ -91,7 +91,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Всё, кроме статики Next, иконки и вебхуков: вебхук приходит от Stripe
-  // без сессии, его защищает подпись, а не вход (app/api/webhooks).
-  matcher: ["/((?!_next/static|_next/image|icon.svg|favicon.ico|api/webhooks).*)"],
+  // Всё, кроме статики Next, иконок, манифеста, robots и вебхуков: вебхук
+  // приходит от Stripe без сессии, его защищает подпись, а не вход
+  // (app/api/webhooks).
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest|robots.txt|opengraph-image|api/webhooks).*)",
+  ],
 };

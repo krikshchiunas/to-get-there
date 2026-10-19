@@ -10,6 +10,7 @@ import type {
   ParticipantView,
   PollView,
   PostView,
+  ReplyPreview,
 } from "@/lib/types";
 import {
   noSocialFacts,
@@ -96,6 +97,59 @@ export async function getParticipants(postId: string): Promise<ParticipantView[]
 /** Подписанная ссылка живёт час; открытая страница обновляется раньше по realtime. */
 const MEDIA_LINK_TTL_SECONDS = 60 * 60;
 
+/**
+ * Сколько последних сообщений показывает чат. Чат идеи живёт вокруг одной
+ * встречи, и столько хватает с запасом; без предела страница тянула бы всю
+ * историю на каждый сигнал realtime.
+ */
+export const CHAT_HISTORY_LIMIT = 300;
+
+type MessageRow = Tables<"messages"> & { author: UserWithUniversity | null };
+
+/** Цитаты для ответов: исходное ищется среди загруженных, остальное — одним запросом. */
+async function loadReplyPreviews(rows: MessageRow[]): Promise<Map<string, ReplyPreview>> {
+  const previews = new Map<string, ReplyPreview>();
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  const missing = new Set<string>();
+
+  for (const row of rows) {
+    if (!row.reply_to_id) continue;
+    const original = byId.get(row.reply_to_id);
+    if (original?.author) {
+      previews.set(original.id, previewOf(original.id, original.author.nickname, original));
+    } else if (!original) {
+      missing.add(row.reply_to_id);
+    }
+  }
+
+  if (missing.size > 0) {
+    const supabase = await createClient();
+    // RLS: исходное от заблокированного или из скрытого чата не придёт.
+    const { data } = await supabase
+      .from("messages")
+      .select("id,content,media_url,author:users(nickname)")
+      .in("id", [...missing]);
+    for (const item of (data ?? []) as unknown as Array<{
+      id: string;
+      content: string;
+      media_url: string | null;
+      author: { nickname: string } | null;
+    }>) {
+      if (item.author) previews.set(item.id, previewOf(item.id, item.author.nickname, item));
+    }
+  }
+
+  return previews;
+}
+
+function previewOf(
+  id: string,
+  nickname: string,
+  message: { content: string; media_url: string | null },
+): ReplyPreview {
+  return { id, author_nickname: nickname, content: message.content.trim(), has_media: message.media_url !== null };
+}
+
 export async function getMessages(postId: string): Promise<MessageView[]> {
   const supabase = await createClient();
   const [{ data }, roles] = await Promise.all([
@@ -103,14 +157,16 @@ export async function getMessages(postId: string): Promise<MessageView[]> {
       .from("messages")
       .select("*,author:users(*,university:universities(*))")
       .eq("post_id", postId)
-      .order("created_at", { ascending: true }),
+      .order("created_at", { ascending: false })
+      .limit(CHAT_HISTORY_LIMIT),
     loadChatRoles(postId),
   ]);
 
-  const rows = (data ?? []) as unknown as Array<
-    Tables<"messages"> & { author: UserWithUniversity | null }
-  >;
-  const counts = await loadFollowCounts(rows.map((row) => row.author_id));
+  const rows = ((data ?? []) as unknown as MessageRow[]).reverse();
+  const [counts, replies] = await Promise.all([
+    loadFollowCounts(rows.map((row) => row.author_id)),
+    loadReplyPreviews(rows),
+  ]);
 
   // Бакет приватный: ссылка подписывается от имени читающего и проходит
   // через политику post_media_read_chat. Не в чате — ссылки нет.
@@ -136,6 +192,8 @@ export async function getMessages(postId: string): Promise<MessageView[]> {
             media_url: row.media_url,
             media_src: row.media_url ? (signed.get(row.media_url) ?? null) : null,
             is_pinned: row.is_pinned,
+            reply_to_id: row.reply_to_id,
+            reply_to: row.reply_to_id ? (replies.get(row.reply_to_id) ?? null) : null,
             created_at: row.created_at,
             author: toUserView(row.author, counts.get(row.author_id) ?? noSocialFacts),
             role: roles.roleOf(row.author_id),

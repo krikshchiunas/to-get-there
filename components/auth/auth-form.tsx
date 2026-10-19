@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { MIN_AGE } from "@/lib/legal";
 import { Field, TextInput } from "@/components/ui/field";
 import type { AuthState } from "@/app/auth/actions";
 
@@ -81,6 +82,24 @@ export function AuthForm({
       {state.error ? (
         <p id="auth-error" role="alert" className="text-[14px] leading-[1.4] text-heat">
           {state.error}
+        </p>
+      ) : null}
+
+      {isSignup ? (
+        <p className="text-[13px] leading-[1.45] text-ink-soft">
+          Создавая аккаунт, ты подтверждаешь, что тебе есть {MIN_AGE}, и принимаешь{" "}
+          <Link href="/legal/terms" className="text-signal underline-offset-2 hover:underline">
+            условия
+          </Link>{" "}
+          и{" "}
+          <Link href="/legal/community" className="text-signal underline-offset-2 hover:underline">
+            правила сообщества
+          </Link>
+          . Как мы обращаемся с данными —{" "}
+          <Link href="/legal/privacy" className="text-signal underline-offset-2 hover:underline">
+            здесь
+          </Link>
+          .
         </p>
       ) : null}
 

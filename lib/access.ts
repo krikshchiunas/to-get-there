@@ -36,6 +36,9 @@ export function canSeeInterests(user: UserView, viewer: UserView): boolean {
 /** Повторяет privacy_settings.who_can_message получателя. */
 export function canMessage(partner: UserView, viewer?: UserView): boolean {
   if (viewer && partner.id === viewer.id) return false;
+  // Заблокировал сам — писать нельзя (0029). Обратное зритель не видит:
+  // заблокировавший его просто не находится.
+  if (partner.viewer_blocked) return false;
   switch (partner.privacy_settings.who_can_message) {
     case "everyone":
       return true;

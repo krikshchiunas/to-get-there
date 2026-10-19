@@ -43,6 +43,8 @@ import { loadViewer } from "./social";
 /** Источник данных. Снять флаг — значит перевести экраны на базу. */
 export const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
+export { CHAT_HISTORY_LIMIT } from "./posts";
+
 export { canEnterChat, chatAccessReason, canMessage, canSeeProfile, canSeeInterests }
   from "@/lib/access";
 
@@ -176,6 +178,16 @@ export async function getConversations(): Promise<ConversationView[]> {
 
 export async function getThread(partnerId: string): Promise<DirectMessage[]> {
   return usingMocks ? mock.getThread(partnerId) : dbDm.getThread(partnerId);
+}
+
+/** Когда собеседник прочитал переписку; в моках «Прочитано» не показывается. */
+export async function getPartnerReadAt(partnerId: string): Promise<string | null> {
+  return usingMocks ? null : dbDm.getPartnerReadAt(partnerId);
+}
+
+/** Кого зритель заблокировал — для экрана «Заблокированные». */
+export async function getBlockedUsers(): Promise<UserView[]> {
+  return usingMocks ? [] : dbPeople.getBlockedUsers();
 }
 
 export async function getUnreadDirectTotal(): Promise<number> {

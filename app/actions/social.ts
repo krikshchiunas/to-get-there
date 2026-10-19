@@ -3,11 +3,11 @@
 /** Подписки. Взаимная подписка — это и есть дружба, отдельно не хранится. */
 
 import { revalidatePath } from "next/cache";
-import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { fail, getActor, noActor, type ActionResult } from "@/lib/actions/actor";
 
 export async function setFollow(targetId: string, follow: boolean): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
   if (targetId === actor.viewerId) return { ok: false, error: "На себя подписаться нельзя." };
 
   if (follow) {

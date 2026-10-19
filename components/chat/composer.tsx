@@ -5,6 +5,7 @@ import type { ChangeEvent, FormEvent, KeyboardEvent } from "react";
 import { Button, IconButton } from "@/components/ui/button";
 import { TextArea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
+import type { ReplyPreview } from "@/lib/types";
 
 const MAX_HEIGHT = 168;
 
@@ -24,6 +25,9 @@ export function Composer({
   canPostMedia,
   canPoll,
   joinBlockedReason,
+  replyTo = null,
+  onCancelReply,
+  onTyping,
   onSend,
   onSendMedia,
   onOpenPoll,
@@ -34,6 +38,11 @@ export function Composer({
   canPoll: boolean;
   /** Set when joining is not possible any more — then only reading is left. */
   joinBlockedReason: string | null;
+  /** Ответ на это сообщение — полоска над полем, крестик отменяет. */
+  replyTo?: ReplyPreview | null;
+  onCancelReply?: () => void;
+  /** Каждый ввод — для «печатает…» у остальных. */
+  onTyping?: () => void;
   onSend: (text: string) => void;
   /** Фото и, если в поле что-то написано, подпись к нему. */
   onSendMedia: (file: File, caption: string) => void;
@@ -43,6 +52,14 @@ export function Composer({
   const [value, setValue] = useState("");
   const wrapRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Выбрали «Ответить» — курсор сразу в поле, как в мессенджерах. На
+  // следующем кадре: закрываясь, лист действий возвращает фокус на «⋯».
+  useEffect(() => {
+    if (!replyTo) return;
+    const frame = requestAnimationFrame(() => wrapRef.current?.querySelector("textarea")?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [replyTo]);
 
   // The textarea grows with the text and stops at six lines or so.
   useEffect(() => {
@@ -65,6 +82,11 @@ export function Composer({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === "Escape" && replyTo) {
+      event.preventDefault();
+      onCancelReply?.();
+      return;
+    }
     if (event.key !== "Enter" || event.shiftKey) return;
     if (event.nativeEvent.isComposing) return;
     event.preventDefault();
@@ -104,8 +126,23 @@ export function Composer({
   return (
     <form onSubmit={handleSubmit} className="border-t border-line px-3 py-2.5">
       <label htmlFor="chat-composer" className="sr-only">
-        Сообщение в чат
+        {replyTo ? `Ответ для ${replyTo.author_nickname}` : "Сообщение в чат"}
       </label>
+
+      {replyTo ? (
+        <div className="mb-2 flex items-center gap-2 pl-1">
+          <Icon name="reply" size={16} className="shrink-0 text-signal" />
+          <div className="min-w-0 flex-1 border-l-2 border-signal/60 pl-2.5">
+            <p className="text-[13px] font-medium text-ink-soft">Ответ {replyTo.author_nickname}</p>
+            <p className="truncate text-[13px] text-ink-soft">
+              {replyTo.content || (replyTo.has_media ? "Фото" : "Сообщение")}
+            </p>
+          </div>
+          <IconButton type="button" variant="ghost" label="Отменить ответ" onClick={onCancelReply}>
+            <Icon name="close" size={16} />
+          </IconButton>
+        </div>
+      ) : null}
 
       <div className="flex items-end gap-1.5">
         {canPostMedia ? (
@@ -144,9 +181,13 @@ export function Composer({
             id="chat-composer"
             rows={1}
             value={value}
-            onChange={(event) => setValue(event.target.value)}
+            onChange={(event) => {
+              setValue(event.target.value);
+              if (event.target.value.trim()) onTyping?.();
+            }}
             onKeyDown={handleKeyDown}
-            placeholder="Сообщение всем"
+            maxLength={2000}
+            placeholder={replyTo ? "Твой ответ" : "Сообщение всем"}
             style={{ resize: "none", maxHeight: MAX_HEIGHT, borderRadius: FIELD_RADIUS }}
           />
         </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { berlinLocalToIso, formatTime, isInFeed, pluralRu } from "./format";
+import { berlinLocalToIso, formatPresent, formatTime, formatTyping, isInFeed, pluralRu } from "./format";
 
 describe("berlinLocalToIso — время из формы в абсолютное", () => {
   it("летом (CEST, +02:00) 19:30 по Берлину — это 17:30 UTC", () => {
@@ -50,5 +50,23 @@ describe("pluralRu — три формы", () => {
     [21, "участник"], [22, "участника"], [25, "участников"], [101, "участник"], [111, "участников"],
   ])("%i — %s", (n, expected) => {
     expect(pluralRu(n, forms)).toBe(expected);
+  });
+});
+
+describe("formatTyping", () => {
+  it("один, двое, больше", () => {
+    expect(formatTyping([])).toBeNull();
+    expect(formatTyping(["jonas_k"])).toBe("jonas_k печатает…");
+    expect(formatTyping(["jonas_k", "mira"])).toBe("jonas_k и mira печатают…");
+    expect(formatTyping(["jonas_k", "mira", "tobi", "kwame"])).toBe("jonas_k, mira и ещё 2 печатают…");
+  });
+});
+
+describe("formatPresent", () => {
+  it("склоняет и молчит, когда никого", () => {
+    expect(formatPresent(0)).toBeNull();
+    expect(formatPresent(1)).toBe("Сейчас в чате ещё 1 человек");
+    expect(formatPresent(3)).toBe("Сейчас в чате ещё 3 человека");
+    expect(formatPresent(5)).toBe("Сейчас в чате ещё 5 человек");
   });
 });

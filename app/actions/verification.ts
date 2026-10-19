@@ -8,7 +8,7 @@
  * провайдера, где сам показывает документ и селфи.
  */
 
-import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { fail, getActor, noActor, type ActionResult } from "@/lib/actions/actor";
 import { siteUrl } from "@/lib/site-url";
 import { createVerificationSession, identityConfigured } from "@/lib/stripe-identity";
 
@@ -17,7 +17,7 @@ const ATTEMPTS_PER_DAY = 5;
 
 export async function startVerification(): Promise<ActionResult<{ url: string }>> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
   if (!identityConfigured()) {
     return { ok: false, error: "Проверка личности ещё не подключена. Как только подключим — кнопка заработает." };

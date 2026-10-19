@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { fail, getActor, noActor, type ActionResult } from "@/lib/actions/actor";
 
 export async function markNotificationRead(id: string): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
   const { error } = await actor.supabase
     .from("notifications")
@@ -20,7 +20,7 @@ export async function markNotificationRead(id: string): Promise<ActionResult> {
 
 export async function markAllNotificationsRead(): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
   const { error } = await actor.supabase
     .from("notifications")

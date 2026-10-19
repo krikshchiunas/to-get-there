@@ -43,6 +43,7 @@ import type {
   UserView,
 } from "@/lib/types";
 import { ChatRoom, rightsOf } from "./chat-room";
+import { IdeaMenu } from "./idea-menu";
 import { ModerationSheet } from "./moderation-sheet";
 import { ParticipantSheet } from "./participant-sheet";
 
@@ -90,6 +91,7 @@ export function IdeaDetail({
   canEnter,
   accessReason,
   now,
+  historyLimited = false,
 }: {
   post: PostView;
   viewer: UserView;
@@ -104,6 +106,8 @@ export function IdeaDetail({
   accessReason: string | null;
   /** The clock, read once per request by the page. */
   now: Date;
+  /** Чат показывает только последние сообщения — сказать об этом. */
+  historyLimited?: boolean;
 }) {
   const rights = rightsOf(post.viewer_role, permissions);
 
@@ -238,17 +242,20 @@ export function IdeaDetail({
         title={post.title}
         backHref="/"
         action={
-          rights.isAuthor ? (
-            <IconButton
-              type="button"
-              label="Модерация"
-              aria-haspopup="dialog"
-              aria-expanded={sheet === "moderation"}
-              onClick={() => setSheet("moderation")}
-            >
-              <Icon name="shield" size={19} />
-            </IconButton>
-          ) : undefined
+          <div className="flex items-center gap-0.5">
+            {rights.isAuthor ? (
+              <IconButton
+                type="button"
+                label="Модерация"
+                aria-haspopup="dialog"
+                aria-expanded={sheet === "moderation"}
+                onClick={() => setSheet("moderation")}
+              >
+                <Icon name="shield" size={19} />
+              </IconButton>
+            ) : null}
+            <IdeaMenu post={post} isAuthor={rights.isAuthor} />
+          </div>
         }
       />
 
@@ -364,6 +371,8 @@ export function IdeaDetail({
           postId={post.id}
           viewer={viewer}
           rights={rights}
+          members={participants}
+          historyLimited={historyLimited}
           messages={messages}
           polls={polls}
           joined={joined}

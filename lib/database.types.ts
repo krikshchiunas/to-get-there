@@ -9,12 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      app_flags: {
-        Row: { id: boolean; open_read: boolean; updated_at: string }
-        Insert: { id?: boolean; open_read?: boolean; updated_at?: string }
-        Update: { id?: boolean; open_read?: boolean; updated_at?: string }
-        Relationships: []
-      }
       categories: {
         Row: { icon: string; id: string; is_main: boolean; name: string }
         Insert: { icon: string; id?: string; is_main?: boolean; name: string }
@@ -50,6 +44,7 @@ export type Database = {
           id: string
           media_url: string | null
           receiver_id: string
+          reply_to_id: string | null
           sender_id: string
         }
         Insert: {
@@ -59,6 +54,7 @@ export type Database = {
           id?: string
           media_url?: string | null
           receiver_id: string
+          reply_to_id?: string | null
           sender_id: string
         }
         Update: {
@@ -68,6 +64,7 @@ export type Database = {
           id?: string
           media_url?: string | null
           receiver_id?: string
+          reply_to_id?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -76,6 +73,13 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages"
             referencedColumns: ["id"]
           },
           {
@@ -117,6 +121,7 @@ export type Database = {
           is_pinned: boolean
           media_url: string | null
           post_id: string
+          reply_to_id: string | null
         }
         Insert: {
           author_id: string
@@ -126,6 +131,7 @@ export type Database = {
           is_pinned?: boolean
           media_url?: string | null
           post_id: string
+          reply_to_id?: string | null
         }
         Update: {
           author_id?: string
@@ -135,6 +141,7 @@ export type Database = {
           is_pinned?: boolean
           media_url?: string | null
           post_id?: string
+          reply_to_id?: string | null
         }
         Relationships: [
           {
@@ -149,6 +156,13 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
@@ -375,6 +389,63 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id: string
+          resolved_at: string | null
+          snapshot: Json
+          status: Database["public"]["Enums"]["report_status"]
+          target_id: string
+          target_type: Database["public"]["Enums"]["report_target"]
+          target_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string
+          resolved_at?: string | null
+          snapshot?: Json
+          status?: Database["public"]["Enums"]["report_status"]
+          target_id: string
+          target_type: Database["public"]["Enums"]["report_target"]
+          target_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: Database["public"]["Enums"]["report_reason"]
+          reporter_id?: string
+          resolved_at?: string | null
+          snapshot?: Json
+          status?: Database["public"]["Enums"]["report_status"]
+          target_id?: string
+          target_type?: Database["public"]["Enums"]["report_target"]
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       universities: {
         Row: {
           campus_lat: number | null
@@ -407,6 +478,27 @@ export type Database = {
           short_name?: string
         }
         Relationships: []
+      }
+      user_blocks: {
+        Row: { blocked_id: string; blocker_id: string; created_at: string }
+        Insert: { blocked_id: string; blocker_id: string; created_at?: string }
+        Update: { blocked_id?: string; blocker_id?: string; created_at?: string }
+        Relationships: [
+          {
+            foreignKeyName: "user_blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
@@ -608,6 +700,8 @@ export type Database = {
         Returns: undefined
       }
       cast_vote: { Args: { option_index: number; poll: string }; Returns: undefined }
+      delete_my_account: { Args: never; Returns: undefined }
+      export_my_data: { Args: never; Returns: Json }
       is_poll_options: { Args: { options: Json }; Returns: boolean }
       is_tag_array: {
         Args: { arr: string[]; max_items: number; max_len: number }
@@ -627,6 +721,17 @@ export type Database = {
         | "event_reminder"
         | "verification_passed"
         | "verification_failed"
+      report_reason:
+        | "spam"
+        | "harassment"
+        | "hate"
+        | "sexual"
+        | "violence"
+        | "scam"
+        | "impersonation"
+        | "other"
+      report_status: "open" | "actioned" | "dismissed"
+      report_target: "user" | "post" | "message" | "direct_message"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -667,6 +772,9 @@ export const Constants = {
         "verification_passed",
         "verification_failed",
       ],
+      report_reason: ["spam", "harassment", "hate", "sexual", "violence", "scam", "impersonation", "other"],
+      report_status: ["open", "actioned", "dismissed"],
+      report_target: ["user", "post", "message", "direct_message"],
     },
   },
 } as const

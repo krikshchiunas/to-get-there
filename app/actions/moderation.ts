@@ -4,7 +4,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { ModeratorPermissions } from "@/lib/types";
-import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { fail, getActor, noActor, type ActionResult } from "@/lib/actions/actor";
 
 const NO_RIGHTS: ModeratorPermissions = {
   can_post_media: false,
@@ -19,7 +19,7 @@ export async function setModerator(
   makeModerator: boolean,
 ): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
   if (makeModerator) {
     const { error } = await actor.supabase
@@ -49,7 +49,7 @@ export async function updateModeratorPermissions(
   permissions: ModeratorPermissions,
 ): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
   // Только четыре известных ключа — форма jsonb проверяется и в базе (0004).
   const clean: ModeratorPermissions = {

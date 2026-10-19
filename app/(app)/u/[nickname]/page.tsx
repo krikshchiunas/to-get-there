@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfilePosts } from "@/components/profile/profile-posts";
 import { FollowButton } from "@/components/profile/follow-button";
+import { ProfileMenu } from "@/components/profile/profile-menu";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
@@ -52,14 +53,18 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             >
               <Icon name="settings" size={19} />
             </Link>
-          ) : undefined
+          ) : (
+            <ProfileMenu user={user} />
+          )
         }
       />
 
       {canSeeProfile(user, viewer) ? (
         <>
           <ProfileHeader user={user} />
-          <ProfilePosts user={user} now={now} />
+          {/* Заблокированному идеи не видны в обе стороны (0029): пустое
+              состояние «пока нет идей» было бы неправдой. */}
+          {user.viewer_blocked ? null : <ProfilePosts user={user} now={now} />}
         </>
       ) : (
         <RestrictedProfile user={user} />

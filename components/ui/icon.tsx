@@ -168,6 +168,34 @@ const paths: Record<IconName, ReactNode> = {
   ),
   sparkle: <path d="m12 4 1.9 5.3L19 11l-5.1 1.7L12 18l-1.9-5.3L5 11l5.1-1.7z" />,
   chevron: <path d="m9.5 6 6 6-6 6" />,
+  reply: <path d="M10 6 4.5 11.5 10 17M5 11.5h8.5a6 6 0 0 1 6 6V19" />,
+  trash: (
+    <>
+      <path d="M4.5 7h15M9.5 7V4.8h5V7" />
+      <path d="M6.6 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.3h6a1.5 1.5 0 0 0 1.5-1.3L17.4 7" />
+      <path d="M10.2 11v5.6M13.8 11v5.6" />
+    </>
+  ),
+  flag: <path d="M6 21V4.5M6 5h10.8l-2.3 4 2.3 4H6" />,
+  block: (
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <path d="m6.4 6.4 11.2 11.2" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="8.5" y="8.5" width="11" height="11" rx="2" />
+      <path d="M15.5 8.5V6.5a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h2" />
+    </>
+  ),
+  download: <path d="M12 4v11M7 10.5l5 5 5-5M5 19.5h14" />,
+  warning: (
+    <>
+      <path d="M12 4 21 19.5H3z" />
+      <path d="M12 10v4.4M12 17.2v.1" />
+    </>
+  ),
 };
 
 export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {

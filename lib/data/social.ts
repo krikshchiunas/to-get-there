@@ -20,21 +20,25 @@ export interface ViewerEdges {
   viewerFollows: ReadonlySet<string>;
   /** Кто читает зрителя. Пересечение с предыдущим — друзья. */
   followsViewer: ReadonlySet<string>;
+  /** Кого зритель заблокировал. Кто заблокировал зрителя, ему не видно (0029). */
+  blockedByViewer: ReadonlySet<string>;
 }
 
 export const loadViewerEdges = cache(async (): Promise<ViewerEdges> => {
   const supabase = await createClient();
   const viewerId = await requireViewerId();
 
-  const [following, followers] = await Promise.all([
+  const [following, followers, blocks] = await Promise.all([
     supabase.from("follows").select("following_id").eq("follower_id", viewerId),
     supabase.from("follows").select("follower_id").eq("following_id", viewerId),
+    supabase.from("user_blocks").select("blocked_id").eq("blocker_id", viewerId),
   ]);
 
   return {
     viewerId,
     viewerFollows: new Set((following.data ?? []).map((row) => row.following_id)),
     followsViewer: new Set((followers.data ?? []).map((row) => row.follower_id)),
+    blockedByViewer: new Set((blocks.data ?? []).map((row) => row.blocked_id)),
   };
 });
 
@@ -114,6 +118,7 @@ export async function loadFollowCounts(userIds: string[]): Promise<FollowCounts>
       following_count: following.get(id) ?? 0,
       viewer_follows: edges.viewerFollows.has(id),
       follows_viewer: edges.followsViewer.has(id),
+      viewer_blocked: edges.blockedByViewer.has(id),
     });
   }
 

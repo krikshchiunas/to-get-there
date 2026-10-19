@@ -165,6 +165,8 @@ type MessageSeed = {
   minutes_ago: number;
   pinned?: boolean;
   media?: string;
+  /** Индекс сообщения этого же чата, на которое это — ответ. */
+  reply_to?: number;
 };
 
 const threads: Record<string, MessageSeed[]> = {
@@ -178,9 +180,9 @@ const threads: Record<string, MessageSeed[]> = {
     },
     { author_id: "u-mira", content: "Я прямо из библиотеки, задержусь минут на десять.", minutes_ago: 300 },
     { author_id: "me", content: "Что-нибудь принести? Я всё равно пройду мимо ларька.", minutes_ago: 240 },
-    { author_id: "u-jonas", content: "Мороженое было бы отлично, остальное есть.", minutes_ago: 235 },
+    { author_id: "u-jonas", content: "Мороженое было бы отлично, остальное есть.", minutes_ago: 235, reply_to: 2 },
     { author_id: "u-tobi", content: "Я впервые с вами, как вас узнать?", minutes_ago: 120 },
-    { author_id: "u-mira", content: "Жёлтый плед и два велосипеда рядом. Напиши, когда будешь на месте.", minutes_ago: 114 },
+    { author_id: "u-mira", content: "Жёлтый плед и два велосипеда рядом. Напиши, когда будешь на месте.", minutes_ago: 114, reply_to: 4 },
     { author_id: "u-kwame", content: "Беру с собой коробку черешни.", minutes_ago: 58 },
     { author_id: "me", content: "Отлично, тогда до вечера.", minutes_ago: 42 },
   ],
@@ -237,10 +239,15 @@ const threads: Record<string, MessageSeed[]> = {
 
 export function messagesOf(postId: string): MessageView[] {
   const seeds = threads[postId] ?? [];
+  const authorOf = (seed: MessageSeed) => {
+    const author = userById.get(seed.author_id);
+    if (!author) throw new Error(`Unknown message author: ${seed.author_id}`);
+    return author;
+  };
   return seeds
     .map((seed, index) => {
-      const author = userById.get(seed.author_id);
-      if (!author) throw new Error(`Unknown message author: ${seed.author_id}`);
+      const author = authorOf(seed);
+      const original = seed.reply_to === undefined ? undefined : seeds[seed.reply_to];
       return {
         id: `${postId}-m-${index}`,
         post_id: postId,
@@ -248,6 +255,15 @@ export function messagesOf(postId: string): MessageView[] {
         content: seed.content,
         media_url: seed.media ?? null,
         is_pinned: seed.pinned ?? false,
+        reply_to_id: original ? `${postId}-m-${seed.reply_to}` : null,
+        reply_to: original
+          ? {
+              id: `${postId}-m-${seed.reply_to}`,
+              author_nickname: authorOf(original).nickname,
+              content: original.content,
+              has_media: Boolean(original.media),
+            }
+          : null,
         created_at: minutesAgo(seed.minutes_ago),
         author,
         role: roleOf(postId, seed.author_id),

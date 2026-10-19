@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { Icon } from "./icon";
 
@@ -30,6 +30,16 @@ export function Sheet({
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
   }, [open]);
+
+  // Лист убирают из дерева, не закрыв (условный рендер у вызывающего), —
+  // закрыть его до удаления узла. Тогда браузер сам вернёт фокус на кнопку,
+  // которая его открыла: layout-эффект снимается раньше, чем узел уходит из DOM.
+  useLayoutEffect(() => {
+    const dialog = ref.current;
+    return () => {
+      if (dialog?.open) dialog.close();
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) return;

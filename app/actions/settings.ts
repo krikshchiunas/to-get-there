@@ -10,7 +10,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { NotificationSettings, PrivacySettings } from "@/lib/types";
-import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { fail, getActor, noActor, type ActionResult } from "@/lib/actions/actor";
 import { AVATAR_BUCKET, avatarPathFromUrl, isOwnAvatarUrl } from "@/lib/media";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -34,7 +34,7 @@ function cleanTags(tags: string[], max: number, maxLen: number): string[] | stri
 
 export async function updateProfile(input: ProfileInput): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
   const nickname = input.nickname.trim().toLowerCase();
   if (!NICKNAME.test(nickname)) {
@@ -78,7 +78,7 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
  */
 export async function updateAvatar(avatarUrl: string | null): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
   if (avatarUrl !== null && !isOwnAvatarUrl(avatarUrl, SUPABASE_URL, actor.viewerId)) {
     return { ok: false, error: "Фото должно быть загружено через приложение." };
@@ -112,14 +112,15 @@ export async function updateAvatar(avatarUrl: string | null): Promise<ActionResu
 
 export async function updatePrivacy(settings: PrivacySettings): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
-  // Только четыре известных ключа — лишний ключ отклонит CHECK в 0003.
+  // Только известные ключи — лишний ключ отклонит CHECK (0003, 0032).
   const clean: PrivacySettings = {
     who_can_message: settings.who_can_message,
     who_can_see_profile: settings.who_can_see_profile,
     who_can_see_interests: settings.who_can_see_interests,
     visible_in_search: Boolean(settings.visible_in_search),
+    read_receipts: settings.read_receipts !== false,
   };
 
   const { error } = await actor.supabase
@@ -134,7 +135,7 @@ export async function updatePrivacy(settings: PrivacySettings): Promise<ActionRe
 
 export async function updateNotificationSettings(settings: NotificationSettings): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
   const clean: NotificationSettings = {
     new_participant: Boolean(settings.new_participant),

@@ -1,11 +1,13 @@
 "use server";
 
-/** Идея: создать, вступить, выйти или удалить участника, закрыть набор. */
+/** Идея: создать, удалить, вступить, выйти или удалить участника, закрыть набор. */
 
 import { isValidCoord, roundCoord, STORED_DIGITS } from "@/lib/place";
 import { revalidatePath } from "next/cache";
+import { CHAT_MEDIA_BUCKET } from "@/lib/media";
 import type { ChatAccess, GeoMode, GeoRadius } from "@/lib/types";
-import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { fail, getActor, noActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { areUuids, invalidInput, isUuid, oneOf, text } from "@/lib/validate";
 
 export interface CreatePostInput {
   title: string;
@@ -23,6 +25,40 @@ export interface CreatePostInput {
 }
 
 const RADII: readonly number[] = [500, 1000, 2000, 5000, 10000];
+const GEO_MODES = ["radius", "area", "city"] as const;
+const CHAT_ACCESS = ["everyone", "followers", "friends"] as const;
+
+function finiteOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/**
+ * Аргумент пришёл из сети: приводим к форме CreatePostInput, а что не
+ * приводится — отбрасываем. null — форма не распознана вовсе.
+ */
+function normalize(raw: unknown): CreatePostInput | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const input = raw as Record<string, unknown>;
+  const geoMode = oneOf(input.geoMode, GEO_MODES);
+  const chatAccess = oneOf(input.chatAccess, CHAT_ACCESS);
+  if (!geoMode || !chatAccess || !isUuid(input.categoryId) || typeof input.dateStart !== "string") return null;
+  const radius = finiteOrNull(input.geoRadiusM);
+  const max = finiteOrNull(input.maxParticipants);
+  return {
+    title: text(input.title),
+    description: typeof input.description === "string" ? input.description : "",
+    categoryId: input.categoryId,
+    dateStart: input.dateStart,
+    geoMode,
+    geoCity: text(input.geoCity),
+    geoAddress: text(input.geoAddress) || null,
+    geoLat: finiteOrNull(input.geoLat),
+    geoLng: finiteOrNull(input.geoLng),
+    geoRadiusM: radius as GeoRadius | null,
+    maxParticipants: max === null ? null : Math.trunc(max),
+    chatAccess,
+  };
+}
 
 /** Те же правила, что CHECK-ограничения в 0004: ошибка до похода в базу. */
 function validate(input: CreatePostInput): string | null {
@@ -65,10 +101,12 @@ function storedPoint(input: CreatePostInput): { geo_lat: number | null; geo_lng:
   return { geo_lat: roundCoord(input.geoLat, digits), geo_lng: roundCoord(input.geoLng, digits) };
 }
 
-export async function createPost(input: CreatePostInput): Promise<ActionResult<{ id: string }>> {
+export async function createPost(raw: CreatePostInput): Promise<ActionResult<{ id: string }>> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
 
+  const input = normalize(raw);
+  if (!input) return invalidInput;
   const problem = validate(input);
   if (problem) return { ok: false, error: problem };
 
@@ -108,7 +146,8 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
 
 export async function joinPost(postId: string): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
+  if (!isUuid(postId)) return invalidInput;
 
   // RLS пропустит вставку, только если can_join_post: доступ к чату,
   // набор открыт и есть свободное место.
@@ -130,7 +169,8 @@ export async function joinPost(postId: string): Promise<ActionResult> {
 /** Выйти самому или удалить участника (автор и модератор с can_kick). */
 export async function removeParticipant(postId: string, userId: string): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
+  if (!areUuids(postId, userId)) return invalidInput;
 
   const { error, count } = await actor.supabase
     .from("post_participants")
@@ -148,7 +188,8 @@ export async function removeParticipant(postId: string, userId: string): Promise
 
 export async function closePost(postId: string): Promise<ActionResult> {
   const actor = await getActor();
-  if (!actor) return notSignedIn;
+  if (!actor) return noActor();
+  if (!isUuid(postId)) return invalidInput;
 
   const { error, count } = await actor.supabase
     .from("posts")
@@ -160,5 +201,32 @@ export async function closePost(postId: string): Promise<ActionResult> {
 
   revalidatePath("/");
   revalidatePath(`/post/${postId}`);
+  return { ok: true };
+}
+
+/**
+ * Удалить идею целиком: чат, голосования, участников. Каскады в базе уносят
+ * строки, а фото из чата лежат в Storage, куда каскад не дотягивается, —
+ * их приложение удаляет само, пока идея ещё существует и политика
+ * post_media_delete_own_or_author признаёт в зрителе автора.
+ */
+export async function deletePost(postId: string): Promise<ActionResult> {
+  const actor = await getActor();
+  if (!actor) return noActor();
+  if (!isUuid(postId)) return invalidInput;
+
+  const { data: post } = await actor.supabase.from("posts").select("author_id").eq("id", postId).maybeSingle();
+  if (!post || post.author_id !== actor.viewerId) return { ok: false, error: "Удалить идею может только её автор." };
+
+  const bucket = actor.supabase.storage.from(CHAT_MEDIA_BUCKET);
+  const { data: files } = await bucket.list(postId, { limit: 1000 });
+  const paths = (files ?? []).map((file) => `${postId}/${file.name}`);
+  if (paths.length > 0) await bucket.remove(paths);
+
+  const { error, count } = await actor.supabase.from("posts").delete({ count: "exact" }).eq("id", postId);
+  if (error) return fail(error);
+  if (!count) return { ok: false, error: "Удалить идею может только её автор." };
+
+  revalidatePath("/", "layout");
   return { ok: true };
 }

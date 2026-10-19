@@ -50,6 +50,7 @@ export function toPrivacySettings(value: Json): PrivacySettings {
     who_can_see_profile: pickString(raw.who_can_see_profile, ["everyone", "university", "friends"] as const, defaultPrivacy.who_can_see_profile),
     who_can_see_interests: pickString(raw.who_can_see_interests, ["everyone", "university", "friends"] as const, defaultPrivacy.who_can_see_interests),
     visible_in_search: pickBoolean(raw.visible_in_search, defaultPrivacy.visible_in_search),
+    read_receipts: pickBoolean(raw.read_receipts, defaultPrivacy.read_receipts),
   };
 }
 
@@ -148,6 +149,7 @@ export interface SocialFacts {
   following_count: number;
   viewer_follows: boolean;
   follows_viewer: boolean;
+  viewer_blocked: boolean;
 }
 
 export const noSocialFacts: SocialFacts = {
@@ -155,6 +157,7 @@ export const noSocialFacts: SocialFacts = {
   following_count: 0,
   viewer_follows: false,
   follows_viewer: false,
+  viewer_blocked: false,
 };
 
 export function toUserView(

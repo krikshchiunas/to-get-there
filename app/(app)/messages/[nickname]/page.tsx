@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Conversation } from "@/components/dm/conversation";
 import { Avatar } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/ui/page-header";
-import { canMessage, getThread, getUserByNickname, getViewer } from "@/lib/data";
+import { canMessage, getPartnerReadAt, getThread, getUserByNickname, getViewer } from "@/lib/data";
 
 /** Stamps and day dividers in the thread depend on the clock. */
 export const dynamic = "force-dynamic";
@@ -34,7 +34,11 @@ export default async function DirectConversationPage({ params }: PageParams) {
   }
 
   const now = new Date();
-  const [viewer, messages] = await Promise.all([await getViewer(), await getThread(partner.id)]);
+  const [viewer, messages, partnerReadAt] = await Promise.all([
+    getViewer(),
+    getThread(partner.id),
+    getPartnerReadAt(partner.id),
+  ]);
 
   return (
     <>
@@ -58,6 +62,7 @@ export default async function DirectConversationPage({ params }: PageParams) {
         viewerId={viewer.id}
         messages={messages}
         canReply={canMessage(partner, viewer)}
+        partnerReadAt={partnerReadAt}
         now={now}
       />
     </>

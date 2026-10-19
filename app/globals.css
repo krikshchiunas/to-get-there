@@ -47,15 +47,15 @@
   --c-sunken: #f2f3f6;
   --c-ink: #101418;
   --c-ink-soft: #5b6472;
-  --c-ink-faint: #949cab;
+  --c-ink-faint: #666e7d; /* 4.6:1 на заливке — WCAG AA и для 12px */
   --c-line: #e6e8ec;
   --c-line-strong: #d4d8df;
   --c-signal: #2f3bee;
   --c-signal-ink: #ffffff;
   --c-signal-wash: #eef0fe;
-  --c-heat: #e02a52;
+  --c-heat: #cc2249; /* 4.8:1 на heat-wash: текст «опасных» кнопок проходит AA */
   --c-heat-wash: #fdeef2;
-  --c-verified: #1a7f64;
+  --c-verified: #15735a;
 
   color-scheme: light;
 }
@@ -67,7 +67,7 @@
   --c-sunken: #171a21;
   --c-ink: #e9ecf1;
   --c-ink-soft: #99a2b2;
-  --c-ink-faint: #6d7585;
+  --c-ink-faint: #858e9e;
   --c-line: #22262f;
   --c-line-strong: #333945;
   --c-signal: #7b86ff;
@@ -87,7 +87,7 @@
   --c-sunken: #171a21;
   --c-ink: #e9ecf1;
   --c-ink-soft: #99a2b2;
-  --c-ink-faint: #6d7585;
+  --c-ink-faint: #858e9e;
   --c-line: #22262f;
   --c-line-strong: #333945;
   --c-signal: #7b86ff;

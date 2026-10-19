@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { IdeaDetail } from "@/components/chat/idea-detail";
 import {
+  CHAT_HISTORY_LIMIT,
   canEnterChat,
   chatAccessReason,
   getViewer,
@@ -44,18 +45,26 @@ export default async function IdeaPage({ params }: IdeaPageProps) {
   if (!post) notFound();
 
   const now = new Date();
-  const viewer = await getViewer();
+  // Независимые чтения — параллельно: страница ждёт самое долгое, а не сумму.
+  const [viewer, participants, messages, polls, permissions] = await Promise.all([
+    getViewer(),
+    getParticipants(post.id),
+    getMessages(post.id),
+    getPolls(post.id),
+    getViewerPermissions(post.id),
+  ]);
 
   return (
     <IdeaDetail
       post={post}
       viewer={viewer}
-      participants={await getParticipants(post.id)}
-      messages={await getMessages(post.id)}
-      polls={await getPolls(post.id)}
-      permissions={await getViewerPermissions(post.id)}
+      participants={participants}
+      messages={messages}
+      polls={polls}
+      permissions={permissions}
       canEnter={canEnterChat(post)}
       accessReason={chatAccessReason(post)}
+      historyLimited={messages.length >= CHAT_HISTORY_LIMIT}
       now={now}
     />
   );

@@ -7,6 +7,7 @@ import { formatCount, pluralRu } from "@/lib/format";
 import { canMessage, canSeeInterests, getViewer } from "@/lib/data";
 import { isFriend, type UserView } from "@/lib/types";
 import { FollowButton } from "./follow-button";
+import { BlockedNotice } from "./profile-menu";
 
 /**
  * Identity block of a profile: who this is, where they study, what they are
@@ -63,41 +64,45 @@ export async function ProfileHeader({ user }: { user: UserView }) {
 
       {isViewer ? null : <Relationship user={user} friends={friends} />}
 
-      <div className="mt-4">
-        {isViewer ? (
-          <ButtonLink href="/settings/profile" variant="quiet" size="md" full>
-            Редактировать профиль
-          </ButtonLink>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              <FollowButton user={user} size="md" full />
+      {user.viewer_blocked ? (
+        <BlockedNotice user={user} />
+      ) : (
+        <div className="mt-4">
+          {isViewer ? (
+            <ButtonLink href="/settings/profile" variant="quiet" size="md" full>
+              Редактировать профиль
+            </ButtonLink>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <FollowButton user={user} size="md" full />
 
-              {canWrite ? (
-                <ButtonLink href={`/messages/${user.nickname}`} variant="quiet" size="md" full>
-                  Написать
-                </ButtonLink>
-              ) : (
-                <Button
-                  variant="quiet"
-                  size="md"
-                  full
-                  disabled
-                  aria-describedby={`message-blocked-${user.id}`}
-                >
-                  Написать
-                </Button>
+                {canWrite ? (
+                  <ButtonLink href={`/messages/${user.nickname}`} variant="quiet" size="md" full>
+                    Написать
+                  </ButtonLink>
+                ) : (
+                  <Button
+                    variant="quiet"
+                    size="md"
+                    full
+                    disabled
+                    aria-describedby={`message-blocked-${user.id}`}
+                  >
+                    Написать
+                  </Button>
+                )}
+              </div>
+
+              {canWrite ? null : (
+                <p id={`message-blocked-${user.id}`} className="mt-2 text-[13px] text-ink-soft">
+                  {messageReason(user)}
+                </p>
               )}
-            </div>
-
-            {canWrite ? null : (
-              <p id={`message-blocked-${user.id}`} className="mt-2 text-[13px] text-ink-soft">
-                {messageReason(user)}
-              </p>
-            )}
-          </>
-        )}
-      </div>
+            </>
+          )}
+        </div>
+      )}
 
       {showInterests ? (
         hasTags ? (

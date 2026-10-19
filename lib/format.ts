@@ -310,3 +310,22 @@ export function formatMinutesOfDay(minutes: number): string {
   const m = minutes % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
+
+/**
+ * Кто печатает — одной строкой под чатом, как в Telegram:
+ * «jonas_k печатает…», «jonas_k и mira печатают…», «jonas_k, mira и ещё 2 печатают…».
+ */
+export function formatTyping(nicknames: string[]): string | null {
+  const names = nicknames.filter(Boolean);
+  if (names.length === 0) return null;
+  if (names.length === 1) return `${names[0]} печатает…`;
+  if (names.length === 2) return `${names[0]} и ${names[1]} печатают…`;
+  const rest = names.length - 2;
+  return `${names[0]}, ${names[1]} и ещё ${rest} печатают…`;
+}
+
+/** «Сейчас в чате: 3» — без себя; никого — ничего. */
+export function formatPresent(count: number): string | null {
+  if (count <= 0) return null;
+  return `Сейчас в чате ещё ${count} ${pluralRu(count, ["человек", "человека", "человек"])}`;
+}

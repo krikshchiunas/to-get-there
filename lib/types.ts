@@ -46,6 +46,8 @@ export interface PrivacySettings {
   who_can_see_profile: ProfileAudience;
   who_can_see_interests: ProfileAudience;
   visible_in_search: boolean;
+  /** «Прочитано» в личке. Взаимно: выключил у себя — не видишь и чужие (0032). */
+  read_receipts: boolean;
 }
 
 export interface NotificationSettings {
@@ -82,6 +84,8 @@ export interface UserView extends User {
   /** Relationship of the signed-in viewer to this user. */
   viewer_follows: boolean;
   follows_viewer: boolean;
+  /** Зритель заблокировал этого человека (0029). Обратное зрителю не видно. */
+  viewer_blocked: boolean;
 }
 
 /** Mutual follow. Drives the "friends" tier in privacy settings. */
@@ -169,7 +173,18 @@ export interface Message {
   content: string;
   media_url: string | null;
   is_pinned: boolean;
+  /** Ответ на сообщение того же чата; null — исходное удалено или ответа нет. */
+  reply_to_id: UUID | null;
   created_at: Timestamp;
+}
+
+/** Цитата над ответом: кому и что, одной строкой. */
+export interface ReplyPreview {
+  id: UUID;
+  author_nickname: string;
+  /** Текст исходного; пустой, если там только фото. */
+  content: string;
+  has_media: boolean;
 }
 
 export interface MessageView extends Message {
@@ -181,6 +196,8 @@ export interface MessageView extends Message {
    * или читать его нельзя.
    */
   media_src?: string | null;
+  /** Исходное сообщение, если это ответ и исходное видно зрителю. */
+  reply_to?: ReplyPreview | null;
 }
 
 export interface PollOption {
@@ -220,6 +237,7 @@ export interface DirectMessage {
   receiver_id: UUID;
   content: string;
   media_url: string | null;
+  reply_to_id: UUID | null;
   created_at: Timestamp;
 }
 
@@ -241,6 +259,21 @@ export interface Follow {
   following_id: UUID;
   created_at: Timestamp;
 }
+
+/* ── safety ─────────────────────────────────────────────────────── */
+
+/** На что можно пожаловаться (0030). */
+export type ReportTarget = "user" | "post" | "message" | "direct_message";
+
+export type ReportReason =
+  | "spam"
+  | "harassment"
+  | "hate"
+  | "sexual"
+  | "violence"
+  | "scam"
+  | "impersonation"
+  | "other";
 
 /* ── notifications ──────────────────────────────────────────────── */
 
@@ -344,4 +377,11 @@ export type IconName =
   | "briefcase"
   | "more"
   | "sparkle"
-  | "chevron";
+  | "chevron"
+  | "reply"
+  | "trash"
+  | "flag"
+  | "block"
+  | "copy"
+  | "download"
+  | "warning";

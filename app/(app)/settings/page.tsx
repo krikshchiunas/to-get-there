@@ -78,6 +78,48 @@ export default async function SettingsPage() {
           />
         </Group>
 
+        <Group title="Безопасность и данные">
+          <SettingsLink
+            href="/settings/blocked"
+            icon="block"
+            label="Заблокированные"
+            description="Кого ты заблокировал и как это снять."
+          />
+          <SettingsLink
+            href="/settings/account"
+            icon="download"
+            label="Данные и аккаунт"
+            description="Скачать копию своих данных или удалить аккаунт."
+          />
+        </Group>
+
+        <Group title="Правила и документы">
+          <SettingsLink
+            href="/legal/community"
+            icon="heart"
+            label="Правила сообщества"
+            description="Что здесь можно, что нельзя и что бывает за нарушения."
+          />
+          <SettingsLink
+            href="/legal/privacy"
+            icon="lock"
+            label="Конфиденциальность"
+            description="Какие данные мы храним, зачем и сколько. Datenschutzerklärung."
+          />
+          <SettingsLink
+            href="/legal/terms"
+            icon="note"
+            label="Условия использования"
+            description="Nutzungsbedingungen."
+          />
+          <SettingsLink
+            href="/legal/impressum"
+            icon="book"
+            label="Impressum"
+            description="Кто отвечает за сервис."
+          />
+        </Group>
+
         <Group
           title="Аккаунт"
           description="Университет закреплён за аккаунтом по почте, с которой ты регистрировался: он решает, какую ленту «Университет» ты видишь."

@@ -92,7 +92,8 @@ function same(a: PrivacySettings, b: PrivacySettings): boolean {
     a.who_can_see_profile === b.who_can_see_profile &&
     a.who_can_see_interests === b.who_can_see_interests &&
     a.who_can_message === b.who_can_message &&
-    a.visible_in_search === b.visible_in_search
+    a.visible_in_search === b.visible_in_search &&
+    a.read_receipts === b.read_receipts
   );
 }
 
@@ -171,6 +172,20 @@ export function PrivacyForm({ user }: { user: UserView }) {
               onChange={(next) => patch({ visible_in_search: next })}
               label="Показывать меня в поиске людей"
               description="Без этого тебя не найдут по нику, факультету или интересам. Идеи, которые ты создаёшь, в поиске остаются."
+            />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="px-4 pt-7 pb-2 text-[13px] font-medium text-ink-faint">Личные сообщения</h2>
+        <div className="u-feed">
+          <div className="u-feed-divider px-4">
+            <Switch
+              checked={draft.read_receipts}
+              onChange={(next) => patch({ read_receipts: next })}
+              label="Отметка «Прочитано»"
+              description="Собеседник видит, что ты прочитал его сообщения. Работает взаимно: выключишь — и сам не будешь видеть, прочитали ли тебя."
             />
           </div>
         </div>
