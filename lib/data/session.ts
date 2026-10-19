@@ -2,9 +2,10 @@
  * Кто смотрит приложение.
  *
  * В режиме базы зритель — это владелец сессии Supabase, сопоставленный со
- * своей строкой в public.users через `current_user_id()`. Сопоставление
- * делает база, а не приложение: та же функция стоит во всех политиках RLS,
- * поэтому здесь и там зритель гарантированно один и тот же человек.
+ * своей строкой в public.users по auth_user_id. Ровно так же сопоставляет
+ * private.current_user_id() во всех политиках RLS, а саму строку отдаёт
+ * политика users_select_visible только её владельцу (и тем, кому разрешено) —
+ * поэтому здесь и в базе зритель гарантированно один и тот же человек.
  *
  * В режиме моков (`NEXT_PUBLIC_USE_MOCKS` не "false") зритель — mara_t, как
  * на этапах 1–4, чтобы локальная разработка не требовала входа.
@@ -34,8 +35,8 @@ export const getViewerId = cache(async (): Promise<string | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase.rpc("current_user_id");
-  return data ?? null;
+  const { data } = await supabase.from("users").select("id").eq("auth_user_id", user.id).maybeSingle();
+  return data?.id ?? null;
 });
 
 /**

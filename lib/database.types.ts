@@ -607,41 +607,13 @@ export type Database = {
         Args: { error_code?: string; member: string; new_status: string; session_id: string }
         Returns: undefined
       }
-      are_friends: { Args: { a: string; b: string }; Returns: boolean }
-      audience_allows: {
-        Args: { audience: string; target: string; viewer: string }
-        Returns: boolean
-      }
-      can_enter_post_chat: { Args: { member: string; post: string }; Returns: boolean }
       cast_vote: { Args: { option_index: number; poll: string }; Returns: undefined }
-      can_join_post: { Args: { member: string; post: string }; Returns: boolean }
-      can_message_user: { Args: { sender: string; target: string }; Returns: boolean }
-      can_moderate: {
-        Args: { actor: string; permission_key: string; post: string }
-        Returns: boolean
-      }
-      can_see_interests: { Args: { target: string; viewer: string }; Returns: boolean }
-      can_see_profile: { Args: { target: string; viewer: string }; Returns: boolean }
-      current_user_id: { Args: never; Returns: string }
-      follows_user: { Args: { follower: string; target: string }; Returns: boolean }
       is_poll_options: { Args: { options: Json }; Returns: boolean }
-      is_post_author: { Args: { member: string; post: string }; Returns: boolean }
-      is_post_member: { Args: { member: string; post: string }; Returns: boolean }
       is_tag_array: {
         Args: { arr: string[]; max_items: number; max_len: number }
         Returns: boolean
       }
       mark_conversation_read: { Args: { partner: string }; Returns: undefined }
-      notification_enabled: { Args: { recipient: string; setting: string }; Returns: boolean }
-      open_read: { Args: never; Returns: boolean }
-      participant_count: { Args: { post: string }; Returns: number }
-      poll_post_id: { Args: { poll: string }; Returns: string }
-      post_author_id: { Args: { post: string }; Returns: string }
-      post_role: { Args: { member: string; post: string }; Returns: string }
-      shares_post_with: { Args: { a: string; b: string }; Returns: boolean }
-      signal: { Args: { topic: string }; Returns: undefined }
-      try_uuid: { Args: { value: string }; Returns: string }
-      unread_direct_count: { Args: { partner: string }; Returns: number }
       unread_direct_total: { Args: never; Returns: number }
     }
     Enums: {

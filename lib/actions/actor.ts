@@ -19,10 +19,12 @@ export async function getActor() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: viewerId } = await supabase.rpc("current_user_id");
-  if (!viewerId) return null;
+  // Своя строка users видна по RLS — то же сопоставление, что делает
+  // private.current_user_id() в политиках (auth_user_id = auth.uid()).
+  const { data: me } = await supabase.from("users").select("id").eq("auth_user_id", user.id).maybeSingle();
+  if (!me) return null;
 
-  return { supabase, viewerId, authUserId: user.id };
+  return { supabase, viewerId: me.id, authUserId: user.id };
 }
 
 export const notSignedIn: ActionResult = {

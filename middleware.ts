@@ -1,10 +1,12 @@
 /**
  * Сессия и доступ.
  *
- * Делает две вещи на каждом запросе:
- *   1. обновляет токен Supabase в cookies — без этого серверные компоненты
+ * Делает три вещи на каждом запросе:
+ *   1. ставит Content-Security-Policy со свежим nonce (lib/csp.ts) — Next
+ *      читает его из заголовка запроса и проставляет своим скриптам;
+ *   2. обновляет токен Supabase в cookies — без этого серверные компоненты
  *      видели бы просроченную сессию;
- *   2. не пускает на экраны приложения без входа.
+ *   3. не пускает на экраны приложения без входа.
  *
  * Экраны /auth/* открыты всем: иначе на страницу входа нельзя было бы
  * попасть. В режиме моков защита выключена — локальная разработка идёт от
@@ -13,13 +15,33 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { contentSecurityPolicy, createNonce } from "@/lib/csp";
 
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
 export async function middleware(request: NextRequest) {
-  if (usingMocks) return NextResponse.next({ request });
+  const nonce = createNonce();
+  const csp = contentSecurityPolicy({
+    nonce,
+    dev: process.env.NODE_ENV !== "production",
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    tileUrl: process.env.NEXT_PUBLIC_MAP_TILE_URL,
+    mocks: usingMocks,
+  });
 
-  let response = NextResponse.next({ request });
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const pass = () => {
+    const next = NextResponse.next({ request: { headers: requestHeaders } });
+    next.headers.set("Content-Security-Policy", csp);
+    return next;
+  };
+
+  if (usingMocks) return pass();
+
+  let response = pass();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +53,8 @@ export async function middleware(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
-          response = NextResponse.next({ request });
+          requestHeaders.set("cookie", request.cookies.toString());
+          response = pass();
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, options);
           }
