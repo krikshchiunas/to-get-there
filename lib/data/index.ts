@@ -130,6 +130,17 @@ export async function getUserById(id: string): Promise<UserView | undefined> {
   return usingMocks ? mock.getUserById(id) : dbPeople.getUserById(id);
 }
 
+/** Несколько профилей одним заходом — для списков, где у каждой строки свой автор. */
+export async function getUsersByIds(ids: string[]): Promise<Map<string, UserView>> {
+  if (!usingMocks) return dbPeople.getUsersByIds(ids);
+  return new Map(
+    ids.flatMap((id) => {
+      const user = mock.getUserById(id);
+      return user ? [[id, user] as const] : [];
+    }),
+  );
+}
+
 export async function getFollowers(userId: string): Promise<UserView[]> {
   return usingMocks ? mock.getFollowers(userId) : dbPeople.getFollowers(userId);
 }

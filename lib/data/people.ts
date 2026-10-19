@@ -41,6 +41,16 @@ export async function getUserById(id: string): Promise<UserView | undefined> {
   return view;
 }
 
+/** Несколько профилей одним запросом; кого RLS не показывает — того нет. */
+export async function getUsersByIds(ids: string[]): Promise<Map<string, UserView>> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const supabase = await createClient();
+  const { data } = await supabase.from("users").select(USER_SELECT).in("id", unique);
+  const views = await toUserViews((data ?? []) as unknown as UserWithUniversity[]);
+  return new Map(views.map((view) => [view.id, view]));
+}
+
 export async function getFollowers(userId: string): Promise<UserView[]> {
   const supabase = await createClient();
   const { data } = await supabase

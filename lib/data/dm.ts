@@ -1,17 +1,10 @@
-/**
- * Личная переписка.
- *
- * Представление `public.direct_conversations` из миграции 0010 делает ровно
- * это одним запросом, но опирается на `current_user_id()`, который без
- * сессии равен NULL. До этапа 6 список собирается в коде по тому же
- * `conversation_key`, что и в представлении.
- */
+/** Личная переписка. */
 
 import { createClient } from "@/lib/supabase/server";
 import type { ConversationView, DirectMessage, UserView } from "@/lib/types";
 import { isFriend } from "@/lib/types";
 import { requireViewerId } from "./session";
-import { getUserById } from "./people";
+import { getUsersByIds } from "./people";
 
 /** Тот же ключ, что считает генерируемая колонка в 0005. */
 export function conversationKey(a: string, b: string): string {
@@ -48,54 +41,52 @@ export async function getThread(partnerId: string): Promise<DirectMessage[]> {
   }));
 }
 
+/**
+ * Список личных чатов — представление `direct_conversations` (0010/0017):
+ * последнее сообщение на собеседника, непрочитанные и можно ли ответить,
+ * посчитанные в базе с теми же правилами, что и RLS.
+ */
 export async function getConversations(): Promise<ConversationView[]> {
   const supabase = await createClient();
-  const viewerId = await requireViewerId();
+  await requireViewerId();
 
   const { data } = await supabase
-    .from("direct_messages")
+    .from("direct_conversations")
     .select("*")
-    .or(`sender_id.eq.${viewerId},receiver_id.eq.${viewerId}`)
-    .order("created_at", { ascending: false });
+    .order("last_created_at", { ascending: false });
 
-  // Последнее сообщение на собеседника: выборка уже по убыванию времени,
-  // поэтому первое встреченное и есть последнее.
-  const latest = new Map<string, (typeof rows)[number]>();
-  const rows = data ?? [];
-  for (const row of rows) {
-    const partnerId = row.sender_id === viewerId ? row.receiver_id : row.sender_id;
-    if (!latest.has(partnerId)) latest.set(partnerId, row);
-  }
+  const rows = (data ?? []).filter(
+    (row) => row.partner_id && row.last_message_id && row.last_sender_id && row.last_created_at,
+  );
+  const partners = await getUsersByIds(rows.map((row) => row.partner_id!));
+  const viewerId = await requireViewerId();
 
-  const conversations = await Promise.all(
-    [...latest.entries()].map(async ([partnerId, row]) => {
-      const partner = await getUserById(partnerId);
-      if (!partner) return null;
-      return {
+  return rows.flatMap((row) => {
+    const partner = partners.get(row.partner_id!);
+    if (!partner) return [];
+    const fromViewer = row.last_sender_id === viewerId;
+    return [
+      {
         partner,
         last_message: {
-          id: row.id,
-          sender_id: row.sender_id,
-          receiver_id: row.receiver_id,
-          content: row.content,
-          media_url: row.media_url,
-          created_at: row.created_at,
+          id: row.last_message_id!,
+          sender_id: row.last_sender_id!,
+          receiver_id: fromViewer ? partner.id : viewerId,
+          content: row.last_content ?? "",
+          media_url: row.last_media_url,
+          created_at: row.last_created_at!,
         },
-        // Счётчик непрочитанных читается через
-        // rpc("unread_direct_count"), но она берёт зрителя из сессии и до
-        // этапа 6 вернёт ноль. Показываем ноль честно, а не выдуманное.
-        unread_count: 0,
-        can_reply: canMessage(partner),
-      } satisfies ConversationView;
-    }),
-  );
-
-  return conversations
-    .filter((item): item is ConversationView => item !== null)
-    .sort((a, b) => b.last_message.created_at.localeCompare(a.last_message.created_at));
+        unread_count: row.unread_count ?? 0,
+        can_reply: row.can_reply ?? false,
+      } satisfies ConversationView,
+    ];
+  });
 }
 
-/** Точка в навигации. До входа считать нечего — см. комментарий выше. */
+/** Точка на «Чатах» в навигации: все непрочитанные личные сообщения. */
 export async function getUnreadDirectTotal(): Promise<number> {
-  return 0;
+  const supabase = await createClient();
+  await requireViewerId();
+  const { data } = await supabase.rpc("unread_direct_total");
+  return data ?? 0;
 }

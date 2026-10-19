@@ -1,5 +1,6 @@
 import { Nav } from "@/components/nav/bottom-nav";
 import { ToastHost } from "@/components/ui/toast";
+import { LiveRefresh } from "@/lib/live";
 import { getUnreadDirectTotal, getUnreadNotificationCount, getViewer } from "@/lib/data";
 
 /**
@@ -27,6 +28,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="u-column pb-24 md:pb-10">{children}</main>
       </div>
       <ToastHost />
+      {/* Личка и уведомления: бейджи и списки обновляются сами. */}
+      <LiveRefresh topic={`user:${viewer.id}`} />
     </div>
   );
 }

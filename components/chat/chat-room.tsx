@@ -13,6 +13,7 @@ import type {
   PollView,
   UserView,
 } from "@/lib/types";
+import { mergeById, useSyncedState } from "@/lib/use-synced-state";
 import { Composer } from "./composer";
 import { MessageList } from "./message-list";
 import { PollComposer } from "./poll-composer";
@@ -71,6 +72,10 @@ export function rightsOf(role: ChatRole, permissions: ModeratorPermissions | nul
   };
 }
 
+function byCreatedAt(a: { created_at: string }, b: { created_at: string }): number {
+  return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
+}
+
 /** Preview line for the pinned bar: media-only messages have no text. */
 function previewOf(message: MessageView): string {
   const text = message.content.trim();
@@ -99,8 +104,15 @@ export function ChatRoom({
   /** Set when a guest may read but may not join — closed, over or full. */
   joinBlockedReason: string | null;
 }) {
-  const [messages, setMessages] = useState<MessageView[]>(seededMessages);
-  const [polls, setPolls] = useState<PollView[]>(seededPolls);
+  // id, которые сервер уже подтвердил этому клиенту. Пока свежий снимок их
+  // не принёс, они остаются на экране, а не мигают.
+  const confirmed = useRef(new Set<string>());
+  const [messages, setMessages] = useSyncedState<MessageView[]>(seededMessages, (server, local) =>
+    mergeById(server, local, confirmed.current, byCreatedAt),
+  );
+  const [polls, setPolls] = useSyncedState<PollView[]>(seededPolls, (server, local) =>
+    mergeById(server, local, confirmed.current, byCreatedAt),
+  );
   const [pollOpen, setPollOpen] = useState(false);
   const [flashId, setFlashId] = useState<string | null>(null);
 
@@ -158,10 +170,14 @@ export function ChatRoom({
       // Временный id меняется на настоящий — иначе закрепить его было бы нельзя.
       const real = result.data;
       if (real) {
+        confirmed.current.add(real.id);
         setMessages((previous) =>
-          previous.map((message) =>
-            message.id === localId ? { ...message, id: real.id, created_at: real.created_at } : message,
-          ),
+          // Снимок с сервера мог прийти раньше ответа — тогда копия лишняя.
+          previous.some((message) => message.id === real.id)
+            ? previous.filter((message) => message.id !== localId)
+            : previous.map((message) =>
+                message.id === localId ? { ...message, id: real.id, created_at: real.created_at } : message,
+              ),
         );
       }
     });
@@ -253,7 +269,12 @@ export function ChatRoom({
       }
       const real = result.data;
       if (real) {
-        setPolls((previous) => previous.map((item) => (item.id === poll.id ? { ...item, id: real.id } : item)));
+        confirmed.current.add(real.id);
+        setPolls((previous) =>
+          previous.some((item) => item.id === real.id)
+            ? previous.filter((item) => item.id !== poll.id)
+            : previous.map((item) => (item.id === poll.id ? { ...item, id: real.id } : item)),
+        );
       }
     });
   }

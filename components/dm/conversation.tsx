@@ -73,10 +73,12 @@ export function Conversation({
 
   const [, startTransition] = useTransition();
 
-  // Открыл переписку — всё присланное собеседником прочитано.
+  // Открыл переписку — всё присланное собеседником прочитано. И снова,
+  // когда новое сообщение от него пришло, пока переписка открыта.
+  const lastFromPartner = [...messages].reverse().find((message) => message.sender_id === partner.id)?.id;
   useEffect(() => {
     void markConversationRead(partner.id);
-  }, [partner.id]);
+  }, [partner.id, lastFromPartner]);
 
   function handleSend(content: string) {
     const localId = `local-${Date.now()}`;
@@ -90,9 +92,11 @@ export function Conversation({
       const real = result.data;
       if (real) {
         setAppended((previous) =>
-          previous.map((message) =>
-            message.id === localId ? { ...message, id: real.id, created_at: real.created_at } : message,
-          ),
+          previous.some((message) => message.id === real.id)
+            ? previous.filter((message) => message.id !== localId)
+            : previous.map((message) =>
+                message.id === localId ? { ...message, id: real.id, created_at: real.created_at } : message,
+              ),
         );
       }
     });

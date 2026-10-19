@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { useLiveRefresh } from "@/lib/live";
+import { useSyncedState } from "@/lib/use-synced-state";
 import { closePost, joinPost, removeParticipant } from "@/app/actions/posts";
 import { setModerator, updateModeratorPermissions } from "@/app/actions/moderation";
 import { notify } from "@/components/ui/toast";
@@ -97,8 +99,12 @@ export function IdeaDetail({
 }) {
   const rights = rightsOf(post.viewer_role, permissions);
 
-  const [closed, setClosed] = useState(post.is_closed);
-  const [participants, setParticipants] = useState(seededParticipants);
+  // Сообщения, голоса, участники, права и закрытие набора приходят с
+  // сервера по сигналу из канала идеи; локальные правки уступают им.
+  useLiveRefresh(`post:${post.id}`);
+
+  const [closed, setClosed] = useSyncedState(post.is_closed);
+  const [participants, setParticipants] = useSyncedState(seededParticipants);
   const [joined, setJoined] = useState(false);
   const [sheet, setSheet] = useState<OpenSheet>(null);
 

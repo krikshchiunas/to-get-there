@@ -115,6 +115,7 @@ function NavTab({ item, active }: { item: Item; active: boolean }) {
         {item.badge ? <Dot /> : null}
       </span>
       {item.label}
+      {item.badge ? <span className="sr-only">, непрочитанных: {item.badge}</span> : null}
     </Link>
   );
 }
@@ -133,12 +134,14 @@ function NavRow({ item, active }: { item: Item; active: boolean }) {
         {item.badge ? <Dot /> : null}
       </span>
       {item.label}
+      {item.badge ? <span className="sr-only">, непрочитанных: {item.badge}</span> : null}
     </Link>
   );
 }
 
+/** Только для глаз: число для скринридера стоит рядом с подписью. */
 function Dot() {
   return (
-    <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-heat ring-2 ring-paper" />
+    <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-heat ring-2 ring-paper" />
   );
 }
