@@ -172,6 +172,12 @@ export interface Message {
 export interface MessageView extends Message {
   author: UserView;
   role: ChatRole;
+  /**
+   * Откуда показывать картинку: подписанная ссылка на файл в приватном
+   * бакете (живёт час) или локальный blob: до загрузки. null — файла нет
+   * или читать его нельзя.
+   */
+  media_src?: string | null;
 }
 
 export interface PollOption {

@@ -4,6 +4,7 @@
 
 import { revalidatePath } from "next/cache";
 import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { isChatMediaPath } from "@/lib/media";
 
 const MAX_MESSAGE = 2000;
 
@@ -18,6 +19,10 @@ export async function sendMessage(
   const text = content.trim();
   if (!text && !mediaUrl) return { ok: false, error: "Пустое сообщение не отправить." };
   if (text.length > MAX_MESSAGE) return { ok: false, error: `Сообщение — не больше ${MAX_MESSAGE} символов.` };
+  // Только файл из папки этой идеи: ни внешней ссылки, ни фото из чужого чата.
+  if (mediaUrl !== null && !isChatMediaPath(mediaUrl, postId)) {
+    return { ok: false, error: "Фото должно быть загружено через приложение." };
+  }
 
   // RLS: автор — сам зритель, он участник чата, а медиа — только с can_post_media.
   const { data, error } = await actor.supabase
@@ -30,7 +35,7 @@ export async function sendMessage(
     if (error?.code === "42501") {
       return {
         ok: false,
-        error: mediaUrl ? "Отправлять фото и видео могут только модераторы с этим правом." : "Писать могут только участники чата.",
+        error: mediaUrl ? "Отправлять фото могут только автор и модераторы с этим правом." : "Писать могут только участники чата.",
       };
     }
     return fail(error);

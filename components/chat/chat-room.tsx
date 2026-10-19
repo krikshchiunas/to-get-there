@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPoll, sendMessage, setPinned, vote } from "@/app/actions/chat";
+import { discardChatImage, uploadChatImage } from "@/lib/upload";
 import { notify } from "@/components/ui/toast";
 import { IconButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
@@ -135,13 +136,14 @@ export function ChatRoom({
     return `${prefix}-local-${localCount.current}`;
   }
 
-  function appendMessage(content: string, mediaUrl: string | null) {
+  function appendMessage(content: string, mediaUrl: string | null, mediaSrc: string | null = null) {
     const message: MessageView = {
       id: nextLocalId(postId),
       post_id: postId,
       author_id: viewer.id,
       content,
       media_url: mediaUrl,
+      media_src: mediaSrc,
       is_pinned: false,
       created_at: new Date().toISOString(),
       author: viewer,
@@ -160,8 +162,32 @@ export function ChatRoom({
 
   function handleSend(text: string) {
     const localId = appendMessage(text, null);
+    deliver(localId, () => sendMessage(postId, text));
+  }
+
+  /**
+   * Фото видно в чате сразу — из памяти браузера, пока файл грузится.
+   * Не загрузилось или сервер не принял сообщение — сообщение исчезает, а
+   * уже загруженный файл удаляется, чтобы не висел сиротой.
+   */
+  function handleSendMedia(file: File, caption: string) {
+    const preview = URL.createObjectURL(file);
+    const localId = appendMessage(caption, "uploading", preview);
+    deliver(localId, async () => {
+      const upload = await uploadChatImage(file, postId);
+      if (!upload.ok) return upload;
+      const result = await sendMessage(postId, caption, upload.value);
+      if (!result.ok) await discardChatImage(upload.value);
+      return result;
+    });
+  }
+
+  function deliver(
+    localId: string,
+    run: () => Promise<{ ok: true; data?: { id: string; created_at: string } } | { ok: false; error: string }>,
+  ) {
     startTransition(async () => {
-      const result = await sendMessage(postId, text);
+      const result = await run();
       if (!result.ok) {
         dropMessage(localId);
         notify(result.error);
@@ -181,11 +207,6 @@ export function ChatRoom({
         );
       }
     });
-  }
-
-  function handleSendMedia(fileName: string) {
-    // TODO(supabase): upload to the post-media bucket, then insert into messages (post_id, author_id, media_url)
-    appendMessage("", fileName);
   }
 
   function handleTogglePin(messageId: string) {

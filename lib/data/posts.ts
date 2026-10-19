@@ -1,5 +1,6 @@
 /** Страница идеи: сама идея, состав чата, сообщения, голосования. */
 
+import { CHAT_MEDIA_BUCKET } from "@/lib/media";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
 import type {
@@ -92,6 +93,9 @@ export async function getParticipants(postId: string): Promise<ParticipantView[]
   });
 }
 
+/** Подписанная ссылка живёт час; открытая страница обновляется раньше по realtime. */
+const MEDIA_LINK_TTL_SECONDS = 60 * 60;
+
 export async function getMessages(postId: string): Promise<MessageView[]> {
   const supabase = await createClient();
   const [{ data }, roles] = await Promise.all([
@@ -108,6 +112,19 @@ export async function getMessages(postId: string): Promise<MessageView[]> {
   >;
   const counts = await loadFollowCounts(rows.map((row) => row.author_id));
 
+  // Бакет приватный: ссылка подписывается от имени читающего и проходит
+  // через политику post_media_read_chat. Не в чате — ссылки нет.
+  const mediaPaths = rows.flatMap((row) => (row.media_url ? [row.media_url] : []));
+  const signed = new Map<string, string>();
+  if (mediaPaths.length > 0) {
+    const { data: urls } = await supabase.storage
+      .from(CHAT_MEDIA_BUCKET)
+      .createSignedUrls(mediaPaths, MEDIA_LINK_TTL_SECONDS);
+    for (const item of urls ?? []) {
+      if (item.path && item.signedUrl && !item.error) signed.set(item.path, item.signedUrl);
+    }
+  }
+
   return rows.flatMap((row) =>
     row.author
       ? [
@@ -117,6 +134,7 @@ export async function getMessages(postId: string): Promise<MessageView[]> {
             author_id: row.author_id,
             content: row.content,
             media_url: row.media_url,
+            media_src: row.media_url ? (signed.get(row.media_url) ?? null) : null,
             is_pinned: row.is_pinned,
             created_at: row.created_at,
             author: toUserView(row.author, counts.get(row.author_id) ?? noSocialFacts),

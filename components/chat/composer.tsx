@@ -35,7 +35,8 @@ export function Composer({
   /** Set when joining is not possible any more — then only reading is left. */
   joinBlockedReason: string | null;
   onSend: (text: string) => void;
-  onSendMedia: (fileName: string) => void;
+  /** Фото и, если в поле что-то написано, подпись к нему. */
+  onSendMedia: (file: File, caption: string) => void;
   onOpenPoll: () => void;
   onJoin: () => void;
 }) {
@@ -74,7 +75,8 @@ export function Composer({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-    onSendMedia(file.name);
+    onSendMedia(file, value.trim());
+    setValue("");
   }
 
   if (!canSend) {
@@ -111,7 +113,7 @@ export function Composer({
             <input
               ref={fileRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
               className="hidden"
               onChange={handleFile}
             />

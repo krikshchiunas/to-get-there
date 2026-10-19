@@ -11,6 +11,9 @@
 import { revalidatePath } from "next/cache";
 import type { NotificationSettings, PrivacySettings } from "@/lib/types";
 import { fail, getActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
+import { AVATAR_BUCKET, avatarPathFromUrl, isOwnAvatarUrl } from "@/lib/media";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 
 export interface ProfileInput {
   nickname: string;
@@ -18,7 +21,6 @@ export interface ProfileInput {
   bio: string;
   interests: string[];
   goals: string[];
-  avatarUrl?: string | null;
 }
 
 const NICKNAME = /^[a-z0-9][a-z0-9._]{2,23}$/;
@@ -58,13 +60,50 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
       bio: input.bio.trim() || null,
       interests,
       goals,
-      ...(input.avatarUrl !== undefined ? { avatar_url: input.avatarUrl } : {}),
     })
     .eq("id", actor.viewerId);
 
   if (error) {
     if (error.code === "23505") return { ok: false, error: "Этот ник уже занят. Попробуй другой." };
     return fail(error);
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Фото профиля: ссылка на только что загруженный файл или null — убрать.
+ * Принимается только файл из своей папки в нашем хранилище (lib/media.ts).
+ */
+export async function updateAvatar(avatarUrl: string | null): Promise<ActionResult> {
+  const actor = await getActor();
+  if (!actor) return notSignedIn;
+
+  if (avatarUrl !== null && !isOwnAvatarUrl(avatarUrl, SUPABASE_URL, actor.viewerId)) {
+    return { ok: false, error: "Фото должно быть загружено через приложение." };
+  }
+
+  const { data: current } = await actor.supabase
+    .from("users")
+    .select("avatar_url")
+    .eq("id", actor.viewerId)
+    .single();
+
+  const { error } = await actor.supabase
+    .from("users")
+    .update({ avatar_url: avatarUrl })
+    .eq("id", actor.viewerId);
+  if (error) return fail(error);
+
+  // Старое фото больше нигде не показывается — убираем, чтобы не копилось.
+  // Не вышло — не беда: профиль уже сохранён, а файл просто останется.
+  const previous = current?.avatar_url;
+  if (previous && previous !== avatarUrl) {
+    const path = avatarPathFromUrl(previous, SUPABASE_URL);
+    if (path?.startsWith(`${actor.viewerId}/`)) {
+      await actor.supabase.storage.from(AVATAR_BUCKET).remove([path]);
+    }
   }
 
   revalidatePath("/", "layout");

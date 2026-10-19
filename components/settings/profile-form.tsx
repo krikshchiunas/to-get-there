@@ -1,11 +1,11 @@
 "use client";
 
-import { updateProfile } from "@/app/actions/settings";
+import { useRef, useState, useTransition } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import { updateAvatar, updateProfile } from "@/app/actions/settings";
 import { notify } from "@/components/ui/toast";
-
 import { pluralRu } from "@/lib/format";
-import { useState, useTransition } from "react";
-import type { FormEvent } from "react";
+import { uploadAvatar } from "@/lib/upload";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { CharCount, Field, TextArea, TextInput } from "@/components/ui/field";
@@ -17,8 +17,8 @@ import type { UserView } from "@/lib/types";
  * Профиль.
  *
  * Правка живёт в локальном состоянии: кнопка «Сохранить» становится активной
- * только когда что-то действительно изменилось, и после сохранения честно
- * говорит, что дальше браузера это не ушло.
+ * только когда что-то действительно изменилось. Фото сохраняется отдельно,
+ * сразу после загрузки.
  *
  * Рамок на экране нет: поля — заливка, секции разделены заголовком и
  * воздухом, фото профиля лежит прямо на фоне, а не в карточке.
@@ -31,7 +31,8 @@ const BIO_MAX = 280;
 const LIST_MAX = 10;
 const ITEM_MAX = 24;
 
-const NICKNAME_ALLOWED = /^[\p{L}\p{N}._-]+$/u;
+// То же правило, что CHECK users_nickname_fmt в 0003: ник — часть адреса /u/<ник>.
+const NICKNAME_ALLOWED = /^[a-z0-9][a-z0-9._]*$/;
 
 const FIELD_IDS = {
   nickname: "profile-nickname",
@@ -105,7 +106,7 @@ export function ProfileForm({ user }: { user: UserView }) {
     event.preventDefault();
 
     const next: Errors = {};
-    const nickname = draft.nickname.trim();
+    const nickname = draft.nickname.trim().toLowerCase();
     const faculty = draft.faculty.trim();
     const bio = draft.bio.trim();
 
@@ -116,7 +117,8 @@ export function ProfileForm({ user }: { user: UserView }) {
     } else if (nickname.length > NICKNAME_MAX) {
       next.nickname = `Ник длиннее ${NICKNAME_MAX} символов. Убери ${nickname.length - NICKNAME_MAX}.`;
     } else if (!NICKNAME_ALLOWED.test(nickname)) {
-      next.nickname = "В нике можно буквы, цифры, точку, дефис и подчёркивание. Остальное убери.";
+      next.nickname =
+        "В нике — латиница, цифры, точка и подчёркивание, начало — с буквы или цифры. Остальное убери.";
     }
 
     if (faculty.length > FACULTY_MAX) {
@@ -166,23 +168,7 @@ export function ProfileForm({ user }: { user: UserView }) {
   return (
     <form noValidate onSubmit={handleSubmit} className="px-4 pt-5">
       <section className="flex items-start gap-4">
-        <Avatar
-          user={{ ...user, nickname: draft.nickname.trim() || user.nickname }}
-          size="lg"
-          withBadge
-        />
-
-        <div className="min-w-0">
-          <p className="text-[15px]">Фото профиля</p>
-          <p className="mt-1 text-[14px] leading-[1.4] text-ink-soft">
-            Пока профиль показывает инициалы ника. Загрузка появится вместе с Supabase Storage —
-            до него файл просто некуда положить.
-          </p>
-          <Button type="button" variant="quiet" size="sm" className="mt-3" disabled>
-            <Icon name="image" size={15} />
-            Загрузить фото
-          </Button>
-        </div>
+        <AvatarPicker user={{ ...user, nickname: draft.nickname.trim() || user.nickname }} />
       </section>
 
       <section className="mt-8 space-y-5">
@@ -419,5 +405,90 @@ function TagEditor({
         {full ? " — удали что-нибудь, чтобы добавить новое" : ""}
       </p>
     </Field>
+  );
+}
+
+/**
+ * Фото профиля сохраняется сразу после загрузки, отдельно от формы: ждать
+ * «Сохранить» ради картинки, которая уже видна, было бы странно.
+ */
+function AvatarPicker({ user }: { user: UserView }) {
+  const [avatarUrl, setAvatarUrl] = useState(user.avatar_url);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function apply(next: string | null) {
+    const result = await updateAvatar(next);
+    if (!result.ok) {
+      notify(result.error);
+      return false;
+    }
+    setAvatarUrl(next);
+    return true;
+  }
+
+  async function handleFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const upload = await uploadAvatar(file, user.id);
+      if (!upload.ok) {
+        notify(upload.error);
+        return;
+      }
+      if (await apply(upload.value)) notify("Фото обновлено.", "info");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRemove() {
+    setBusy(true);
+    try {
+      if (await apply(null)) notify("Фото убрано.", "info");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <Avatar user={{ ...user, avatar_url: avatarUrl }} size="lg" withBadge />
+
+      <div className="min-w-0">
+        <p className="text-[15px]">Фото профиля</p>
+        <p className="mt-1 text-[14px] leading-[1.4] text-ink-soft">
+          {avatarUrl
+            ? "Видно всем, кто видит твой профиль. Данные о месте съёмки из фото удаляются."
+            : "Пока вместо фото — инициалы ника. JPG, PNG, WebP или GIF; место съёмки из фото удаляется."}
+        </p>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+          className="hidden"
+          onChange={handleFile}
+        />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="quiet"
+            size="sm"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+          >
+            <Icon name="image" size={15} />
+            {busy ? "Загружаем…" : avatarUrl ? "Заменить фото" : "Загрузить фото"}
+          </Button>
+          {avatarUrl ? (
+            <Button type="button" variant="quiet" size="sm" disabled={busy} onClick={handleRemove}>
+              Убрать
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </>
   );
 }

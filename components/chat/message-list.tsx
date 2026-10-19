@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { IconButton } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { AvatarLink } from "@/components/ui/avatar";
@@ -33,9 +35,62 @@ type Entry =
   | { kind: "message"; at: string; message: MessageView }
   | { kind: "poll"; at: string; poll: PollView };
 
-function fileNameOf(mediaUrl: string): string {
-  const name = mediaUrl.split("/").pop();
-  return name && name.length > 0 ? name : mediaUrl;
+/**
+ * Фото в сообщении. Подписанная ссылка живёт час: если она истекла, пока
+ * страница была открыта, картинка не загрузится — тогда страница
+ * перечитывается и приходит свежая ссылка.
+ */
+function ChatImage({
+  src,
+  uploading,
+  alt,
+  spaced,
+}: {
+  src: string | null;
+  uploading: boolean;
+  alt: string;
+  spaced: boolean;
+}) {
+  const router = useRouter();
+  const [failed, setFailed] = useState(false);
+
+  if (!src || failed) {
+    return (
+      <div
+        className={`flex w-fit items-center gap-2.5 rounded-field bg-sunken px-3 py-2.5 ${spaced ? "mt-1.5" : ""}`}
+      >
+        <Icon name="image" size={18} className="shrink-0 text-ink-faint" />
+        <span className="text-[14px] text-ink-soft">Фото недоступно</span>
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`relative block w-fit max-w-[min(100%,20rem)] overflow-hidden rounded-field bg-sunken ${spaced ? "mt-1.5" : ""}`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- подписанная ссылка на час, оптимизатору её не кэшировать */}
+      <img
+        src={src}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+        className={`block h-auto max-h-80 w-full object-cover ${uploading ? "opacity-60" : ""}`}
+        onError={() => {
+          setFailed(true);
+          if (!uploading) router.refresh();
+        }}
+      />
+      {uploading ? (
+        <span className="absolute inset-x-0 bottom-0 bg-paper/85 px-2.5 py-1 text-[12px] text-ink-soft" role="status">
+          Загружается…
+        </span>
+      ) : null}
+    </a>
+  );
 }
 
 /** True when this message tucks under the one before it. */
@@ -152,21 +207,12 @@ export function MessageList({
               ) : null}
 
               {message.media_url ? (
-                <div
-                  className={`flex w-fit items-center gap-2.5 rounded-field bg-sunken px-3 py-2.5 ${
-                    text ? "mt-1.5" : ""
-                  }`}
-                >
-                  <Icon name="image" size={18} className="shrink-0 text-ink-faint" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-[14px]">
-                      {fileNameOf(message.media_url)}
-                    </span>
-                    <span className="block text-[12px] text-ink-soft">
-                      Изображение, ещё не загружено
-                    </span>
-                  </span>
-                </div>
+                <ChatImage
+                  src={message.media_src ?? null}
+                  uploading={message.media_url === "uploading"}
+                  alt={`Фото от ${message.author.nickname}`}
+                  spaced={Boolean(text)}
+                />
               ) : null}
             </div>
 
