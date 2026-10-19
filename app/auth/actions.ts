@@ -10,6 +10,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/safe-next";
 
 export interface AuthState {
   error: string | null;
@@ -23,11 +24,6 @@ function readEmail(form: FormData): string {
   return String(form.get("email") ?? "").trim().toLowerCase();
 }
 
-/** Только относительные пути внутри приложения — без открытого редиректа. */
-function safeNext(raw: FormDataEntryValue | null): string {
-  const value = typeof raw === "string" ? raw : "";
-  return value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/auth") ? value : "/";
-}
 
 /** Сообщения Supabase — на русский и словами пользователя. */
 function explain(message: string): string {
