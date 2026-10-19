@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { PrivacyForm } from "@/components/settings/privacy-form";
 import { PageHeader } from "@/components/ui/page-header";
-import { currentUser } from "@/lib/mock";
+import { getViewer } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Приватность",
   description: "Кто видит твой профиль, интересы и кто может тебе написать.",
 };
 
-export default function PrivacySettingsPage() {
+export default async function PrivacySettingsPage() {
+  const viewer = await getViewer();
   return (
     <>
       <PageHeader
@@ -16,7 +17,7 @@ export default function PrivacySettingsPage() {
         subtitle="Кто видит тебя и кто может писать"
         backHref="/settings"
       />
-      <PrivacyForm user={currentUser} />
+      <PrivacyForm user={viewer} />
     </>
   );
 }

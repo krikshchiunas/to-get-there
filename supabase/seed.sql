@@ -33,6 +33,15 @@ set client_min_messages = warning;
 
 -- Ideas happen in Germany, so the wall clock is Berlin — the same timezone
 -- lib/format.ts formats in. Every `date + time` below is read in it.
+-- ВНИМАНИЕ: файл обязан выполняться ОДНОЙ сессией.
+-- `set timezone` действует до конца сессии, а время идей считается
+-- относительно него. Если разбить файл на несколько подключений, вставка
+-- идей уйдёт с часовым поясом по умолчанию (UTC), и каждое `date_start`
+-- окажется сдвинутым на берлинское смещение — 19:30 превратится в 21:30.
+-- Чинится так:
+--   update public.posts
+--      set date_start = (date_start at time zone 'UTC') at time zone 'Europe/Berlin';
+
 set timezone = 'Europe/Berlin';
 
 /* ── time helpers (session only) ────────────────────────────────────── */

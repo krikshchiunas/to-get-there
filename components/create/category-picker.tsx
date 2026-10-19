@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { ChipButton } from "@/components/ui/pill";
 import { Sheet } from "@/components/ui/sheet";
-import { mainCategories, otherCategories } from "@/lib/mock";
+import type { Category } from "@/lib/types";
 
 /** Focus target, so the form can jump here when no category is picked. */
 export const CATEGORY_GROUP_ID = "create-category";
@@ -15,15 +15,20 @@ export const CATEGORY_GROUP_ID = "create-category";
  * choice is always visible without opening anything.
  */
 export function CategoryPicker({
+  categories,
   value,
   onChange,
   invalid = false,
 }: {
+  /** Весь справочник. Загружает серверная страница. */
+  categories: Category[];
   value: string | null;
   onChange: (categoryId: string) => void;
   invalid?: boolean;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const mainCategories = categories.filter((category) => category.is_main);
+  const otherCategories = categories.filter((category) => !category.is_main);
   const selectedOther = otherCategories.find((category) => category.id === value);
 
   return (

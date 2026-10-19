@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Conversation } from "@/components/dm/conversation";
 import { Avatar } from "@/components/ui/avatar";
 import { PageHeader } from "@/components/ui/page-header";
-import { canMessage, currentUser, getThread, getUserByNickname } from "@/lib/mock";
+import { canMessage, getThread, getUserByNickname, getViewer } from "@/lib/data";
 
 /** Stamps and day dividers in the thread depend on the clock. */
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ type PageParams = { params: Promise<{ nickname: string }> };
 
 export async function generateMetadata({ params }: PageParams): Promise<Metadata> {
   const { nickname } = await params;
-  const partner = getUserByNickname(nickname);
+  const partner = await getUserByNickname(nickname);
 
   if (!partner) {
     return { title: "Чат" };
@@ -27,14 +27,14 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
 
 export default async function DirectConversationPage({ params }: PageParams) {
   const { nickname } = await params;
-  const partner = getUserByNickname(nickname);
+  const partner = await getUserByNickname(nickname);
 
   if (!partner) {
     notFound();
   }
 
   const now = new Date();
-  const messages = getThread(partner.id);
+  const [viewer, messages] = await Promise.all([await getViewer(), await getThread(partner.id)]);
 
   return (
     <>
@@ -55,9 +55,9 @@ export default async function DirectConversationPage({ params }: PageParams) {
 
       <Conversation
         partner={partner}
-        viewerId={currentUser.id}
+        viewerId={viewer.id}
         messages={messages}
-        canReply={canMessage(partner)}
+        canReply={canMessage(partner, viewer)}
         now={now}
       />
     </>

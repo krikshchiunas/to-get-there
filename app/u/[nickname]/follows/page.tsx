@@ -8,11 +8,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Segmented } from "@/components/ui/segmented";
 import {
   canSeeProfile,
-  currentUser,
+  getViewer,
   getFollowers,
   getFollowing,
   getUserByNickname,
-} from "@/lib/mock";
+} from "@/lib/data";
 import type { UserView } from "@/lib/types";
 
 type FollowsTab = "followers" | "following";
@@ -37,7 +37,7 @@ export async function generateMetadata({
   searchParams,
 }: FollowsPageProps): Promise<Metadata> {
   const { nickname } = await params;
-  const user = getUserByNickname(nickname);
+  const user = await getUserByNickname(nickname);
 
   if (!user) return { title: "Профиль не найден" };
 
@@ -47,18 +47,19 @@ export async function generateMetadata({
 
 export default async function FollowsPage({ params, searchParams }: FollowsPageProps) {
   const { nickname } = await params;
-  const user = getUserByNickname(nickname);
+  const user = await getUserByNickname(nickname);
 
   if (!user) notFound();
   // The follow graph is part of the profile: if the profile is closed to the
   // viewer, this list is too.
-  if (!canSeeProfile(user)) notFound();
+  const viewer = await getViewer();
+  if (!canSeeProfile(user, viewer)) notFound();
 
   const { tab } = await searchParams;
   const active = tabFrom(tab);
 
-  const followers = getFollowers(user.id);
-  const following = getFollowing(user.id);
+  const followers = await getFollowers(user.id);
+  const following = await getFollowing(user.id);
   const people = active === "followers" ? followers : following;
   const base = `/u/${user.nickname}/follows`;
 
@@ -92,19 +93,27 @@ export default async function FollowsPage({ params, searchParams }: FollowsPageP
         <ul className="u-feed">
           {people.map((person) => (
             <li key={person.id}>
-              <UserRow user={person} />
+              <UserRow user={person} viewerId={viewer.id} />
             </li>
           ))}
         </ul>
       ) : (
-        <FollowsEmpty user={user} tab={active} />
+        <FollowsEmpty user={user} tab={active} viewerId={viewer.id} />
       )}
     </>
   );
 }
 
-function FollowsEmpty({ user, tab }: { user: UserView; tab: FollowsTab }) {
-  const isViewer = user.id === currentUser.id;
+function FollowsEmpty({
+  user,
+  tab,
+  viewerId,
+}: {
+  user: UserView;
+  tab: FollowsTab;
+  viewerId: string;
+}) {
+  const isViewer = user.id === viewerId;
 
   if (tab === "followers") {
     return isViewer ? (

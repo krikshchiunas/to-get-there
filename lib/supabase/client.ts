@@ -20,6 +20,7 @@
  */
 
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "@/lib/database.types";
 
 // Read as static members: Next.js only inlines NEXT_PUBLIC_* when the
 // property is accessed literally, never through a computed key.
@@ -40,5 +41,5 @@ export function createClient() {
     );
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 }

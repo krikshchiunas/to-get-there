@@ -9,14 +9,14 @@ import { ChipButton } from "@/components/ui/pill";
 import { Segmented } from "@/components/ui/segmented";
 import { Sheet } from "@/components/ui/sheet";
 import { formatDayLabel, formatMinutesOfDay, formatRadius, pluralRu } from "@/lib/format";
+import { filterPosts, filterUsers } from "@/lib/search-filter";
 import {
-  getCategory,
-  mainCategories,
-  otherCategories,
-  searchPosts,
-  searchUsers,
-} from "@/lib/mock";
-import { emptyFilters, type Category, type SearchFilters } from "@/lib/types";
+  emptyFilters,
+  type Category,
+  type PostView,
+  type SearchFilters,
+  type UserView,
+} from "@/lib/types";
 import { activeFilterCount, FilterSheet } from "./filter-sheet";
 import { ResultCard } from "./result-card";
 
@@ -82,7 +82,29 @@ function relaxHint(filters: SearchFilters): string {
   return "Поиск смотрит название, описание, место, категорию и ник автора. Попробуй другое слово.";
 }
 
-export function SearchScreen({ nowIso, tab }: { nowIso: string; tab: SearchTab }) {
+export function SearchScreen({
+  nowIso,
+  tab,
+  viewer,
+  posts,
+  people: searchablePeople,
+  categories,
+  cities,
+}: {
+  nowIso: string;
+  tab: SearchTab;
+  /** Кто смотрит: нужен, чтобы не показывать себя в результатах. */
+  viewer: UserView;
+  /** Идеи, которые сейчас в ленте. Фильтруются здесь же, без похода на сервер. */
+  posts: PostView[];
+  /** Люди, видимые в поиске. */
+  people: UserView[];
+  categories: Category[];
+  cities: string[];
+}) {
+  const mainCategories = useMemo(() => categories.filter((c) => c.is_main), [categories]);
+  const otherCategories = useMemo(() => categories.filter((c) => !c.is_main), [categories]);
+  const getCategory = (id: string) => categories.find((c) => c.id === id);
   // The clock is read once per request on the server and passed in, so the
   // urgency colours and day labels are the same before and after hydration.
   const now = useMemo(() => new Date(nowIso), [nowIso]);
@@ -91,12 +113,13 @@ export function SearchScreen({ nowIso, tab }: { nowIso: string; tab: SearchTab }
   const [otherOpen, setOtherOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  // TODO(supabase): select из public.active_posts с фильтрами по категории,
-  // дате, окну времени и гео (RPC search_posts) вместо чтения моков.
-  const ideas = useMemo(() => searchPosts(filters, now), [filters, now]);
-  // TODO(supabase): select из public.users с ilike по нику, факультету и
-  // интересам, where visible_in_search = true.
-  const people = useMemo(() => searchUsers(filters.query), [filters.query]);
+  // Набор приходит с сервера один раз, а сужается здесь — так ввод в поле
+  // отзывается мгновенно, без похода на сервер на каждую букву.
+  const ideas = useMemo(() => filterPosts(posts, filters, now), [posts, filters, now]);
+  const people = useMemo(
+    () => filterUsers(searchablePeople, filters.query, viewer.id),
+    [searchablePeople, filters.query, viewer.id],
+  );
 
   const sheetFilterCount = activeFilterCount(filters);
   const selectedCategories = filters.category_ids
@@ -331,7 +354,7 @@ export function SearchScreen({ nowIso, tab }: { nowIso: string; tab: SearchTab }
               <ul className="u-feed">
                 {people.map((user) => (
                   <li key={user.id}>
-                    <UserRow user={user} />
+                    <UserRow user={user} viewerId={viewer.id} />
                   </li>
                 ))}
               </ul>
@@ -379,6 +402,7 @@ export function SearchScreen({ nowIso, tab }: { nowIso: string; tab: SearchTab }
       </Sheet>
 
       <FilterSheet
+          cities={cities}
         open={filterOpen}
         filters={filters}
         onClose={() => setFilterOpen(false)}

@@ -7,7 +7,7 @@ import { Icon } from "@/components/ui/icon";
 import { ChipButton } from "@/components/ui/pill";
 import { Sheet } from "@/components/ui/sheet";
 import { formatMinutesOfDay, formatRadius } from "@/lib/format";
-import { getCitiesWithPosts, viewerLocation } from "@/lib/mock";
+import { viewerLocation } from "@/lib/access";
 import { emptyFilters, type GeoMode, type GeoRadius, type SearchFilters } from "@/lib/types";
 
 /**
@@ -153,16 +153,18 @@ function SectionError({ children }: { children: string }) {
 export function FilterSheet({
   open,
   filters,
+  cities,
   onClose,
   onApply,
 }: {
   open: boolean;
   filters: SearchFilters;
+  /** Города, где сейчас есть идеи. Загружает серверная страница. */
+  cities: string[];
   onClose: () => void;
   onApply: (next: SearchFilters) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(() => draftFrom(filters));
-  const cities = getCitiesWithPosts();
 
   // Opening the sheet always starts from what is actually being searched.
   useEffect(() => {

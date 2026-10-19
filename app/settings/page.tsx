@@ -6,15 +6,16 @@ import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pill } from "@/components/ui/pill";
-import { currentUser } from "@/lib/mock";
+import { getViewer } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Настройки",
   description: "Профиль, приватность, уведомления и верификация.",
 };
 
-export default function SettingsPage() {
-  const verified = currentUser.is_verified;
+export default async function SettingsPage() {
+  const viewer = await getViewer();
+  const verified = viewer.is_verified;
 
   return (
     <>
@@ -24,15 +25,15 @@ export default function SettingsPage() {
           ним. Карточка профиля сверху делала из одного экрана два языка. */}
       <div className="pb-10">
         <Link
-          href={`/u/${currentUser.nickname}`}
+          href={`/u/${viewer.nickname}`}
           className="u-feed-divider flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-sunken"
         >
-          <Avatar user={currentUser} size="md" withBadge />
+          <Avatar user={viewer} size="md" withBadge />
 
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[15px] font-medium">{currentUser.nickname}</span>
+            <span className="block truncate text-[15px] font-medium">{viewer.nickname}</span>
             <span className="block truncate text-[14px] text-ink-soft">
-              {currentUser.university.name}
+              {viewer.university.name}
             </span>
           </span>
 
@@ -82,7 +83,7 @@ export default function SettingsPage() {
           <SettingsRowSoon
             icon="book"
             label="Подтвердить университетскую почту"
-            description={`Адрес вида имя@${currentUser.university.domain} — он решает, в какую ленту «Университет» ты попадаешь.`}
+            description={`Адрес вида имя@${viewer.university.domain} — он решает, в какую ленту «Университет» ты попадаешь.`}
           />
           <SettingsRowSoon
             icon="close"

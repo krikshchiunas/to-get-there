@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { DirectChatList, IdeaChatList } from "@/components/dm/chat-list";
 import { PageHeader } from "@/components/ui/page-header";
 import { Segmented } from "@/components/ui/segmented";
-import { currentUser, getConversations, getMyIdeaChats } from "@/lib/mock";
+import { getConversations, getMyIdeaChats, getViewer } from "@/lib/data";
 
 /**
  * The chat list. Two kinds of room live here: the group chat of an idea,
@@ -27,8 +27,11 @@ export default async function MessagesPage({
   const tab: Tab = requested === "direct" ? "direct" : "ideas";
 
   const now = new Date();
-  const ideaChats = getMyIdeaChats();
-  const conversations = getConversations();
+  const [viewer, ideaChats, conversations] = await Promise.all([
+    await getViewer(),
+    await getMyIdeaChats(),
+    await getConversations(),
+  ]);
   const unreadDirect = conversations.reduce((sum, entry) => sum + entry.unread_count, 0);
 
   return (
@@ -50,11 +53,11 @@ export default async function MessagesPage({
       />
 
       {tab === "ideas" ? (
-        <IdeaChatList chats={ideaChats} viewerId={currentUser.id} now={now} />
+        <IdeaChatList chats={ideaChats} viewerId={viewer.id} now={now} />
       ) : (
         <DirectChatList
           conversations={conversations}
-          viewerId={currentUser.id}
+          viewerId={viewer.id}
           now={now}
         />
       )}

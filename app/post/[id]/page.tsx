@@ -4,13 +4,13 @@ import { IdeaDetail } from "@/components/chat/idea-detail";
 import {
   canEnterChat,
   chatAccessReason,
-  currentUser,
+  getViewer,
   getMessages,
   getParticipants,
   getPolls,
   getPost,
   getViewerPermissions,
-} from "@/lib/mock";
+} from "@/lib/data";
 
 /** The page says how long is left until the start, so it is rendered per request. */
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ type IdeaPageProps = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: IdeaPageProps): Promise<Metadata> {
   const { id } = await params;
-  const post = getPost(id);
+  const post = await getPost(id);
 
   if (!post) return { title: "Идея не найдена" };
 
@@ -39,20 +39,21 @@ export async function generateMetadata({ params }: IdeaPageProps): Promise<Metad
  */
 export default async function IdeaPage({ params }: IdeaPageProps) {
   const { id } = await params;
-  const post = getPost(id);
+  const post = await getPost(id);
 
   if (!post) notFound();
 
   const now = new Date();
+  const viewer = await getViewer();
 
   return (
     <IdeaDetail
       post={post}
-      viewer={currentUser}
-      participants={getParticipants(post.id)}
-      messages={getMessages(post.id)}
-      polls={getPolls(post.id)}
-      permissions={getViewerPermissions(post.id)}
+      viewer={viewer}
+      participants={await getParticipants(post.id)}
+      messages={await getMessages(post.id)}
+      polls={await getPolls(post.id)}
+      permissions={await getViewerPermissions(post.id)}
       canEnter={canEnterChat(post)}
       accessReason={chatAccessReason(post)}
       now={now}

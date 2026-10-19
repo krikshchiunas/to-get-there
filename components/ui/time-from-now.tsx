@@ -26,9 +26,16 @@ export function TimeFromNow({
     return () => clearInterval(timer);
   }, []);
 
-  const reference = now ?? new Date(value);
-  const text =
-    mode === "relative" && now ? formatRelative(value, now) : formatStamp(value, reference);
+  // В относительном режиме до гидратации не рисуем ничего: на сервере
+  // «через сколько» посчитать нечем, а подставлять туда абсолютное время
+  // нельзя — рядом почти всегда стоит оно же, и получается дубль.
+  const text = now
+    ? mode === "relative"
+      ? formatRelative(value, now)
+      : formatStamp(value, now)
+    : mode === "relative"
+      ? ""
+      : formatStamp(value, new Date(value));
 
   return (
     <time dateTime={value} className={className} suppressHydrationWarning>

@@ -26,8 +26,8 @@ import {
   toDatetimeLocal,
   urgencyOf,
 } from "@/lib/format";
-import { currentUser, getCategory } from "@/lib/mock";
-import type { Category, ChatAccess } from "@/lib/types";
+
+import type { Category, ChatAccess, UserView } from "@/lib/types";
 import { CATEGORY_GROUP_ID, CategoryPicker } from "./category-picker";
 import {
   GeoPicker,
@@ -111,7 +111,19 @@ function focusTarget(key: FieldKey, geo: GeoDraft): string {
   return FIELD_IDS[key];
 }
 
-export function CreateForm({ now }: { now: Date }) {
+export function CreateForm({
+  now,
+  viewer,
+  categories,
+  cities,
+}: {
+  now: Date;
+  /** Автор будущей идеи: университет берётся из его профиля и не правится. */
+  viewer: UserView;
+  categories: Category[];
+  cities: string[];
+}) {
+  const getCategory = (id: string) => categories.find((category) => category.id === id);
   const defaultStart = toDatetimeLocal(nextFullHourTomorrow(now));
 
   const [title, setTitle] = useState("");
@@ -228,7 +240,7 @@ export function CreateForm({ now }: { now: Date }) {
   }
 
   if (created) {
-    return <CreatedPanel idea={created} onAgain={resetForm} />;
+    return <CreatedPanel idea={created} author={viewer} onAgain={resetForm} />;
   }
 
   const problemCount = FIELD_ORDER.filter((key) => errors[key] !== undefined).length;
@@ -279,6 +291,7 @@ export function CreateForm({ now }: { now: Date }) {
           error={errors.category}
         >
           <CategoryPicker
+            categories={categories}
             value={categoryId}
             invalid={errors.category !== undefined}
             onChange={(id) => {
@@ -312,6 +325,7 @@ export function CreateForm({ now }: { now: Date }) {
 
         <Field label="Где" required hint="Насколько точно указать место — решаешь ты.">
           <GeoPicker
+            cities={cities}
             value={geo}
             error={errors.geo}
             onChange={(next) => {
@@ -387,11 +401,11 @@ export function CreateForm({ now }: { now: Date }) {
           <div className="rounded-field bg-sunken px-3.5 py-3">
             <p className="flex items-center gap-2 text-[15px]">
               <Icon name="shield" size={16} className="shrink-0 text-ink-soft" />
-              {currentUser.university.name}
+              {viewer.university.name}
             </p>
             <p className="mt-1 text-[12px] text-ink-soft">
               Берётся из профиля, здесь не меняется. Идея попадёт в ленту «Университет» у{" "}
-              {currentUser.university.short_name}.
+              {viewer.university.short_name}.
             </p>
           </div>
         </Field>
@@ -436,7 +450,16 @@ function Group({
 }
 
 /** Replaces the form once an idea is complete: the same idea, read back. */
-function CreatedPanel({ idea, onAgain }: { idea: CreatedIdea; onAgain: () => void }) {
+function CreatedPanel({
+  idea,
+  author,
+  onAgain,
+}: {
+  idea: CreatedIdea;
+  /** Автор идеи: превью повторяет строку ленты, а там слева аватар. */
+  author: UserView;
+  onAgain: () => void;
+}) {
   const urgency = urgencyOf(idea.starts_at, idea.at);
 
   return (
@@ -456,13 +479,13 @@ function CreatedPanel({ idea, onAgain }: { idea: CreatedIdea; onAgain: () => voi
       <p className="mt-6 text-[13px] font-medium text-ink-faint">Вот как она выглядит в ленте:</p>
 
       <article className="mt-1.5 flex gap-3">
-        <Avatar user={currentUser} size="md" />
+        <Avatar user={author} size="md" />
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="flex min-w-0 items-center gap-1 text-[15px] font-medium">
-              <span className="truncate">{currentUser.nickname}</span>
-              {currentUser.is_verified ? (
+              <span className="truncate">{author.nickname}</span>
+              {author.is_verified ? (
                 <Verified size={verifiedSize} className="shrink-0" />
               ) : null}
             </span>
@@ -471,7 +494,7 @@ function CreatedPanel({ idea, onAgain }: { idea: CreatedIdea; onAgain: () => voi
               ·
             </span>
             <span className="truncate text-[14px] text-ink-soft">
-              {currentUser.university.short_name}
+              {author.university.short_name}
             </span>
 
             <time

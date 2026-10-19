@@ -1,6 +1,16 @@
 import type { Metadata } from "next";
 import { SearchScreen, type SearchTab } from "@/components/search/search-screen";
 import { PageHeader } from "@/components/ui/page-header";
+import {
+  emptyFilters,
+} from "@/lib/types";
+import {
+  getCategories,
+  getCitiesWithPosts,
+  getSearchableUsers,
+  getViewer,
+  searchPosts,
+} from "@/lib/data";
 
 /** Results depend on the clock, so it is read once per request. */
 export const dynamic = "force-dynamic";
@@ -23,10 +33,27 @@ export default async function SearchPage({
   const params = await searchParams;
   const now = new Date();
 
+  const [viewer, posts, people, categories, cities] = await Promise.all([
+    getViewer(),
+    // Весь набор идей, которые сейчас в ленте: сужает его уже экран.
+    searchPosts(emptyFilters, now),
+    getSearchableUsers(),
+    getCategories(),
+    getCitiesWithPosts(),
+  ]);
+
   return (
     <>
       <PageHeader title="Поиск" />
-      <SearchScreen nowIso={now.toISOString()} tab={tabFrom(params.tab)} />
+      <SearchScreen
+        nowIso={now.toISOString()}
+        tab={tabFrom(params.tab)}
+        viewer={viewer}
+        posts={posts}
+        people={people}
+        categories={categories}
+        cities={cities}
+      />
     </>
   );
 }

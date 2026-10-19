@@ -8,7 +8,7 @@ import {
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { PageHeader } from "@/components/ui/page-header";
-import { getNotifications, getUserById } from "@/lib/mock";
+import { getNotifications, getUserById } from "@/lib/data";
 
 /** Строки показывают, сколько времени прошло, поэтому экран не кэшируется. */
 export const dynamic = "force-dynamic";
@@ -18,15 +18,18 @@ export const metadata: Metadata = {
   description: "Кто присоединился, кто написал и что скоро начинается.",
 };
 
-export default function NotificationsPage() {
+export default async function NotificationsPage() {
   /** Актор разрешается здесь, на сервере: клиенту нужен только его профиль. */
-  const items: NotificationItem[] = getNotifications().map((notification) => {
-    const actorId = notification.payload.actor_id;
-    return {
-      notification,
-      actor: actorId ? (getUserById(actorId) ?? null) : null,
-    };
-  });
+  const notifications = await getNotifications();
+  const items: NotificationItem[] = await Promise.all(
+    notifications.map(async (notification) => {
+      const actorId = notification.payload.actor_id;
+      return {
+        notification,
+        actor: actorId ? ((await getUserById(actorId)) ?? null) : null,
+      };
+    }),
+  );
 
   if (items.length === 0) {
     return (

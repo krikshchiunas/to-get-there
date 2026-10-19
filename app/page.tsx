@@ -4,7 +4,7 @@ import { FeedHeader } from "@/components/feed/feed-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { dayKey, formatDayLabel } from "@/lib/format";
-import { getFeed } from "@/lib/mock";
+import { getFeed } from "@/lib/data";
 import type { FeedTab, PostView } from "@/lib/types";
 
 /** The feed depends on the clock, so it is rendered per request. */
@@ -46,7 +46,7 @@ export default async function FeedPage({
   const now = new Date();
   const params = await searchParams;
   const tab = tabFrom(params.tab);
-  const groups = groupByDay(getFeed(tab, now));
+  const groups = groupByDay(await getFeed(tab, now));
 
   return (
     <>

@@ -8,7 +8,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/ui/icon";
 import { PageHeader } from "@/components/ui/page-header";
 import { Verified } from "@/components/ui/verified";
-import { canSeeProfile, currentUser, getUserByNickname } from "@/lib/mock";
+import { canSeeProfile, getUserByNickname, getViewer } from "@/lib/data";
 import type { UserView } from "@/lib/types";
 
 /** The ideas on a profile depend on the clock, so nothing here is cached. */
@@ -18,7 +18,7 @@ type ProfilePageProps = { params: Promise<{ nickname: string }> };
 
 export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
   const { nickname } = await params;
-  const user = getUserByNickname(nickname);
+  const user = await getUserByNickname(nickname);
 
   if (!user) return { title: "Профиль не найден" };
 
@@ -30,12 +30,13 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { nickname } = await params;
-  const user = getUserByNickname(nickname);
+  const user = await getUserByNickname(nickname);
 
   if (!user) notFound();
 
   const now = new Date();
-  const isViewer = user.id === currentUser.id;
+  const viewer = await getViewer();
+  const isViewer = user.id === viewer.id;
 
   return (
     <>
@@ -55,7 +56,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         }
       />
 
-      {canSeeProfile(user) ? (
+      {canSeeProfile(user, viewer) ? (
         <>
           <ProfileHeader user={user} />
           <ProfilePosts user={user} now={now} />

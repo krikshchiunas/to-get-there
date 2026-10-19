@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { Segmented } from "@/components/ui/segmented";
 import { pluralRu } from "@/lib/format";
-import { unreadNotificationCount } from "@/lib/mock";
+import { getUnreadNotificationCount } from "@/lib/data";
 import type { FeedTab } from "@/lib/types";
 
 /**
@@ -14,7 +14,8 @@ import type { FeedTab } from "@/lib/types";
  * остальное, линию снизу рисует `Segmented`. Её высота — то, под что
  * подлипает `DayGroup`.
  */
-export function FeedHeader({ tab }: { tab: FeedTab }) {
+export async function FeedHeader({ tab }: { tab: FeedTab }) {
+  const unreadNotificationCount = await getUnreadNotificationCount();
   const hasUnread = unreadNotificationCount > 0;
 
   return (

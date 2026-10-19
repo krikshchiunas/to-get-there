@@ -4,7 +4,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Pill } from "@/components/ui/pill";
 import { Verified } from "@/components/ui/verified";
 import { formatCount, pluralRu } from "@/lib/format";
-import { canMessage, canSeeInterests, currentUser } from "@/lib/mock";
+import { canMessage, canSeeInterests, getViewer } from "@/lib/data";
 import { isFriend, type UserView } from "@/lib/types";
 import { FollowButton } from "./follow-button";
 
@@ -19,12 +19,13 @@ import { FollowButton } from "./follow-button";
  * Ни одной панели с рамкой: всё лежит прямо на фоне, а шапку от списка идей
  * отделяет та же линия, что разделяет элементы ленты.
  */
-export function ProfileHeader({ user }: { user: UserView }) {
-  const isViewer = user.id === currentUser.id;
+export async function ProfileHeader({ user }: { user: UserView }) {
+  const viewer = await getViewer();
+  const isViewer = user.id === viewer.id;
   const friends = isFriend(user);
-  const showInterests = canSeeInterests(user);
+  const showInterests = canSeeInterests(user, viewer);
   const hasTags = user.interests.length > 0 || user.goals.length > 0;
-  const canWrite = canMessage(user);
+  const canWrite = canMessage(user, viewer);
   const place = user.faculty ? `${user.university.name} · ${user.faculty}` : user.university.name;
 
   return (

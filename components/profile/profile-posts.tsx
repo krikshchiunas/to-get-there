@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/ui/empty";
 import { Pill } from "@/components/ui/pill";
 import { Seats } from "@/components/ui/seats";
 import { feedExitReason, formatDayLabel, formatTime, urgencyOf, shortPlace } from "@/lib/format";
-import { currentUser, getActivePostsByAuthor, getPastPostsByAuthor } from "@/lib/mock";
+import { getActivePostsByAuthor, getPastPostsByAuthor, getViewer } from "@/lib/data";
 import type { PostView, UserView } from "@/lib/types";
 
 /**
@@ -17,10 +17,13 @@ import type { PostView, UserView } from "@/lib/types";
  * человека, и повторять его лицо в каждой строке незачем. Элемент лежит на
  * фоне и отделён снизу линией — ни рамки, ни второго фона под ним.
  */
-export function ProfilePosts({ user, now }: { user: UserView; now: Date }) {
-  const open = getActivePostsByAuthor(user.id, now);
-  const over = getPastPostsByAuthor(user.id, now);
-  const isViewer = user.id === currentUser.id;
+export async function ProfilePosts({ user, now }: { user: UserView; now: Date }) {
+  const [viewer, open, over] = await Promise.all([
+    await getViewer(),
+    await getActivePostsByAuthor(user.id, now),
+    await getPastPostsByAuthor(user.id, now),
+  ]);
+  const isViewer = user.id === viewer.id;
 
   if (open.length === 0 && over.length === 0) {
     return isViewer ? (

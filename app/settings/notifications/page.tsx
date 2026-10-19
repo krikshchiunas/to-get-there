@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { NotificationForm } from "@/components/settings/notification-form";
 import { PageHeader } from "@/components/ui/page-header";
-import { currentUser } from "@/lib/mock";
+import { getViewer } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Уведомления",
   description: "О чём приложение сообщает, а о чём молчит.",
 };
 
-export default function NotificationSettingsPage() {
+export default async function NotificationSettingsPage() {
+  const viewer = await getViewer();
   return (
     <>
       <PageHeader
@@ -16,7 +17,7 @@ export default function NotificationSettingsPage() {
         subtitle="О чём сообщать, а о чём молчать"
         backHref="/settings"
       />
-      <NotificationForm user={currentUser} />
+      <NotificationForm user={viewer} />
     </>
   );
 }

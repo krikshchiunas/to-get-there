@@ -1,0 +1,643 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  public: {
+    Tables: {
+      app_flags: {
+        Row: { id: boolean; open_read: boolean; updated_at: string }
+        Insert: { id?: boolean; open_read?: boolean; updated_at?: string }
+        Update: { id?: boolean; open_read?: boolean; updated_at?: string }
+        Relationships: []
+      }
+      categories: {
+        Row: { icon: string; id: string; is_main: boolean; name: string }
+        Insert: { icon: string; id?: string; is_main?: boolean; name: string }
+        Update: { icon?: string; id?: string; is_main?: boolean; name?: string }
+        Relationships: []
+      }
+      direct_message_reads: {
+        Row: { partner_id: string; read_at: string; user_id: string }
+        Insert: { partner_id: string; read_at?: string; user_id: string }
+        Update: { partner_id?: string; read_at?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "direct_message_reads_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_message_reads_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          content: string
+          conversation_key: string | null
+          created_at: string
+          id: string
+          media_url: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content?: string
+          conversation_key?: string | null
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_key?: string | null
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follows: {
+        Row: { created_at: string; follower_id: string; following_id: string; id: string }
+        Insert: { created_at?: string; follower_id: string; following_id: string; id?: string }
+        Update: { created_at?: string; follower_id?: string; following_id?: string; id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          media_url: string | null
+          post_id: string
+        }
+        Insert: {
+          author_id: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          media_url?: string | null
+          post_id: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          media_url?: string | null
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          payload: Json
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          payload?: Json
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          payload?: Json
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: { id: string; option_index: number; poll_id: string; user_id: string }
+        Insert: { id?: string; option_index: number; poll_id: string; user_id: string }
+        Update: { id?: string; option_index?: number; poll_id?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polls: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          options: Json
+          post_id: string
+          question: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          options: Json
+          post_id: string
+          question: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          options?: Json
+          post_id?: string
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "polls_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "polls_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_moderators: {
+        Row: { id: string; permissions: Json; post_id: string; user_id: string }
+        Insert: { id?: string; permissions?: Json; post_id: string; user_id: string }
+        Update: { id?: string; permissions?: Json; post_id?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "post_moderators_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_moderators_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_participants: {
+        Row: { id: string; joined_at: string; post_id: string; user_id: string }
+        Insert: { id?: string; joined_at?: string; post_id: string; user_id: string }
+        Update: { id?: string; joined_at?: string; post_id?: string; user_id?: string }
+        Relationships: [
+          {
+            foreignKeyName: "post_participants_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_id: string
+          category_id: string
+          chat_access: Database["public"]["Enums"]["chat_access"]
+          created_at: string
+          date_start: string
+          description: string
+          geo_address: string | null
+          geo_city: string
+          geo_lat: number | null
+          geo_lng: number | null
+          geo_mode: Database["public"]["Enums"]["geo_mode"]
+          geo_radius_m: number | null
+          id: string
+          is_closed: boolean
+          max_participants: number | null
+          title: string
+          university_id: string
+        }
+        Insert: {
+          author_id: string
+          category_id: string
+          chat_access?: Database["public"]["Enums"]["chat_access"]
+          created_at?: string
+          date_start: string
+          description?: string
+          geo_address?: string | null
+          geo_city: string
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_mode?: Database["public"]["Enums"]["geo_mode"]
+          geo_radius_m?: number | null
+          id?: string
+          is_closed?: boolean
+          max_participants?: number | null
+          title: string
+          university_id: string
+        }
+        Update: {
+          author_id?: string
+          category_id?: string
+          chat_access?: Database["public"]["Enums"]["chat_access"]
+          created_at?: string
+          date_start?: string
+          description?: string
+          geo_address?: string | null
+          geo_city?: string
+          geo_lat?: number | null
+          geo_lng?: number | null
+          geo_mode?: Database["public"]["Enums"]["geo_mode"]
+          geo_radius_m?: number | null
+          id?: string
+          is_closed?: boolean
+          max_participants?: number | null
+          title?: string
+          university_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      universities: {
+        Row: {
+          city: string
+          country: string
+          domain: string
+          id: string
+          name: string
+          short_name: string
+        }
+        Insert: {
+          city: string
+          country?: string
+          domain: string
+          id?: string
+          name: string
+          short_name: string
+        }
+        Update: {
+          city?: string
+          country?: string
+          domain?: string
+          id?: string
+          name?: string
+          short_name?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          auth_user_id: string | null
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          faculty: string | null
+          goals: string[]
+          id: string
+          interests: string[]
+          is_verified: boolean
+          nickname: string
+          notification_settings: Json
+          privacy_settings: Json
+          university_id: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          faculty?: string | null
+          goals?: string[]
+          id?: string
+          interests?: string[]
+          is_verified?: boolean
+          nickname: string
+          notification_settings?: Json
+          privacy_settings?: Json
+          university_id: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          faculty?: string | null
+          goals?: string[]
+          id?: string
+          interests?: string[]
+          is_verified?: boolean
+          nickname?: string
+          notification_settings?: Json
+          privacy_settings?: Json
+          university_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      active_posts: {
+        Row: {
+          author_id: string | null
+          category_id: string | null
+          chat_access: Database["public"]["Enums"]["chat_access"] | null
+          created_at: string | null
+          date_start: string | null
+          description: string | null
+          geo_address: string | null
+          geo_city: string | null
+          geo_lat: number | null
+          geo_lng: number | null
+          geo_mode: Database["public"]["Enums"]["geo_mode"] | null
+          geo_radius_m: number | null
+          id: string | null
+          is_closed: boolean | null
+          max_participants: number | null
+          title: string | null
+          university_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_conversations: {
+        Row: {
+          can_reply: boolean | null
+          last_content: string | null
+          last_created_at: string | null
+          last_media_url: string | null
+          last_message_id: string | null
+          last_sender_id: string | null
+          partner_id: string | null
+          unread_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_sender_id_fkey"
+            columns: ["last_sender_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_cards: {
+        Row: {
+          author_avatar_url: string | null
+          author_faculty: string | null
+          author_id: string | null
+          author_is_verified: boolean | null
+          author_nickname: string | null
+          category_icon: string | null
+          category_id: string | null
+          category_is_main: boolean | null
+          category_name: string | null
+          chat_access: Database["public"]["Enums"]["chat_access"] | null
+          created_at: string | null
+          date_start: string | null
+          description: string | null
+          geo_address: string | null
+          geo_city: string | null
+          geo_lat: number | null
+          geo_lng: number | null
+          geo_mode: Database["public"]["Enums"]["geo_mode"] | null
+          geo_radius_m: number | null
+          id: string | null
+          in_feed: boolean | null
+          is_closed: boolean | null
+          max_participants: number | null
+          participant_count: number | null
+          seats_left: number | null
+          title: string | null
+          university_city: string | null
+          university_id: string | null
+          university_name: string | null
+          university_short_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      are_friends: { Args: { a: string; b: string }; Returns: boolean }
+      audience_allows: {
+        Args: { audience: string; target: string; viewer: string }
+        Returns: boolean
+      }
+      can_enter_post_chat: { Args: { member: string; post: string }; Returns: boolean }
+      can_join_post: { Args: { member: string; post: string }; Returns: boolean }
+      can_message_user: { Args: { sender: string; target: string }; Returns: boolean }
+      can_moderate: {
+        Args: { actor: string; permission_key: string; post: string }
+        Returns: boolean
+      }
+      can_see_interests: { Args: { target: string; viewer: string }; Returns: boolean }
+      can_see_profile: { Args: { target: string; viewer: string }; Returns: boolean }
+      current_user_id: { Args: never; Returns: string }
+      follows_user: { Args: { follower: string; target: string }; Returns: boolean }
+      is_poll_options: { Args: { options: Json }; Returns: boolean }
+      is_post_author: { Args: { member: string; post: string }; Returns: boolean }
+      is_post_member: { Args: { member: string; post: string }; Returns: boolean }
+      is_tag_array: {
+        Args: { arr: string[]; max_items: number; max_len: number }
+        Returns: boolean
+      }
+      mark_conversation_read: { Args: { partner: string }; Returns: undefined }
+      notification_enabled: { Args: { recipient: string; setting: string }; Returns: boolean }
+      open_read: { Args: never; Returns: boolean }
+      participant_count: { Args: { post: string }; Returns: number }
+      poll_post_id: { Args: { poll: string }; Returns: string }
+      post_author_id: { Args: { post: string }; Returns: string }
+      post_role: { Args: { member: string; post: string }; Returns: string }
+      shares_post_with: { Args: { a: string; b: string }; Returns: boolean }
+      try_uuid: { Args: { value: string }; Returns: string }
+      unread_direct_count: { Args: { partner: string }; Returns: number }
+      unread_direct_total: { Args: never; Returns: number }
+    }
+    Enums: {
+      chat_access: "everyone" | "followers" | "friends"
+      geo_mode: "radius" | "area" | "city"
+      notification_type:
+        | "new_participant"
+        | "new_message"
+        | "new_follower"
+        | "new_post_from_following"
+        | "event_reminder"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  Name extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"]),
+> = (DefaultSchema["Tables"] & DefaultSchema["Views"])[Name] extends { Row: infer R }
+  ? R
+  : never
+
+export type TablesInsert<Name extends keyof DefaultSchema["Tables"]> =
+  DefaultSchema["Tables"][Name] extends { Insert: infer I } ? I : never
+
+export type TablesUpdate<Name extends keyof DefaultSchema["Tables"]> =
+  DefaultSchema["Tables"][Name] extends { Update: infer U } ? U : never
+
+export type Enums<Name extends keyof DefaultSchema["Enums"]> =
+  DefaultSchema["Enums"][Name]
+
+export const Constants = {
+  public: {
+    Enums: {
+      chat_access: ["everyone", "followers", "friends"],
+      geo_mode: ["radius", "area", "city"],
+      notification_type: [
+        "new_participant",
+        "new_message",
+        "new_follower",
+        "new_post_from_following",
+        "event_reminder",
+      ],
+    },
+  },
+} as const

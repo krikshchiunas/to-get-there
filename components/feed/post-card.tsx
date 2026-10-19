@@ -5,7 +5,7 @@ import { Icon } from "@/components/ui/icon";
 import { Seats } from "@/components/ui/seats";
 import { Verified } from "@/components/ui/verified";
 import { formatParticipants, formatRadius, formatTime, shortPlace, urgencyOf } from "@/lib/format";
-import { canEnterChat, chatAccessReason } from "@/lib/mock";
+import { canEnterChat, chatAccessReason } from "@/lib/access";
 import type { PostView } from "@/lib/types";
 
 /**

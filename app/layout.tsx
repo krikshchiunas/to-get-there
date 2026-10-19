@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Golos_Text } from "next/font/google";
 import { Nav } from "@/components/nav/bottom-nav";
-import { currentUser, totalUnreadDirect, unreadNotificationCount } from "@/lib/mock";
+import { getUnreadDirectTotal, getUnreadNotificationCount, getViewer } from "@/lib/data";
 import "./globals.css";
 
 /**
@@ -36,15 +36,21 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const [viewer, unreadChats, unreadNotifications] = await Promise.all([
+    await getViewer(),
+    await getUnreadDirectTotal(),
+    await getUnreadNotificationCount(),
+  ]);
+
   return (
     <html lang="ru" className={sans.variable}>
       <body className="min-h-dvh antialiased">
         <div className="mx-auto flex w-full max-w-[48rem]">
           <Nav
-            unreadChats={totalUnreadDirect}
-            unreadNotifications={unreadNotificationCount}
-            profileNickname={currentUser.nickname}
+            unreadChats={unreadChats}
+            unreadNotifications={unreadNotifications}
+            profileNickname={viewer.nickname}
           />
 
           <div className="min-w-0 flex-1 border-line md:border-r">

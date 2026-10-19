@@ -16,7 +16,7 @@ import {
   pluralRu,
   urgencyOf,
 } from "@/lib/format";
-import type { getMyIdeaChats } from "@/lib/mock";
+import type { getMyIdeaChats } from "@/lib/data";
 import type { ConversationView } from "@/lib/types";
 
 /**
@@ -29,7 +29,7 @@ import type { ConversationView } from "@/lib/types";
  * чатов в Threads и Bluesky выглядит именно так, и от этого он читается
  * быстрее, чем столбик карточек.
  */
-export type IdeaChatEntry = ReturnType<typeof getMyIdeaChats>[number];
+export type IdeaChatEntry = Awaited<ReturnType<typeof getMyIdeaChats>>[number];
 
 /* ── idea chats ─────────────────────────────────────────────────── */
 

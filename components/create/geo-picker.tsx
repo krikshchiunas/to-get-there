@@ -4,7 +4,7 @@ import { Field, RadioRow, TextInput } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import { ChipButton } from "@/components/ui/pill";
 import { formatRadius } from "@/lib/format";
-import { getCitiesWithPosts, viewerLocation } from "@/lib/mock";
+import { viewerLocation } from "@/lib/access";
 import type { GeoMode, GeoRadius } from "@/lib/types";
 
 /**
@@ -73,15 +73,17 @@ export function describeGeo(geo: GeoDraft): string {
 }
 
 export function GeoPicker({
+  cities,
   value,
   onChange,
   error,
 }: {
+  /** Города, где сейчас есть идеи. */
+  cities: string[];
   value: GeoDraft;
   onChange: (next: GeoDraft) => void;
   error?: string;
 }) {
-  const cities = getCitiesWithPosts();
 
   return (
     <div className="space-y-3">

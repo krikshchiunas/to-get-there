@@ -3,7 +3,6 @@ import { Avatar } from "@/components/ui/avatar";
 import { Pill } from "@/components/ui/pill";
 import { Verified } from "@/components/ui/verified";
 import { listLead, listRow, verifiedSize } from "@/components/ui/list-row";
-import { currentUser } from "@/lib/mock";
 import type { UserView } from "@/lib/types";
 import { FollowButton } from "./follow-button";
 
@@ -17,8 +16,8 @@ import { FollowButton } from "./follow-button";
  * ведёт в профиль через растянутую ссылку на нике, поэтому кнопка подписки
  * поднята над ней и остаётся отдельной целью.
  */
-export function UserRow({ user }: { user: UserView }) {
-  const isViewer = user.id === currentUser.id;
+export function UserRow({ user, viewerId }: { user: UserView; viewerId: string }) {
+  const isViewer = user.id === viewerId;
   const place = user.faculty
     ? `${user.university.short_name} · ${user.faculty}`
     : user.university.short_name;
