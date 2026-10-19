@@ -1,0 +1,62 @@
+# Проверки на каждый push и pull request: тот же набор, что локально.
+# Деплой делает Vercel из Git (Settings → Git), а CI говорит, можно ли
+# этому коммиту доверять.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Сборка и тесты идут на моках: секреты базы в CI не нужны.
+      NEXT_PUBLIC_USE_MOCKS: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # После сборки: tsc смотрит и на типы маршрутов, которые генерирует Next.
+      - name: Typecheck
+        run: npm run typecheck
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # Только зависимости, которые уходят в сборку: известное исключение в
+      # линтере описано в docs/SECURITY.md и сюда не попадает.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
