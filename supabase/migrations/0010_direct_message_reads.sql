@@ -28,40 +28,47 @@ create index if not exists direct_message_reads_user_idx
 
 /* ── счётчики ───────────────────────────────────────────────────────── */
 
+-- Читатель берётся из сессии, а не из аргумента. Первая версия принимала
+-- `viewer uuid` параметром, была security definer и выдана роли
+-- authenticated — то есть любой залогиненный мог подставить чужой id и
+-- узнать число непрочитанных у другого человека (IDOR). Подменить сессию
+-- нельзя, поэтому аргумент убран.
+
 -- Сообщения от собеседника, пришедшие после отметки о прочтении.
 -- Нет строки в direct_message_reads — значит не прочитано ничего.
-create or replace function public.unread_direct_count(viewer uuid, partner uuid)
+create or replace function public.unread_direct_count(partner uuid)
 returns integer
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select count(*)::integer
   from public.direct_messages dm
   left join public.direct_message_reads r
-    on r.user_id = viewer and r.partner_id = partner
-  where dm.sender_id = partner
-    and dm.receiver_id = viewer
+    on r.user_id = public.current_user_id() and r.partner_id = partner
+  where public.current_user_id() is not null
+    and dm.sender_id = partner
+    and dm.receiver_id = public.current_user_id()
     and (r.read_at is null or dm.created_at > r.read_at);
 $$;
 
-create or replace function public.unread_direct_total(viewer uuid)
+create or replace function public.unread_direct_total()
 returns integer
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select count(*)::integer
   from public.direct_messages dm
   left join public.direct_message_reads r
-    on r.user_id = viewer and r.partner_id = dm.sender_id
-  where dm.receiver_id = viewer
+    on r.user_id = public.current_user_id() and r.partner_id = dm.sender_id
+  where public.current_user_id() is not null
+    and dm.receiver_id = public.current_user_id()
     and (r.read_at is null or dm.created_at > r.read_at);
 $$;
 
--- Открыли переписку — двигаем отметку на текущий момент.
 create or replace function public.mark_conversation_read(partner uuid)
 returns void
 language plpgsql
@@ -119,7 +126,7 @@ select
   l.content      as last_content,
   l.media_url    as last_media_url,
   l.created_at   as last_created_at,
-  public.unread_direct_count((select id from viewer), l.partner_id) as unread_count,
+  public.unread_direct_count(l.partner_id) as unread_count,
   public.can_message_user(l.partner_id, (select id from viewer))    as can_reply
 from latest l
 order by l.created_at desc;
@@ -156,7 +163,9 @@ create policy direct_message_reads_update_own on public.direct_message_reads
   using (user_id = public.current_user_id())
   with check (user_id = public.current_user_id());
 
-grant execute on function public.unread_direct_count(uuid, uuid) to authenticated;
-grant execute on function public.unread_direct_total(uuid)       to authenticated;
+revoke execute on function public.unread_direct_count(uuid) from public, anon;
+revoke execute on function public.unread_direct_total()     from public, anon;
+grant execute on function public.unread_direct_count(uuid) to authenticated;
+grant execute on function public.unread_direct_total()     to authenticated;
 grant execute on function public.mark_conversation_read(uuid)    to authenticated;
 grant select on public.direct_conversations to authenticated;
