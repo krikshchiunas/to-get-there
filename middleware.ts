@@ -68,6 +68,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Всё, кроме статики Next и иконки.
-  matcher: ["/((?!_next/static|_next/image|icon.svg|favicon.ico).*)"],
+  // Всё, кроме статики Next, иконки и вебхуков: вебхук приходит от Stripe
+  // без сессии, его защищает подпись, а не вход (app/api/webhooks).
+  matcher: ["/((?!_next/static|_next/image|icon.svg|favicon.ico|api/webhooks).*)"],
 };

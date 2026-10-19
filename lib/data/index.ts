@@ -37,6 +37,7 @@ import * as dbDm from "./dm";
 import * as dbNotifications from "./notifications";
 import * as dbSearch from "./search";
 import * as dbReference from "./reference";
+import * as dbVerification from "./verification";
 import { loadViewer } from "./social";
 
 /** Источник данных. Снять флаг — значит перевести экраны на базу. */
@@ -205,4 +206,11 @@ export async function searchUsers(query: string): Promise<UserView[]> {
 export async function getSearchableUsers(): Promise<UserView[]> {
   if (!usingMocks) return dbSearch.getSearchableUsers();
   return mock.users.filter((user) => user.privacy_settings.visible_in_search);
+}
+
+export type { VerificationState } from "./verification";
+
+/** Последняя заявка на проверку личности; в моках заявок нет. */
+export async function getLatestVerification(): Promise<dbVerification.VerificationState | null> {
+  return usingMocks ? null : dbVerification.getLatestVerification();
 }

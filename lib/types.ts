@@ -246,7 +246,9 @@ export type NotificationType =
   | "new_message"
   | "new_follower"
   | "new_post_from_following"
-  | "event_reminder";
+  | "event_reminder"
+  | "verification_passed"
+  | "verification_failed";
 
 export interface NotificationPayload {
   actor_id?: UUID;

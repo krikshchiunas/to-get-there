@@ -458,6 +458,47 @@ export type Database = {
           },
         ]
       }
+      verification_requests: {
+        Row: {
+          created_at: string
+          id: string
+          last_error_code: string | null
+          provider: string
+          provider_session_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_error_code?: string | null
+          provider?: string
+          provider_session_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_error_code?: string | null
+          provider?: string
+          provider_session_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       active_posts: {
@@ -556,6 +597,10 @@ export type Database = {
       }
     }
     Functions: {
+      apply_verification_result: {
+        Args: { error_code?: string; member: string; new_status: string; session_id: string }
+        Returns: undefined
+      }
       are_friends: { Args: { a: string; b: string }; Returns: boolean }
       audience_allows: {
         Args: { audience: string; target: string; viewer: string }
@@ -588,6 +633,7 @@ export type Database = {
       post_author_id: { Args: { post: string }; Returns: string }
       post_role: { Args: { member: string; post: string }; Returns: string }
       shares_post_with: { Args: { a: string; b: string }; Returns: boolean }
+      signal: { Args: { topic: string }; Returns: undefined }
       try_uuid: { Args: { value: string }; Returns: string }
       unread_direct_count: { Args: { partner: string }; Returns: number }
       unread_direct_total: { Args: never; Returns: number }
@@ -601,6 +647,8 @@ export type Database = {
         | "new_follower"
         | "new_post_from_following"
         | "event_reminder"
+        | "verification_passed"
+        | "verification_failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -638,6 +686,8 @@ export const Constants = {
         "new_follower",
         "new_post_from_following",
         "event_reminder",
+        "verification_passed",
+        "verification_failed",
       ],
     },
   },

@@ -7,10 +7,10 @@
  * JavaScript браузера дальше формы, а сессия сразу ложится в httpOnly-cookie.
  */
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/safe-next";
+import { siteUrl } from "@/lib/site-url";
 
 export interface AuthState {
   error: string | null;
@@ -77,11 +77,8 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
     return { error: `Пароль должен быть не короче ${MIN_PASSWORD} символов.`, email };
   }
 
-  // Куда вести после клика в письме: на этот же хост, а не на захардкоженный.
-  const store = await headers();
-  const host = store.get("x-forwarded-host") ?? store.get("host");
-  const proto = store.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
-  const origin = host ? `${proto}://${host}` : "";
+  // Куда вести после клика в письме — адрес из настроек (lib/site-url.ts).
+  const origin = await siteUrl();
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({

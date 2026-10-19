@@ -282,6 +282,18 @@ function describe(notification: Notification, actor: UserView | null): Line {
           ),
       };
     }
+
+    case "verification_passed":
+      return {
+        href: "/settings/verification",
+        sentence: <>Личность подтверждена — рядом с ником теперь стоит отметка</>,
+      };
+
+    case "verification_failed":
+      return {
+        href: "/settings/verification",
+        sentence: <>Проверка личности не прошла. Что не сошлось и как попробовать ещё раз</>,
+      };
   }
 }
 
@@ -290,7 +302,9 @@ function quoted(title: string): ReactNode {
 }
 
 function fallbackIcon(type: Notification["type"]): IconName {
-  return type === "event_reminder" ? "clock" : "bell";
+  if (type === "event_reminder") return "clock";
+  if (type === "verification_passed" || type === "verification_failed") return "shield";
+  return "bell";
 }
 
 /** Превью сообщения обрезается, чтобы строка оставалась строкой. */
