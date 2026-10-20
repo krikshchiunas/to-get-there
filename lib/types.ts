@@ -284,7 +284,8 @@ export type NotificationType =
   | "new_post_from_following"
   | "event_reminder"
   | "verification_passed"
-  | "verification_failed";
+  | "verification_failed"
+  | "post_updated";
 
 export interface NotificationPayload {
   actor_id?: UUID;
@@ -295,6 +296,8 @@ export interface NotificationPayload {
   message_preview?: string;
   /** Minutes until the event, for event_reminder. */
   minutes_until?: number;
+  /** Что автор поменял в идее, для post_updated (0037). */
+  changed?: "time" | "place" | "time_place";
 }
 
 export interface Notification {

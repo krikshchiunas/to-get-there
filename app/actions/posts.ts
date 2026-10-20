@@ -144,6 +144,54 @@ export async function createPost(raw: CreatePostInput): Promise<ActionResult<{ i
   return { ok: true, data: { id: data.id } };
 }
 
+/**
+ * Править идею может только автор (posts_update_author, 0008). База сама
+ * не даст поставить мест меньше, чем уже вступило, и сообщит участникам,
+ * если поменялись время или место (0037).
+ */
+export async function updatePost(postId: string, raw: CreatePostInput): Promise<ActionResult> {
+  const actor = await getActor();
+  if (!actor) return noActor();
+  if (!isUuid(postId)) return invalidInput;
+
+  const input = normalize(raw);
+  if (!input) return invalidInput;
+  const problem = validate(input);
+  if (problem) return { ok: false, error: problem };
+
+  const { error, count } = await actor.supabase
+    .from("posts")
+    .update(
+      {
+        title: input.title.trim(),
+        description: input.description.trim(),
+        category_id: input.categoryId,
+        date_start: new Date(input.dateStart).toISOString(),
+        geo_mode: input.geoMode,
+        geo_city: input.geoCity.trim(),
+        geo_address: input.geoAddress?.trim() || null,
+        ...storedPoint(input),
+        geo_radius_m: input.geoRadiusM,
+        max_participants: input.maxParticipants,
+        chat_access: input.chatAccess,
+      },
+      { count: "exact" },
+    )
+    .eq("id", postId);
+
+  if (error) {
+    if (error.code === "23514" && error.hint === "capacity_below_joined") {
+      return { ok: false, error: "Участников уже больше — мест не может стать меньше, чем вступило." };
+    }
+    return fail(error);
+  }
+  if (!count) return { ok: false, error: "Править идею может только её автор." };
+
+  revalidatePath(`/post/${postId}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function joinPost(postId: string): Promise<ActionResult> {
   const actor = await getActor();
   if (!actor) return noActor();

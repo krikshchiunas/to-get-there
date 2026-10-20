@@ -13,8 +13,8 @@ import type { PostView } from "@/lib/types";
 type Open = "menu" | "delete" | "report" | null;
 
 /**
- * «⋯» в шапке идеи. Автору — удалить идею (закрыть набор живёт в листе
- * модерации). Остальным — пожаловаться.
+ * «⋯» в шапке идеи. Автору — править и удалить идею (закрыть набор живёт в
+ * листе модерации). Остальным — пожаловаться.
  */
 export function IdeaMenu({ post, isAuthor }: { post: PostView; isAuthor: boolean }) {
   const router = useRouter();
@@ -35,7 +35,10 @@ export function IdeaMenu({ post, isAuthor }: { post: PostView; isAuthor: boolean
   }
 
   const actions: SheetAction[] = isAuthor
-    ? [{ label: "Удалить идею", icon: "trash", danger: true, onSelect: () => setOpen("delete") }]
+    ? [
+        { label: "Редактировать идею", icon: "note", onSelect: () => router.push(`/post/${post.id}/edit`) },
+        { label: "Удалить идею", icon: "trash", danger: true, onSelect: () => setOpen("delete") },
+      ]
     : [{ label: "Пожаловаться на идею", icon: "flag", danger: true, onSelect: () => setOpen("report") }];
 
   return (

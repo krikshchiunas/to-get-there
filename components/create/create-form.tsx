@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { createPost } from "@/app/actions/posts";
+import { createPost, updatePost } from "@/app/actions/posts";
 import { usePlace } from "@/lib/use-place";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
   berlinLocalToIso,
 } from "@/lib/format";
 
-import type { Category, ChatAccess, UserView } from "@/lib/types";
+import type { Category, ChatAccess, PostView, UserView } from "@/lib/types";
 import { CATEGORY_GROUP_ID, CategoryPicker } from "./category-picker";
 import {
   GeoPicker,
@@ -77,6 +77,19 @@ function toChatAccess(raw: string): ChatAccess {
   return "everyone";
 }
 
+/** Место идеи — в черновик формы, чтобы правка начиналась с того, что есть. */
+function geoFromPost(post: PostView): GeoDraft {
+  return {
+    mode: post.geo_mode,
+    radius_m: post.geo_radius_m ?? initialGeo.radius_m,
+    point: post.geo_mode === "area" && post.geo_lat != null && post.geo_lng != null
+      ? { lat: post.geo_lat, lng: post.geo_lng }
+      : null,
+    meeting_point: post.geo_mode === "area" ? (post.geo_address ?? "") : "",
+    city: post.geo_mode === "city" ? post.geo_city : "",
+  };
+}
+
 function focusTarget(key: FieldKey, geo: GeoDraft): string {
   if (key === "category") return CATEGORY_GROUP_ID;
   if (key === "geo") return geoFocusId(geo);
@@ -88,12 +101,15 @@ export function CreateForm({
   viewer,
   categories,
   cities,
+  editing,
 }: {
   now: Date;
   /** Автор будущей идеи: университет берётся из его профиля и не правится. */
   viewer: UserView;
   categories: Category[];
   cities: string[];
+  /** Правка существующей идеи: поля начинаются с её значений. */
+  editing?: PostView;
 }) {
   const getCategory = (id: string) => categories.find((category) => category.id === id);
   const router = useRouter();
@@ -102,13 +118,13 @@ export function CreateForm({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const defaultStart = toDatetimeLocal(nextFullHourTomorrow(now));
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
-  const [startsAt, setStartsAt] = useState(defaultStart);
-  const [geo, setGeo] = useState<GeoDraft>(initialGeo);
-  const [maxParticipants, setMaxParticipants] = useState("");
-  const [chatAccess, setChatAccess] = useState<ChatAccess>("everyone");
+  const [title, setTitle] = useState(editing?.title ?? "");
+  const [description, setDescription] = useState(editing?.description ?? "");
+  const [categoryId, setCategoryId] = useState<string | null>(editing?.category_id ?? null);
+  const [startsAt, setStartsAt] = useState(editing ? toDatetimeLocal(editing.date_start) : defaultStart);
+  const [geo, setGeo] = useState<GeoDraft>(() => (editing ? geoFromPost(editing) : initialGeo));
+  const [maxParticipants, setMaxParticipants] = useState(editing?.max_participants?.toString() ?? "");
+  const [chatAccess, setChatAccess] = useState<ChatAccess>(editing?.chat_access ?? "everyone");
   const [errors, setErrors] = useState<Errors>({});
 
   function dismissError(key: FieldKey) {
@@ -223,17 +239,28 @@ export function CreateForm({
             };
 
     setSubmitError(null);
-    startTransition(async () => {
-      const result = await createPost({
-        title: cleanTitle,
-        description: cleanDescription,
-        categoryId: category.id,
-        dateStart: startIso,
-        maxParticipants: seats,
-        chatAccess,
-        ...geoInput,
-      });
+    const input = {
+      title: cleanTitle,
+      description: cleanDescription,
+      categoryId: category.id,
+      dateStart: startIso,
+      maxParticipants: seats,
+      chatAccess,
+      ...geoInput,
+    };
 
+    startTransition(async () => {
+      if (editing) {
+        const result = await updatePost(editing.id, input);
+        if (!result.ok) {
+          setSubmitError(result.error);
+          return;
+        }
+        router.push(`/post/${editing.id}`);
+        return;
+      }
+
+      const result = await createPost(input);
       if (!result.ok) {
         setSubmitError(result.error);
         return;
@@ -432,8 +459,13 @@ export function CreateForm({
                 {submitError}
               </p>
             ) : null}
+            {editing && editing.participant_count > 1 ? (
+              <p className="mb-3 text-[13px] leading-[1.4] text-ink-soft">
+                Если изменишь время или место, участники получат уведомление.
+              </p>
+            ) : null}
             <Button type="submit" size="lg" full disabled={submitting}>
-              {submitting ? "Публикуем…" : "Создать идею"}
+              {editing ? (submitting ? "Сохраняем…" : "Сохранить") : submitting ? "Публикуем…" : "Создать идею"}
             </Button>
           </div>
         </div>

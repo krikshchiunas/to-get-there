@@ -100,6 +100,9 @@ export function toNotificationPayload(value: Json): NotificationPayload {
     ...(str("post_title") ? { post_title: str("post_title") } : {}),
     ...(str("message_preview") ? { message_preview: str("message_preview") } : {}),
     ...(typeof raw.minutes_until === "number" ? { minutes_until: raw.minutes_until } : {}),
+    ...(raw.changed === "time" || raw.changed === "place" || raw.changed === "time_place"
+      ? { changed: raw.changed }
+      : {}),
   };
 }
 

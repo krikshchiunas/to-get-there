@@ -91,7 +91,7 @@ jobs:
           path: playwright-report
           retention-days: 7
 
- на чистой локальной Supabase, сид и
+  # База с нуля: все миграции подряд на чистой локальной Supabase, сид и
   # тесты прав (supabase/tests). Ловит и сломанную миграцию, и дыру в RLS.
   database:
     runs-on: ubuntu-latest

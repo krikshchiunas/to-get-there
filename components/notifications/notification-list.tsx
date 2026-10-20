@@ -294,6 +294,20 @@ function describe(notification: Notification, actor: UserView | null): Line {
         href: "/settings/verification",
         sentence: <>Проверка личности не прошла. Что не сошлось и как попробовать ещё раз</>,
       };
+
+    case "post_updated": {
+      const what =
+        payload.changed === "time" ? "время" : payload.changed === "place" ? "место" : "время и место";
+      return {
+        href: postHref,
+        sentence: (
+          <>
+            <span className="font-medium">{name}</span> изменил {what}
+            {title ? <> в {quoted(title)}</> : null}
+          </>
+        ),
+      };
+    }
   }
 }
 
@@ -303,6 +317,7 @@ function quoted(title: string): ReactNode {
 
 function fallbackIcon(type: Notification["type"]): IconName {
   if (type === "event_reminder") return "clock";
+  if (type === "post_updated") return "calendar";
   if (type === "verification_passed" || type === "verification_failed") return "shield";
   return "bell";
 }

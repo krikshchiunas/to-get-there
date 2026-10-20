@@ -726,6 +726,7 @@ export type Database = {
         | "event_reminder"
         | "verification_passed"
         | "verification_failed"
+        | "post_updated"
       report_reason:
         | "spam"
         | "harassment"
@@ -776,6 +777,7 @@ export const Constants = {
         "event_reminder",
         "verification_passed",
         "verification_failed",
+        "post_updated",
       ],
       report_reason: ["spam", "harassment", "hate", "sexual", "violence", "scam", "impersonation", "other"],
       report_status: ["open", "actioned", "dismissed"],
