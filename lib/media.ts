@@ -34,9 +34,15 @@ export function chatMediaPath(postId: string, fileId: string, ext: string): stri
   return `${postId}/${fileId}.${ext}`;
 }
 
+/** Имя файла в папке: случайный uuid и одно из разрешённых расширений. */
+const FILE_NAME_RE = new RegExp(`^${UUID}\\.${EXT}$`);
+
 export function isChatMediaPath(path: string, postId: string): boolean {
   if (!UUID_RE.test(postId)) return false;
-  return new RegExp(`^${postId}/${UUID}\\.${EXT}$`).test(path);
+  // Без регулярки из входных данных: папка — точным сравнением префикса,
+  // имя — фиксированным выражением.
+  const folder = `${postId}/`;
+  return path.startsWith(folder) && FILE_NAME_RE.test(path.slice(folder.length));
 }
 
 /** Путь аватара: `<user_id>/<uuid>.<ext>`. */
@@ -57,7 +63,7 @@ export function isOwnAvatarUrl(url: string, supabaseUrl: string, userId: string)
   if (!UUID_RE.test(userId)) return false;
   const prefix = avatarPublicUrl(supabaseUrl, `${userId}/`);
   if (!url.startsWith(prefix)) return false;
-  return new RegExp(`^${UUID}\\.${EXT}$`).test(url.slice(prefix.length));
+  return FILE_NAME_RE.test(url.slice(prefix.length));
 }
 
 /** Путь файла внутри бакета по публичной ссылке — чтобы удалить старый аватар. */
