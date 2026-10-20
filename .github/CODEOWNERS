@@ -1,0 +1,7 @@
+# Изменения в правах, схеме и безопасности требуют ревью владельца.
+*                                @krikshchiunas
+/supabase/                       @krikshchiunas
+/middleware.ts                   @krikshchiunas
+/lib/csp.ts                      @krikshchiunas
+/app/api/                        @krikshchiunas
+/.github/                        @krikshchiunas

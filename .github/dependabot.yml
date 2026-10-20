@@ -1,0 +1,25 @@
+# Обновления зависимостей — раз в неделю, пачкой, чтобы не тонуть в PR.
+# Каждый PR проходит тот же CI: линт, юнит, E2E с axe, тесты базы.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    groups:
+      # Мелкие обновления одной пачкой; мажорные — по одному, их читают.
+      minor-and-patch:
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Europe/Berlin
+    labels: [dependencies, ci]

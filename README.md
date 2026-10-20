@@ -17,13 +17,40 @@
 Интерфейс — русский, обращение на «ты». Термины — по глоссарию в
 `docs/ui-contract.md`, отклоняться нельзя.
 
+[![CI](https://github.com/krikshchiunas/to-get-there/actions/workflows/ci.yml/badge.svg)](https://github.com/krikshchiunas/to-get-there/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/krikshchiunas/to-get-there/actions/workflows/codeql.yml/badge.svg)](https://github.com/krikshchiunas/to-get-there/actions/workflows/codeql.yml)
+
+Продакшен: **https://to-get-there-mu.vercel.app** — выкатывается сам из
+`main` после зелёного CI.
+
+## Что умеет
+
+- **Идеи** — создать, править, закрыть набор, удалить; места, доступ в чат
+  («Все» / «Только подписчики» / «Только друзья»), место на карте с
+  огрублением точки.
+- **Чат идеи** — сообщения, ответы с цитатой, фото, голосования,
+  закрепление, модераторы с поимёнными правами, «печатает…» и «сейчас в
+  чате» в реальном времени.
+- **Личка** — ответы, «Удалить у обоих», «Прочитано» (взаимно, выключается),
+  «печатает…».
+- **Люди** — подписки, друзья (взаимная подписка), приватность профиля,
+  интересов и сообщений, поиск.
+- **Безопасность сообщества** — блокировка, жалобы на всё со снимком
+  содержимого, ограничение частоты в базе, правила сообщества.
+- **Свои данные** — скачать всё одним JSON, удалить аккаунт; сроки хранения.
+- **Уведомления** — вступления, сообщения, подписчики, новые идеи,
+  напоминания за час и 30 минут, перенос времени или места.
+- **Проверка личности** — Stripe Identity, по желанию, прав не даёт.
+
 ## Стек
 
-- **Next.js 15** (App Router), React 19, TypeScript в strict-режиме
-- **Tailwind CSS v4** — токены в `app/globals.css`, никаких hex в компонентах
-- **Supabase** — Postgres 15, RLS, realtime, storage
-- Никаких других зависимостей: ни библиотеки иконок, ни работы с датами, ни
-  UI-кита. Иконки — `components/ui/icon.tsx`, даты — `lib/format.ts`
+- **Next.js 15** (App Router, server actions), React 19, TypeScript strict
+- **Tailwind CSS v4** — токены в `app/globals.css`, контраст WCAG AA
+- **Supabase** — Postgres 17 с RLS на каждой таблице, Auth, Storage,
+  Realtime, pg_cron
+- **Vercel** — хостинг; Leaflet + OpenStreetMap — карта
+- Без UI-кита, библиотек иконок и дат: меньше зависимостей — меньше
+  поверхности атаки
 
 ## Как запустить
 
@@ -35,114 +62,84 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-`http://localhost:3000`. На первом-третьем этапах каждый экран рисуется из
-`lib/mock`, поэтому приложение работает без базы и без интернета.
+`http://localhost:3000`. С `NEXT_PUBLIC_USE_MOCKS=true` всё работает из
+`lib/mock` — без базы и без входа (демо-режим, запись не сохраняется).
 
-Остальные команды:
+С базой: `NEXT_PUBLIC_USE_MOCKS=false` и ключи проекта Supabase, либо
+локальный стек `supabase start` (нужен Docker).
 
-```bash
-npm run typecheck   # tsc --noEmit
-npm run lint
-npm run build
-```
+## Проверки
+
+| Команда | Что |
+|---|---|
+| `npm run lint` | ESLint без предупреждений |
+| `npm run typecheck` | TypeScript strict |
+| `npm test` | юнит-тесты (Vitest) |
+| `npm run test:e2e` | все экраны в браузере, axe (WCAG 2.2 AA), клавиатура, телефон (Playwright) |
+| `npm run test:db` | права и триггеры в базе (pgTAP), нужен `supabase start` |
+
+Локально E2E можно гонять установленным Chrome, без скачивания браузера:
+`PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`.
+
+CI (`.github/workflows`) на каждый push и pull request: линт, юнит,
+сборка, типы, аудит зависимостей, E2E на десктопе и телефоне, все миграции
+с нуля на чистой Supabase + pgTAP + линт схемы, CodeQL.
 
 ## Переменные окружения
 
-`.env.local` (образец — `.env.local.example`, в git не попадает):
+Полный список с пояснениями — `.env.local.example`. Коротко:
 
-| Переменная | Что это |
-| --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | адрес проекта. Локально — `http://127.0.0.1:54321` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | публичный ключ. Он публичный по смыслу: всё решает RLS |
-| `SUPABASE_SERVICE_ROLE_KEY` | только сервер и скрипты. Обходит RLS целиком, в браузер не попадает никогда |
-| `NEXT_PUBLIC_USE_MOCKS` | `true` — экраны читают `lib/mock`. Переключится на `false`, когда запросы Supabase заменят моки |
-
-Локальные значения печатает `supabase status` после `supabase start`.
-
-## Supabase
-
-Схема лежит в `supabase/migrations/` и применяется по порядку с 0001 по 0009,
-затем выполняется `supabase/seed.sql` — тот же набор данных, что в `lib/mock`,
-только в базе: 8 университетов, 20 категорий, 15 человек, 20 идей, составы
-чатов, сообщения, голосования, подписки, личные сообщения, уведомления. Время
-в сиде относительное, так что в ленте всегда есть предстоящие идеи.
-
-```bash
-brew install supabase/tap/supabase   # или npx supabase@latest
-supabase start                       # Postgres, API, Studio, ловец писем
-supabase db reset                    # миграции 0001-0009 + seed.sql
-supabase status                      # адрес и ключи для .env.local
-npm run db:types                     # типы в lib/database.types.ts
-```
-
-В облачный проект:
-
-```bash
-supabase login
-supabase link --project-ref <ref>
-supabase db push
-```
-
-Сид в облако `db push` не отправляет — его нужно выполнить отдельно
-(`psql -f supabase/seed.sql` или целиком вставить в SQL Editor).
-
-Подробно о таблицах, политиках и правилах — **`docs/DATABASE.md`**.
-
-Регистрация по университетской почте — последний этап проекта. Её триггер
-лежит отдельно, в `supabase/later/auth_bridge.sql`, и **сейчас не
-применяется**: пока авторизации нет, база работает в режиме разработки
-(`app_flags.open_read = true`), в котором чтение открыто анонимному ключу, а
-запись — нет.
-
-## Деплой на Vercel
-
-1. Импортировать репозиторий на [vercel.com](https://vercel.com). Next.js
-   определяется сам, менять команды сборки не нужно.
-2. Добавить переменные окружения в Project Settings → Environment Variables:
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` для Production
-   и Preview, `SUPABASE_SERVICE_ROLE_KEY` — только там, где он действительно
-   нужен.
-3. В Supabase (Authentication → URL Configuration) прописать адрес
-   развёрнутого приложения в `Site URL` и `Redirect URLs` — иначе на шестом
-   этапе ссылки из писем будут возвращать на localhost.
-4. `next.config.ts` уже разрешает загрузку картинок с хоста Supabase: он
-   берётся из `NEXT_PUBLIC_SUPABASE_URL`, так что отдельной настройки для
-   аватаров и вложений не нужно.
+| Переменная | Где | Зачем |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | везде | клиент Supabase (защищён RLS) |
+| `NEXT_PUBLIC_USE_MOCKS` | везде | `true` — демо без базы |
+| `NEXT_PUBLIC_SITE_URL` | прод | адрес для ссылок в письмах (иначе — домен Vercel) |
+| `SUPABASE_SECRET_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | только сервер | проверка личности |
+| `LEGAL_OPERATOR_*` | прод | Impressum (`docs/LEGAL.md`) |
 
 ## Структура
 
 ```
-app/                      маршруты (App Router)
-  page.tsx                лента: ?tab=following | ?tab=university
-  create/                 новая идея
-  post/[id]/              идея: описание, чат, голосования, модерация
-  u/[nickname]/           профиль и списки подписок
-  messages/               чаты и личная переписка
-  search/                 поиск и фильтры
-  notifications/          уведомления
-  settings/               настройки, приватность, верификация
-  globals.css             токены дизайна
+app/
+  (app)/                  экраны приложения (после входа)
+    (feed)/               лента: ?tab=following | ?tab=university
+    create/  post/[id]/  post/[id]/edit/
+    u/[nickname]/  messages/  search/  notifications/  settings/
+  auth/                   вход, регистрация, подтверждение почты
+  legal/                  Impressum, конфиденциальность, условия, правила
+  actions/                server actions — вся запись
+  api/                    health, выгрузка данных, вебхук Stripe
 components/
-  ui/                     примитивы: icon, button, field, avatar, pill, seats…
-  nav/                    нижняя навигация
-  feed/ chat/ create/      экранные блоки
-  profile/ dm/
+  ui/                     примитивы: кнопки, поля, листы, иконки, аватары
+  chat/ dm/ feed/ profile/ search/ create/ settings/ safety/ legal/
 lib/
-  types.ts                типы домена (повторяют схему Postgres)
-  format.ts               даты, pluralRu, правило ленты, места
-  mock/                   данные первого-третьего этапов
-  supabase/               клиенты для браузера и сервера
+  data/                   чтение из Supabase (с RLS); index.ts — переключатель моков
+  actions/actor.ts        кто действует, ошибки словами
+  validate.ts             проверка аргументов server actions
+  csp.ts                  Content-Security-Policy с nonce
+  live.ts use-presence.ts realtime: сигналы, «печатает», присутствие
+  types.ts format.ts …    домен и чистые правила (с юнит-тестами)
+  mock/                   демо-данные
 supabase/
-  migrations/0001…0009    схема, правила, RLS, realtime, storage
-  seed.sql                набор данных
-  later/auth_bridge.sql   регистрация, применяется в самом конце
-  config.toml             локальный стек
-docs/
-  ui-contract.md          правила экранов и глоссарий терминов
-  DESIGN.md               почему интерфейс выглядит так
-  DATABASE.md             таблицы, политики, правила, команды
-  ROADMAP.md              шесть этапов и что чем заменится
+  migrations/             0001…0039 — схема, RLS, триггеры, cron
+  tests/database/         pgTAP: права и триггеры
+  seed.sql  config.toml
+e2e/                      Playwright + axe
+docs/                     см. ниже
 ```
+
+## Документы
+
+| Файл | О чём |
+|---|---|
+| `docs/ARCHITECTURE.md` | как устроено, куда идут данные, решения |
+| `docs/DATABASE.md` | таблицы, политики, функции, миграции |
+| `docs/SECURITY.md` | модель угроз, что чем защищено, что сделать руками |
+| `docs/MODERATION.md` | как разбирать жалобы (DSA) |
+| `docs/LEGAL.md` | Impressum, DSGVO, DSA — что сделано и что за оператором |
+| `docs/ui-contract.md`, `docs/DESIGN.md` | правила экранов, глоссарий, дизайн |
+| `docs/ROADMAP.md` | этапы и что дальше |
+| `CONTRIBUTING.md` | как вносить изменения |
 
 ## Правила, на которых держится продукт
 
