@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import { Golos_Text } from "next/font/google";
 import "./globals.css";
 
@@ -15,7 +16,16 @@ const sans = Golos_Text({
   display: "swap",
 });
 
+/**
+ * Абсолютный адрес для превью ссылок (og:image и т. п.): та же цепочка, что
+ * в lib/site-url.ts, но без заголовка Host — метаданные собираются вне запроса.
+ */
+const siteOrigin =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin),
   title: {
     default: "To Get There",
     template: "%s · To Get There",
@@ -34,7 +44,14 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Каждая страница рендерится на запрос. CSP (middleware.ts) разрешает только
+ * скрипты с nonce этого запроса, а Next проставляет nonce лишь при
+ * динамическом рендере: у страницы, собранной заранее, скрипты без nonce, и
+ * браузер их блокирует — страница не оживает. Нашёл E2E (e2e/screens.spec.ts).
+ */
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  await connection();
   return (
     <html lang="ru" className={sans.variable}>
       <body className="min-h-dvh antialiased">{children}</body>

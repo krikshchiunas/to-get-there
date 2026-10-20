@@ -88,15 +88,15 @@ export function AuthForm({
       {isSignup ? (
         <p className="text-[13px] leading-[1.45] text-ink-soft">
           Создавая аккаунт, ты подтверждаешь, что тебе есть {MIN_AGE}, и принимаешь{" "}
-          <Link href="/legal/terms" className="text-signal underline-offset-2 hover:underline">
+          <Link href="/legal/terms" className="text-signal underline underline-offset-2">
             условия
           </Link>{" "}
           и{" "}
-          <Link href="/legal/community" className="text-signal underline-offset-2 hover:underline">
+          <Link href="/legal/community" className="text-signal underline underline-offset-2">
             правила сообщества
           </Link>
           . Как мы обращаемся с данными —{" "}
-          <Link href="/legal/privacy" className="text-signal underline-offset-2 hover:underline">
+          <Link href="/legal/privacy" className="text-signal underline underline-offset-2">
             здесь
           </Link>
           .
@@ -111,7 +111,7 @@ export function AuthForm({
         {isSignup ? "Уже есть аккаунт? " : "Ещё нет аккаунта? "}
         <Link
           href={isSignup ? "/auth/login" : "/auth/signup"}
-          className="text-signal underline-offset-2 hover:underline"
+          className="text-signal underline underline-offset-2"
         >
           {isSignup ? "Войти" : "Зарегистрироваться"}
         </Link>

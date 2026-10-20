@@ -54,7 +54,8 @@ export function Avatar({ user, size = "md", withBadge = false, className = "" }:
           className={`flex h-full w-full items-center justify-center rounded-full font-medium ${spec.text}`}
           style={{
             background: `color-mix(in oklab, ${tint} 20%, var(--c-surface))`,
-            color: `color-mix(in oklab, ${tint} 72%, var(--c-ink))`,
+            // 55%: инициалы читаются на заливке не хуже 5.5:1 в обеих темах (WCAG AA).
+            color: `color-mix(in oklab, ${tint} 55%, var(--c-ink))`,
             // Кольцо, а не тень: теней в приложении нет ни одной.
             outline: "1px solid color-mix(in oklab, currentColor 16%, transparent)",
             outlineOffset: "-1px",

@@ -18,6 +18,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="mx-auto flex w-full max-w-[48rem]">
+      {/* WCAG 2.4.1: с клавиатуры — сразу к содержанию, мимо навигации. */}
+      <a
+        href="#content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-pill focus:bg-signal focus:px-4 focus:py-2 focus:text-[15px] focus:text-signal-ink"
+      >
+        Перейти к содержанию
+      </a>
       <Nav
         unreadChats={unreadChats}
         unreadNotifications={unreadNotifications}
@@ -25,7 +32,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       />
       <div className="min-w-0 flex-1 border-line md:border-r">
         {/* Место под фиксированную нижнюю панель на телефоне. */}
-        <main className="u-column pb-24 md:pb-10">{children}</main>
+        <main id="content" tabIndex={-1} className="u-column pb-24 outline-none md:pb-10">
+          {children}
+        </main>
       </div>
       <ToastHost />
       {/* Личка и уведомления: бейджи и списки обновляются сами. */}

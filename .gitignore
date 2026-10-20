@@ -15,3 +15,11 @@ next-env.d.ts.timestamp
 supabase/.branches
 supabase/.temp
 supabase/.env
+
+# E2E
+/.next-e2e/
+/playwright-report/
+/test-results/
+
+# Сгенерирован Next под папку сборки — у каждого свой
+next-env.d.ts
