@@ -16,6 +16,7 @@ npm run dev
 ## Перед коммитом
 
 ```bash
+npm run format
 npm run lint
 npm run typecheck
 npm test
