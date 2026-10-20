@@ -12,7 +12,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { UserView } from "@/lib/types";
 import { requireViewerId } from "./session";
-import { noSocialFacts, toUserView, type SocialFacts } from "./map";
+import { noSocialFacts, toUserView, VIEWER_FIELDS, type SocialFacts, type UserRecord } from "./map";
 
 export interface ViewerEdges {
   viewerId: string;
@@ -69,18 +69,14 @@ export const loadViewer = cache(async (): Promise<UserView> => {
   const supabase = await createClient();
   const viewerId = await requireViewerId();
 
-  const { data, error } = await supabase
-    .from("users")
-    .select("*, university:universities(*)")
-    .eq("id", viewerId)
-    .single();
+  const { data, error } = await supabase.from("users").select(VIEWER_FIELDS).eq("id", viewerId).single();
 
   if (error || !data) {
     throw new Error(`Не удалось загрузить профиль зрителя: ${error?.message ?? "строка не найдена"}`);
   }
 
   const counts = await loadFollowCounts([viewerId]);
-  return toUserView(data, counts.get(viewerId) ?? noSocialFacts);
+  return toUserView(data as unknown as UserRecord, counts.get(viewerId) ?? noSocialFacts);
 });
 
 export type FollowCounts = Map<string, SocialFacts>;

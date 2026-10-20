@@ -1,19 +1,16 @@
 /** Профили, подписки и идеи конкретного человека. */
 
 import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/database.types";
 import { isInFeed } from "@/lib/format";
 import type { PostView, UserView } from "@/lib/types";
-import { noSocialFacts, toUserView } from "./map";
+import { noSocialFacts, PROFILE_FIELDS, toUserView, type UserRecord } from "./map";
 import { loadFollowCounts } from "./social";
 import { POST_SELECT, toPostViews, type PostRow } from "./feed";
 
-type UserWithUniversity = Tables<"users"> & { university: Tables<"universities"> | null };
-
-const USER_SELECT = "*,university:universities(*)";
+const USER_SELECT = PROFILE_FIELDS;
 
 /** Превращает строки `users` в `UserView`, добрав счётчики одним заходом. */
-export async function toUserViews(rows: UserWithUniversity[]): Promise<UserView[]> {
+export async function toUserViews(rows: UserRecord[]): Promise<UserView[]> {
   if (rows.length === 0) return [];
   const counts = await loadFollowCounts(rows.map((row) => row.id));
   return rows.flatMap((row) =>
@@ -25,7 +22,7 @@ export async function getUserByNickname(nickname: string): Promise<UserView | un
   const supabase = await createClient();
   const { data } = await supabase.from("users").select(USER_SELECT).eq("nickname", nickname).maybeSingle();
   if (!data) return undefined;
-  const [view] = await toUserViews([data as unknown as UserWithUniversity]);
+  const [view] = await toUserViews([data as unknown as UserRecord]);
   return view;
 }
 
@@ -33,7 +30,7 @@ export async function getUserById(id: string): Promise<UserView | undefined> {
   const supabase = await createClient();
   const { data } = await supabase.from("users").select(USER_SELECT).eq("id", id).maybeSingle();
   if (!data) return undefined;
-  const [view] = await toUserViews([data as unknown as UserWithUniversity]);
+  const [view] = await toUserViews([data as unknown as UserRecord]);
   return view;
 }
 
@@ -43,7 +40,7 @@ export async function getUsersByIds(ids: string[]): Promise<Map<string, UserView
   if (unique.length === 0) return new Map();
   const supabase = await createClient();
   const { data } = await supabase.from("users").select(USER_SELECT).in("id", unique);
-  const views = await toUserViews((data ?? []) as unknown as UserWithUniversity[]);
+  const views = await toUserViews((data ?? []) as unknown as UserRecord[]);
   return new Map(views.map((view) => [view.id, view]));
 }
 
@@ -56,7 +53,7 @@ export async function getFollowers(userId: string): Promise<UserView[]> {
     .order("created_at", { ascending: false });
 
   const rows = (data ?? []).flatMap((row) => {
-    const follower = (row as unknown as { follower: UserWithUniversity | null }).follower;
+    const follower = (row as unknown as { follower: UserRecord | null }).follower;
     return follower ? [follower] : [];
   });
   return toUserViews(rows);
@@ -71,7 +68,7 @@ export async function getFollowing(userId: string): Promise<UserView[]> {
     .order("created_at", { ascending: false });
 
   const rows = (data ?? []).flatMap((row) => {
-    const following = (row as unknown as { following: UserWithUniversity | null }).following;
+    const following = (row as unknown as { following: UserRecord | null }).following;
     return following ? [following] : [];
   });
   return toUserViews(rows);
@@ -114,7 +111,7 @@ export async function getBlockedUsers(): Promise<UserView[]> {
     .order("created_at", { ascending: false });
 
   const rows = (data ?? []).flatMap((row) => {
-    const blocked = (row as unknown as { blocked: UserWithUniversity | null }).blocked;
+    const blocked = (row as unknown as { blocked: UserRecord | null }).blocked;
     return blocked ? [blocked] : [];
   });
   return toUserViews(rows);

@@ -61,8 +61,6 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
       nickname,
       faculty: faculty || null,
       bio: input.bio.trim() || null,
-      interests,
-      goals,
     })
     .eq("id", actor.viewerId);
 
@@ -70,6 +68,13 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
     if (error.code === "23505") return { ok: false, error: "Этот ник уже занят. Попробуй другой." };
     return fail(error);
   }
+
+  // Интересы и цели — в своей таблице под своей политикой видимости (0040).
+  const tags = await actor.supabase
+    .from("user_tags")
+    .update({ interests, goals })
+    .eq("user_id", actor.viewerId);
+  if (tags.error) return fail(tags.error);
 
   revalidatePath("/", "layout");
   return { ok: true };
@@ -151,9 +156,9 @@ export async function updateNotificationSettings(settings: NotificationSettings)
   };
 
   const { error } = await actor.supabase
-    .from("users")
+    .from("user_settings")
     .update({ notification_settings: { ...clean } })
-    .eq("id", actor.viewerId);
+    .eq("user_id", actor.viewerId);
 
   if (error) return fail(error);
   revalidatePath("/settings/notifications");

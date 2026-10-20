@@ -12,7 +12,7 @@ import { berlinLocalToIso, DAY_MS, distanceMetres, FEED_GRACE_MS, minutesOfDay }
 import type { PostView, SearchFilters, UserView } from "@/lib/types";
 import { POST_SELECT, toPostViews, type PostRow } from "./feed";
 import { toUserViews } from "./people";
-import type { Tables } from "@/lib/database.types";
+import { PROFILE_FIELDS, type UserRecord } from "./map";
 
 /** PostgREST-фильтр `or` ломается на запятых и скобках внутри значения. */
 function escapeForOr(value: string): string {
@@ -108,8 +108,7 @@ export async function searchUsers(query: string): Promise<UserView[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .rpc("search_people", { q: needle, max_results: PEOPLE_RESULTS_LIMIT })
-    .select("*,university:universities(*)");
+    .select(PROFILE_FIELDS);
 
-  type UserWithUniversity = Tables<"users"> & { university: Tables<"universities"> | null };
-  return toUserViews((data ?? []) as unknown as UserWithUniversity[]);
+  return toUserViews((data ?? []) as unknown as UserRecord[]);
 }

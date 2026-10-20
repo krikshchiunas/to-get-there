@@ -145,7 +145,14 @@ insert into public.categories (id, name, is_main, icon) values
 -- initials until Storage holds real files, which keeps the dataset
 -- offline-safe. is_verified is set here because the seed runs as `postgres`
 -- and the guard trigger in 0007 only blocks client roles.
-insert into public.users
+-- Интересы и цели живут в user_tags (0040): строки сперва во временной
+-- таблице, затем профиль в users, а теги — в строки, которые создал триггер.
+create temp table seed_users (
+  id uuid, auth_user_id uuid, nickname text, avatar_url text, university_id uuid,
+  faculty text, bio text, interests text[], goals text[], is_verified boolean, created_at timestamptz
+);
+
+insert into seed_users
   (id, auth_user_id, nickname, avatar_url, university_id, faculty, bio, interests, goals, is_verified, created_at)
 values
   ('33333333-3333-3333-3333-000000000001', null, 'mara_t', null, '11111111-1111-1111-1111-000000000001',
@@ -252,6 +259,18 @@ values
    array['Карнавал', 'Готовка', 'Бег'],
    array['Пережить подготовку к экзаменам'],
    false, now() - interval '450 days');
+
+insert into public.users
+  (id, auth_user_id, nickname, avatar_url, university_id, faculty, bio, is_verified, created_at)
+select id, auth_user_id, nickname, avatar_url, university_id, faculty, bio, is_verified, created_at
+from seed_users;
+
+update public.user_tags t
+   set interests = s.interests, goals = s.goals
+  from seed_users s
+ where t.user_id = s.id;
+
+drop table seed_users;
 
 -- The three people who changed something in «Настройки → Приватность».
 -- Everyone else keeps the default from 0003: everything open, visible in

@@ -27,6 +27,31 @@ type UserRow = Tables<"users">;
 type UniversityRow = Tables<"universities">;
 type CategoryRow = Tables<"categories">;
 
+/**
+ * Вложенный select профиля — три уровня подробности.
+ *
+ * USER_FIELDS — автор в ленте, в чате, в опросе: ник, аватар, университет.
+ * Интересов там нет — экраны их не показывают, а политика `user_tags` на
+ * каждой строке стоила бы лишнего.
+ *
+ * PROFILE_FIELDS — профиль, списки людей, поиск: плюс интересы и цели (0040).
+ * `user_tags` — один к одному с `users`, но под своей политикой: если
+ * владелец прячет интересы от смотрящего, PostgREST отдаёт `tags: null`, и
+ * на экране остаются пустые списки. Скрытое не приходит в браузер вовсе.
+ *
+ * VIEWER_FIELDS — сам смотрящий: плюс настройки уведомлений, видные только ему.
+ */
+export const USER_FIELDS = "*,university:universities(*)";
+export const PROFILE_FIELDS = `${USER_FIELDS},tags:user_tags(interests,goals)`;
+export const VIEWER_FIELDS = `${PROFILE_FIELDS},settings:user_settings(notification_settings)`;
+
+/** Строка, которую возвращают USER_FIELDS, PROFILE_FIELDS и VIEWER_FIELDS. */
+export type UserRecord = UserRow & {
+  university: UniversityRow | null;
+  tags?: Pick<Tables<"user_tags">, "interests" | "goals"> | null;
+  settings?: Pick<Tables<"user_settings">, "notification_settings"> | null;
+};
+
 function asRecord(value: Json): Record<string, Json | undefined> {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, Json | undefined>)
@@ -141,7 +166,7 @@ export function toCategory(row: CategoryRow): Category {
   };
 }
 
-export function toUser(row: UserRow): User {
+export function toUser(row: Omit<UserRecord, "university">): User {
   return {
     id: row.id,
     nickname: row.nickname,
@@ -149,11 +174,11 @@ export function toUser(row: UserRow): User {
     university_id: row.university_id,
     faculty: row.faculty,
     bio: row.bio,
-    interests: row.interests,
-    goals: row.goals,
+    interests: row.tags?.interests ?? [],
+    goals: row.tags?.goals ?? [],
     is_verified: row.is_verified,
     privacy_settings: toPrivacySettings(row.privacy_settings),
-    notification_settings: toNotificationSettings(row.notification_settings),
+    notification_settings: toNotificationSettings(row.settings?.notification_settings ?? null),
     created_at: row.created_at,
   };
 }
@@ -175,10 +200,7 @@ export const noSocialFacts: SocialFacts = {
   viewer_blocked: false,
 };
 
-export function toUserView(
-  row: UserRow & { university: UniversityRow | null },
-  facts: SocialFacts,
-): UserView {
+export function toUserView(row: UserRecord, facts: SocialFacts): UserView {
   if (!row.university) {
     throw new Error(`У пользователя ${row.nickname} не загружен университет`);
   }

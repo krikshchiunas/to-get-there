@@ -8,8 +8,10 @@ import {
   toNotificationSettings,
   toPollOptions,
   toPrivacySettings,
+  toUser,
   toUserView,
 } from "./map";
+import { defaultNotifications } from "@/lib/mock/users";
 
 describe("toPrivacySettings — строгая форма из jsonb", () => {
   it("берёт известные значения", () => {
@@ -118,15 +120,40 @@ describe("toCategory / toUserView / roleIn", () => {
       university_id: "x",
       faculty: null,
       bio: null,
-      interests: [],
-      goals: [],
       is_verified: false,
       privacy_settings: {},
-      notification_settings: {},
       created_at: "2026-01-01T00:00:00Z",
       university: null,
     };
     expect(() => toUserView(row, noSocialFacts)).toThrow(/университет/);
+  });
+
+  it("скрытые базой интересы и чужие настройки — пустые списки и значения по умолчанию", () => {
+    const base = {
+      id: "u",
+      auth_user_id: null,
+      nickname: "nick",
+      avatar_url: null,
+      university_id: "x",
+      faculty: null,
+      bio: null,
+      is_verified: false,
+      privacy_settings: {},
+      created_at: "2026-01-01T00:00:00Z",
+    };
+    const hidden = toUser({ ...base, tags: null });
+    expect(hidden.interests).toEqual([]);
+    expect(hidden.goals).toEqual([]);
+    expect(hidden.notification_settings).toEqual(defaultNotifications);
+
+    const own = toUser({
+      ...base,
+      tags: { interests: ["Шахматы"], goals: ["Сдать экзамен"] },
+      settings: { notification_settings: { ...defaultNotifications, new_follower: false } },
+    });
+    expect(own.interests).toEqual(["Шахматы"]);
+    expect(own.goals).toEqual(["Сдать экзамен"]);
+    expect(own.notification_settings.new_follower).toBe(false);
   });
 
   it("роль считается из множеств", () => {

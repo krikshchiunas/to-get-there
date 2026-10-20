@@ -500,6 +500,55 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          notification_settings: Json
+          user_id: string
+        }
+        Insert: {
+          notification_settings?: Json
+          user_id: string
+        }
+        Update: {
+          notification_settings?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_tags: {
+        Row: {
+          goals: string[]
+          interests: string[]
+          user_id: string
+        }
+        Insert: {
+          goals?: string[]
+          interests?: string[]
+          user_id: string
+        }
+        Update: {
+          goals?: string[]
+          interests?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_tags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           auth_user_id: string | null
@@ -507,12 +556,9 @@ export type Database = {
           bio: string | null
           created_at: string
           faculty: string | null
-          goals: string[]
           id: string
-          interests: string[]
           is_verified: boolean
           nickname: string
-          notification_settings: Json
           privacy_settings: Json
           university_id: string
         }
@@ -522,12 +568,9 @@ export type Database = {
           bio?: string | null
           created_at?: string
           faculty?: string | null
-          goals?: string[]
           id?: string
-          interests?: string[]
           is_verified?: boolean
           nickname: string
-          notification_settings?: Json
           privacy_settings?: Json
           university_id: string
         }
@@ -537,12 +580,9 @@ export type Database = {
           bio?: string | null
           created_at?: string
           faculty?: string | null
-          goals?: string[]
           id?: string
-          interests?: string[]
           is_verified?: boolean
           nickname?: string
-          notification_settings?: Json
           privacy_settings?: Json
           university_id?: string
         }
