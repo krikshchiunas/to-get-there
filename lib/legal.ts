@@ -31,7 +31,10 @@ export function getOperator(): Operator | null {
   return {
     name,
     // В переменной строки разделены «|» — переносы строк в панели Vercel неудобны.
-    address: address.split("|").map((line) => line.trim()).filter(Boolean),
+    address: address
+      .split("|")
+      .map((line) => line.trim())
+      .filter(Boolean),
     email,
     phone: process.env.LEGAL_OPERATOR_PHONE?.trim() || null,
     contentResponsible: process.env.LEGAL_CONTENT_RESPONSIBLE?.trim() || name,

@@ -21,7 +21,12 @@ const viewer = currentUser;
 
 describe("canSeeProfile / canSeeInterests", () => {
   it("себя видно всегда", () => {
-    expect(canSeeProfile({ ...viewer, privacy_settings: { ...viewer.privacy_settings, who_can_see_profile: "friends" } }, viewer)).toBe(true);
+    expect(
+      canSeeProfile(
+        { ...viewer, privacy_settings: { ...viewer.privacy_settings, who_can_see_profile: "friends" } },
+        viewer,
+      ),
+    ).toBe(true);
   });
 
   it("«все» — видно всем", () => {
@@ -29,15 +34,25 @@ describe("canSeeProfile / canSeeInterests", () => {
   });
 
   it("«мой вуз» — только своему вузу", () => {
-    const same = person({ university_id: viewer.university_id, privacy: { who_can_see_profile: "university" } });
-    const other = person({ university_id: "other-university", privacy: { who_can_see_profile: "university" } });
+    const same = person({
+      university_id: viewer.university_id,
+      privacy: { who_can_see_profile: "university" },
+    });
+    const other = person({
+      university_id: "other-university",
+      privacy: { who_can_see_profile: "university" },
+    });
     expect(canSeeProfile(same, viewer)).toBe(true);
     expect(canSeeProfile(other, viewer)).toBe(false);
   });
 
   it("«друзья» — только при взаимной подписке", () => {
     const one = person({ viewer_follows: true, privacy: { who_can_see_interests: "friends" } });
-    const both = person({ viewer_follows: true, follows_viewer: true, privacy: { who_can_see_interests: "friends" } });
+    const both = person({
+      viewer_follows: true,
+      follows_viewer: true,
+      privacy: { who_can_see_interests: "friends" },
+    });
     expect(canSeeInterests(one, viewer)).toBe(false);
     expect(canSeeInterests(both, viewer)).toBe(true);
   });
@@ -49,7 +64,9 @@ describe("canMessage", () => {
   });
 
   it("заблокированному не написать, даже если он принимает всех", () => {
-    expect(canMessage(person({ viewer_blocked: true, privacy: { who_can_message: "everyone" } }), viewer)).toBe(false);
+    expect(
+      canMessage(person({ viewer_blocked: true, privacy: { who_can_message: "everyone" } }), viewer),
+    ).toBe(false);
   });
 
   it("по настройке получателя", () => {
@@ -57,7 +74,10 @@ describe("canMessage", () => {
     expect(canMessage(person({ privacy: { who_can_message: "nobody" } }), viewer)).toBe(false);
     expect(canMessage(person({ privacy: { who_can_message: "friends" } }), viewer)).toBe(false);
     expect(
-      canMessage(person({ viewer_follows: true, follows_viewer: true, privacy: { who_can_message: "friends" } }), viewer),
+      canMessage(
+        person({ viewer_follows: true, follows_viewer: true, privacy: { who_can_message: "friends" } }),
+        viewer,
+      ),
     ).toBe(true);
   });
 });

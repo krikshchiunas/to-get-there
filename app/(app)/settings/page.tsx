@@ -34,9 +34,7 @@ export default async function SettingsPage() {
 
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-medium">{viewer.nickname}</span>
-            <span className="block truncate text-[14px] text-ink-soft">
-              {viewer.university.name}
-            </span>
+            <span className="block truncate text-[14px] text-ink-soft">{viewer.university.name}</span>
           </span>
 
           <Icon name="chevron" size={18} className="shrink-0 text-ink-faint" />

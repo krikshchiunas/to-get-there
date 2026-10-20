@@ -33,7 +33,9 @@ export function PostCard({ post, now }: { post: PostView; now: Date }) {
 
   return (
     <article className={`${listRow} isolate`}>
-      <span className={listLead}><Avatar user={post.author} size="md" /></span>
+      <span className={listLead}>
+        <Avatar user={post.author} size="md" />
+      </span>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-1.5">
@@ -64,9 +66,7 @@ export function PostCard({ post, now }: { post: PostView; now: Date }) {
           </Link>
         </h3>
 
-        <p className="u-clamp-2 mt-0.5 text-[15px] leading-[1.4] text-ink-soft">
-          {post.description}
-        </p>
+        <p className="u-clamp-2 mt-0.5 text-[15px] leading-[1.4] text-ink-soft">{post.description}</p>
 
         <div className="mt-1.5 flex items-center gap-2 text-[14px] text-ink-soft">
           <p className="flex min-w-0 flex-1 items-center gap-1">

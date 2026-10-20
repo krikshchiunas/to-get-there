@@ -9,8 +9,8 @@ export default function SignupPage() {
     <>
       <h1 className="mb-1.5 text-[24px] font-semibold">Регистрация</h1>
       <p className="mb-8 text-[15px] leading-[1.4] text-ink-soft">
-        Только для студентов: аккаунт создаётся по университетской почте. Ник придумаем из адреса,
-        поменяешь в настройках.
+        Только для студентов: аккаунт создаётся по университетской почте. Ник придумаем из адреса, поменяешь в
+        настройках.
       </p>
       <AuthForm mode="signup" action={signUp} />
     </>

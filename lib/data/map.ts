@@ -46,9 +46,21 @@ function pickBoolean(value: Json | undefined, fallback: boolean): boolean {
 export function toPrivacySettings(value: Json): PrivacySettings {
   const raw = asRecord(value);
   return {
-    who_can_message: pickString(raw.who_can_message, ["everyone", "friends", "nobody"] as const, defaultPrivacy.who_can_message),
-    who_can_see_profile: pickString(raw.who_can_see_profile, ["everyone", "university", "friends"] as const, defaultPrivacy.who_can_see_profile),
-    who_can_see_interests: pickString(raw.who_can_see_interests, ["everyone", "university", "friends"] as const, defaultPrivacy.who_can_see_interests),
+    who_can_message: pickString(
+      raw.who_can_message,
+      ["everyone", "friends", "nobody"] as const,
+      defaultPrivacy.who_can_message,
+    ),
+    who_can_see_profile: pickString(
+      raw.who_can_see_profile,
+      ["everyone", "university", "friends"] as const,
+      defaultPrivacy.who_can_see_profile,
+    ),
+    who_can_see_interests: pickString(
+      raw.who_can_see_interests,
+      ["everyone", "university", "friends"] as const,
+      defaultPrivacy.who_can_see_interests,
+    ),
     visible_in_search: pickBoolean(raw.visible_in_search, defaultPrivacy.visible_in_search),
     read_receipts: pickBoolean(raw.read_receipts, defaultPrivacy.read_receipts),
   };

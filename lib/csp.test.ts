@@ -39,7 +39,10 @@ describe("contentSecurityPolicy", () => {
 
   it("пускает тайлы OSM по умолчанию и свой провайдер, если задан", () => {
     expect(directive(contentSecurityPolicy(base), "img-src")).toContain("https://tile.openstreetmap.org");
-    const custom = contentSecurityPolicy({ ...base, tileUrl: "https://{s}.tiles.example.com/{z}/{x}/{y}.png" });
+    const custom = contentSecurityPolicy({
+      ...base,
+      tileUrl: "https://{s}.tiles.example.com/{z}/{x}/{y}.png",
+    });
     expect(directive(custom, "img-src")).toContain("https://*.tiles.example.com");
   });
 

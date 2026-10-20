@@ -67,7 +67,8 @@ export async function report(
   if (details !== null && typeof details !== "string") return invalidInput;
 
   const note = details?.trim() || null;
-  if (note && note.length > MAX_DETAILS) return { ok: false, error: `Пояснение — не больше ${MAX_DETAILS} символов.` };
+  if (note && note.length > MAX_DETAILS)
+    return { ok: false, error: `Пояснение — не больше ${MAX_DETAILS} символов.` };
   if (why === "other" && !note) return { ok: false, error: "Опиши в двух словах, что не так." };
 
   // reporter_id, снимок и владельца цели ставит триггер reports_prepare.

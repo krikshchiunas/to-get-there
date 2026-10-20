@@ -1,9 +1,4 @@
-import type {
-  InputHTMLAttributes,
-  ReactNode,
-  SelectHTMLAttributes,
-  TextareaHTMLAttributes,
-} from "react";
+import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import type { IconName } from "@/lib/types";
 import { Icon } from "./icon";
 
@@ -182,9 +177,7 @@ export function SettingsGroup({
     <section className="space-y-1">
       <h2 className="text-[13px] font-medium text-ink-faint">{title}</h2>
       {description ? <p className="pb-1 text-[13px] text-ink-soft">{description}</p> : null}
-      <div className="divide-y divide-line rounded-card bg-sunken px-4">
-        {children}
-      </div>
+      <div className="divide-y divide-line rounded-card bg-sunken px-4">{children}</div>
     </section>
   );
 }

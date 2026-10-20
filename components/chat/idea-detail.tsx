@@ -189,12 +189,18 @@ export function IdeaDetail({
   function handleRemove(userId: string) {
     const before = participants;
     setParticipants((previous) => previous.filter((row) => row.user_id !== userId));
-    commit(() => setParticipants(before), () => removeParticipant(post.id, userId));
+    commit(
+      () => setParticipants(before),
+      () => removeParticipant(post.id, userId),
+    );
   }
 
   function handleSetModerator(userId: string, moderator: boolean) {
     const before = participants;
-    commit(() => setParticipants(before), () => setModerator(post.id, userId, moderator));
+    commit(
+      () => setParticipants(before),
+      () => setModerator(post.id, userId, moderator),
+    );
     setParticipants((previous) =>
       previous.map((row) =>
         row.user_id === userId
@@ -210,7 +216,10 @@ export function IdeaDetail({
 
   function handlePermissionChange(userId: string, next: ModeratorPermissions) {
     const before = participants;
-    commit(() => setParticipants(before), () => updateModeratorPermissions(post.id, userId, next));
+    commit(
+      () => setParticipants(before),
+      () => updateModeratorPermissions(post.id, userId, next),
+    );
     setParticipants((previous) =>
       previous.map((row) => (row.user_id === userId ? { ...row, permissions: next } : row)),
     );
@@ -218,7 +227,10 @@ export function IdeaDetail({
 
   function handleCloseSignup() {
     setClosed(true);
-    commit(() => setClosed(false), () => closePost(post.id));
+    commit(
+      () => setClosed(false),
+      () => closePost(post.id),
+    );
   }
 
   const moderators = participants.filter((row) => row.role === "moderator");
@@ -266,9 +278,7 @@ export function IdeaDetail({
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <time
               dateTime={post.date_start}
-              className={`u-tnum text-[32px] font-medium ${
-                hot ? "text-heat" : "text-ink"
-              }`}
+              className={`u-tnum text-[32px] font-medium ${hot ? "text-heat" : "text-ink"}`}
             >
               {formatTime(post.date_start)}
             </time>
@@ -299,9 +309,7 @@ export function IdeaDetail({
             </div>
           </div>
 
-          <p className="mt-4 text-[15px] leading-[1.5] whitespace-pre-line text-ink">
-            {post.description}
-          </p>
+          <p className="mt-4 text-[15px] leading-[1.5] whitespace-pre-line text-ink">{post.description}</p>
 
           <ul className="mt-4 flex flex-col gap-2.5">
             <Fact icon="place">
@@ -428,13 +436,10 @@ function ClosedChat({
     <section className="px-4 py-5">
       <div className="rounded-field bg-sunken p-4">
         <p className="flex items-center gap-2 text-[15px] font-medium">
-          <Icon name="lock" size={17} className="shrink-0 text-ink-faint" />
-          В этот чат не зайти
+          <Icon name="lock" size={17} className="shrink-0 text-ink-faint" />В этот чат не зайти
         </p>
 
-        {reason ? (
-          <p className="mt-1.5 text-[14px] leading-[1.5] text-ink-soft">{reason}</p>
-        ) : null}
+        {reason ? <p className="mt-1.5 text-[14px] leading-[1.5] text-ink-soft">{reason}</p> : null}
         <p className="mt-1 text-[14px] leading-[1.5] text-ink-soft">
           {access === "friends"
             ? `Друзьями вы станете, когда подпишетесь друг на друга.`

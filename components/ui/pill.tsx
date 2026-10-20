@@ -53,9 +53,7 @@ export function ChipLink({
       aria-current={active ? "true" : undefined}
       className={[
         "inline-flex shrink-0 items-center gap-1.5 rounded-pill px-3.5 py-2 text-[14px] transition-colors",
-        active
-          ? "bg-signal text-signal-ink"
-          : "bg-sunken text-ink-soft hover:text-ink",
+        active ? "bg-signal text-signal-ink" : "bg-sunken text-ink-soft hover:text-ink",
       ].join(" ")}
     >
       {icon ? <Icon name={icon} size={14} /> : null}
@@ -84,9 +82,7 @@ export function ChipButton({
       aria-pressed={active}
       className={[
         "inline-flex shrink-0 items-center gap-1.5 rounded-pill px-3.5 py-2 text-[14px] transition-colors",
-        active
-          ? "bg-signal text-signal-ink"
-          : "bg-sunken text-ink-soft hover:text-ink",
+        active ? "bg-signal text-signal-ink" : "bg-sunken text-ink-soft hover:text-ink",
       ].join(" ")}
     >
       {icon ? <Icon name={icon} size={14} /> : null}

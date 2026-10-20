@@ -13,8 +13,16 @@ const MAX_DETAILS = 1000;
 /** Причины в порядке частоты, как в формах Instagram и Discord. */
 export const reportReasons: { value: ReportReason; label: string; description?: string }[] = [
   { value: "spam", label: "Спам или реклама" },
-  { value: "harassment", label: "Оскорбления или травля", description: "Унижает, преследует, угрожает раскрыть личное." },
-  { value: "hate", label: "Ненависть или дискриминация", description: "Из-за происхождения, религии, пола, ориентации." },
+  {
+    value: "harassment",
+    label: "Оскорбления или травля",
+    description: "Унижает, преследует, угрожает раскрыть личное.",
+  },
+  {
+    value: "hate",
+    label: "Ненависть или дискриминация",
+    description: "Из-за происхождения, религии, пола, ориентации.",
+  },
   { value: "sexual", label: "Откровенный или сексуальный контент" },
   { value: "violence", label: "Угрозы или насилие" },
   { value: "scam", label: "Мошенничество", description: "Просит деньги, данные карты, пароль." },
@@ -66,7 +74,8 @@ export function ReportSheet({
   }, [open, targetId]);
 
   const needsDetails = reason === "other";
-  const ready = reason !== null && (!needsDetails || details.trim().length > 0) && details.length <= MAX_DETAILS;
+  const ready =
+    reason !== null && (!needsDetails || details.trim().length > 0) && details.length <= MAX_DETAILS;
 
   function submit() {
     if (!reason) return;
@@ -90,7 +99,15 @@ export function ReportSheet({
       onClose={onClose}
       title={title}
       footer={
-        <Button type="button" variant="danger" size="lg" full disabled={!ready || pending} aria-busy={pending} onClick={submit}>
+        <Button
+          type="button"
+          variant="danger"
+          size="lg"
+          full
+          disabled={!ready || pending}
+          aria-busy={pending}
+          onClick={submit}
+        >
           Отправить жалобу
         </Button>
       }

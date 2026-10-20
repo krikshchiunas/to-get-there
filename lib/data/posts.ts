@@ -12,12 +12,7 @@ import type {
   PostView,
   ReplyPreview,
 } from "@/lib/types";
-import {
-  noSocialFacts,
-  toModeratorPermissions,
-  toPollOptions,
-  toUserView,
-} from "./map";
+import { noSocialFacts, toModeratorPermissions, toPollOptions, toUserView } from "./map";
 import { loadFollowCounts } from "./social";
 import { requireViewerId } from "./session";
 import { POST_SELECT, toPostViews, type PostRow } from "./feed";
@@ -147,7 +142,12 @@ function previewOf(
   nickname: string,
   message: { content: string; media_url: string | null },
 ): ReplyPreview {
-  return { id, author_nickname: nickname, content: message.content.trim(), has_media: message.media_url !== null };
+  return {
+    id,
+    author_nickname: nickname,
+    content: message.content.trim(),
+    has_media: message.media_url !== null,
+  };
 }
 
 export async function getMessages(postId: string): Promise<MessageView[]> {
@@ -230,9 +230,7 @@ export async function getPolls(postId: string): Promise<PollView[]> {
     const options = toPollOptions(row.options);
     const votes = row.poll_votes ?? [];
 
-    const tally = options.map(
-      (_, index) => votes.filter((vote) => vote.option_index === index).length,
-    );
+    const tally = options.map((_, index) => votes.filter((vote) => vote.option_index === index).length);
 
     return [
       {

@@ -14,8 +14,20 @@ describe("rightsOf", () => {
   });
 
   it("модератор — ровно то, что выдал автор", () => {
-    const rights = rightsOf("moderator", { can_pin: true, can_poll: false, can_post_media: true, can_kick: false });
-    expect(rights).toMatchObject({ isAuthor: false, canSend: true, canPin: true, canPoll: false, canPostMedia: true, canKick: false });
+    const rights = rightsOf("moderator", {
+      can_pin: true,
+      can_poll: false,
+      can_post_media: true,
+      can_kick: false,
+    });
+    expect(rights).toMatchObject({
+      isAuthor: false,
+      canSend: true,
+      canPin: true,
+      canPoll: false,
+      canPostMedia: true,
+      canKick: false,
+    });
   });
 
   it("модератор без прав в базе — только писать", () => {
@@ -49,6 +61,8 @@ describe("messageActions — только то, что разрешит база
   });
 
   it("гость не отвечает; у фото без подписи нечего копировать", () => {
-    expect(messageActions({ ...theirs, content: "  " }, "me", rightsOf("guest", null), false)).toEqual(["report"]);
+    expect(messageActions({ ...theirs, content: "  " }, "me", rightsOf("guest", null), false)).toEqual([
+      "report",
+    ]);
   });
 });

@@ -38,7 +38,10 @@ export function Avatar({ user, size = "md", withBadge = false, className = "" }:
   const tint = tintFor(user.id);
 
   return (
-    <span className={`relative inline-flex shrink-0 ${className}`} style={{ width: spec.box, height: spec.box }}>
+    <span
+      className={`relative inline-flex shrink-0 ${className}`}
+      style={{ width: spec.box, height: spec.box }}
+    >
       {user.avatar_url ? (
         // eslint-disable-next-line @next/next/no-img-element -- mock + Storage URLs, sized by the span
         <img

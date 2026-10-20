@@ -39,9 +39,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "api.dicebear.com" },
       // Supabase Storage (avatars, post media) once the backend is wired up.
-      ...(supabaseHost
-        ? [{ protocol: "https" as const, hostname: supabaseHost }]
-        : []),
+      ...(supabaseHost ? [{ protocol: "https" as const, hostname: supabaseHost }] : []),
     ],
   },
 };

@@ -61,7 +61,9 @@ export function DmComposer({
           <Icon name="reply" size={16} className="shrink-0 text-signal" />
           <div className="min-w-0 flex-1 border-l-2 border-signal/60 pl-2.5">
             <p className="text-[13px] font-medium text-ink-soft">
-              {replyTo.author_nickname === "ты" ? "Ответ на своё сообщение" : `Ответ ${replyTo.author_nickname}`}
+              {replyTo.author_nickname === "ты"
+                ? "Ответ на своё сообщение"
+                : `Ответ ${replyTo.author_nickname}`}
             </p>
             <p className="truncate text-[13px] text-ink-soft">{replyTo.content || "Сообщение"}</p>
           </div>
@@ -99,12 +101,7 @@ export function DmComposer({
           placeholder="Напиши сообщение"
           className="min-h-10 flex-1 resize-none rounded-pill bg-sunken px-4 py-2.5 text-[15px] leading-[1.4] outline-none transition-shadow focus:ring-2 focus:ring-signal/35"
         />
-        <IconButton
-          type="submit"
-          label="Отправить"
-          variant="primary"
-          disabled={draft.trim().length === 0}
-        >
+        <IconButton type="submit" label="Отправить" variant="primary" disabled={draft.trim().length === 0}>
           <Icon name="send" size={19} />
         </IconButton>
       </div>
@@ -114,4 +111,3 @@ export function DmComposer({
     </form>
   );
 }
-

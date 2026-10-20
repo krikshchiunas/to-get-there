@@ -27,7 +27,9 @@ export function ResultCard({ post, now }: { post: PostView; now: Date }) {
 
   return (
     <li className={listRow}>
-      <span className={listLead}><Avatar user={post.author} size="md" /></span>
+      <span className={listLead}>
+        <Avatar user={post.author} size="md" />
+      </span>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -42,9 +44,7 @@ export function ResultCard({ post, now }: { post: PostView; now: Date }) {
           <span aria-hidden className="text-[14px] text-ink-soft">
             ·
           </span>
-          <span className="truncate text-[14px] text-ink-soft">
-            {post.author.university.short_name}
-          </span>
+          <span className="truncate text-[14px] text-ink-soft">{post.author.university.short_name}</span>
 
           <time
             dateTime={post.date_start}
@@ -64,9 +64,7 @@ export function ResultCard({ post, now }: { post: PostView; now: Date }) {
           </Link>
         </h3>
 
-        <p className="u-clamp-2 mt-0.5 text-[15px] leading-[1.4] text-ink-soft">
-          {post.description}
-        </p>
+        <p className="u-clamp-2 mt-0.5 text-[15px] leading-[1.4] text-ink-soft">{post.description}</p>
 
         {/* Одна строка, что бы в неё ни попало: длинный адрес ужимается, а
             день и места остаются целыми — по ним и принимают решение. */}
@@ -79,11 +77,7 @@ export function ResultCard({ post, now }: { post: PostView; now: Date }) {
           <span aria-hidden className="shrink-0">
             ·
           </span>
-          <Seats
-            count={post.participant_count}
-            max={post.max_participants}
-            className="shrink-0"
-          />
+          <Seats count={post.participant_count} max={post.max_participants} className="shrink-0" />
         </p>
       </div>
     </li>

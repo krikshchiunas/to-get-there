@@ -45,7 +45,10 @@ describe("toPrivacySettings — строгая форма из jsonb", () => {
 
 describe("toNotificationSettings / toModeratorPermissions", () => {
   it("недостающее — по умолчанию включено", () => {
-    expect(toNotificationSettings({ new_follower: false })).toMatchObject({ new_follower: false, new_participant: true });
+    expect(toNotificationSettings({ new_follower: false })).toMatchObject({
+      new_follower: false,
+      new_participant: true,
+    });
   });
 
   it("права модератора по умолчанию выключены", () => {

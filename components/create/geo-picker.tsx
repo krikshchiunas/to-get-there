@@ -114,7 +114,11 @@ export function GeoPicker({
   function setMode(raw: string) {
     const mode = toMode(raw);
     // В область — начать с точки отсчёта, а не с пустой карты.
-    onChange({ ...value, mode, point: mode === "area" && !value.point ? { lat: place.lat, lng: place.lng } : value.point });
+    onChange({
+      ...value,
+      mode,
+      point: mode === "area" && !value.point ? { lat: place.lat, lng: place.lng } : value.point,
+    });
   }
 
   return (
@@ -185,8 +189,7 @@ export function GeoPicker({
             label={`Радиус ${formatRadius(value.radius_m)} вокруг: ${place.label}`}
           />
           <p className="text-[13px] text-ink-soft">
-            Другие видят только город и радиус. Точка хранится с точностью около километра, адреса
-            в ней нет.
+            Другие видят только город и радиус. Точка хранится с точностью около километра, адреса в ней нет.
           </p>
         </div>
       ) : null}
@@ -202,8 +205,8 @@ export function GeoPicker({
           />
 
           <p className="text-[13px] text-ink-soft">
-            Сдвинь карту — булавка в центре и есть место встречи. Участники увидят круг около
-            {" "}{AREA_RADIUS_M} м вокруг неё.
+            Сдвинь карту — булавка в центре и есть место встречи. Участники увидят круг около {AREA_RADIUS_M}{" "}
+            м вокруг неё.
           </p>
 
           <Field

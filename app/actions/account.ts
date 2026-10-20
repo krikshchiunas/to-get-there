@@ -70,9 +70,10 @@ async function collectFiles(actor: Actor): Promise<Map<string, string[]>> {
   // Фото других людей в чатах его идей: идея уходит, и они вместе с ней.
   const listings = await Promise.all(
     (ownPosts.data ?? []).map((post) =>
-      supabase.storage.from(CHAT_MEDIA_BUCKET).list(post.id, { limit: REMOVE_BATCH }).then((result) =>
-        (result.data ?? []).map((file) => `${post.id}/${file.name}`),
-      ),
+      supabase.storage
+        .from(CHAT_MEDIA_BUCKET)
+        .list(post.id, { limit: REMOVE_BATCH })
+        .then((result) => (result.data ?? []).map((file) => `${post.id}/${file.name}`)),
     ),
   );
   for (const list of listings) for (const path of list) chatFiles.add(path);

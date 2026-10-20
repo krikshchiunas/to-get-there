@@ -8,23 +8,11 @@ import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { CharCount, Field, RadioRow, TextArea, TextInput } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import {
-  DAY_MS,
-  HOUR_MS,
-  pluralRu,
-  toDatetimeLocal,
-  berlinLocalToIso,
-} from "@/lib/format";
+import { DAY_MS, HOUR_MS, pluralRu, toDatetimeLocal, berlinLocalToIso } from "@/lib/format";
 
 import type { Category, ChatAccess, PostView, UserView } from "@/lib/types";
 import { CATEGORY_GROUP_ID, CategoryPicker } from "./category-picker";
-import {
-  GeoPicker,
-  geoError,
-  geoFocusId,
-  initialGeo,
-  type GeoDraft,
-} from "./geo-picker";
+import { GeoPicker, geoError, geoFocusId, initialGeo, type GeoDraft } from "./geo-picker";
 
 const TITLE_MAX = 70;
 const DESCRIPTION_MAX = 600;
@@ -60,7 +48,6 @@ const accessLabels: Record<ChatAccess, string> = {
   friends: "Только друзья",
 };
 
-
 /** "символ" / "символа" / "символов" — for the over-the-limit errors. */
 const charForms: [string, string, string] = ["символ", "символа", "символов"];
 
@@ -82,9 +69,10 @@ function geoFromPost(post: PostView): GeoDraft {
   return {
     mode: post.geo_mode,
     radius_m: post.geo_radius_m ?? initialGeo.radius_m,
-    point: post.geo_mode === "area" && post.geo_lat != null && post.geo_lng != null
-      ? { lat: post.geo_lat, lng: post.geo_lng }
-      : null,
+    point:
+      post.geo_mode === "area" && post.geo_lat != null && post.geo_lng != null
+        ? { lat: post.geo_lat, lng: post.geo_lng }
+        : null,
     meeting_point: post.geo_mode === "area" ? (post.geo_address ?? "") : "",
     city: post.geo_mode === "city" ? post.geo_city : "",
   };
@@ -135,7 +123,6 @@ export function CreateForm({
       return next;
     });
   }
-
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -270,7 +257,6 @@ export function CreateForm({
     });
   }
 
-
   const problemCount = FIELD_ORDER.filter((key) => errors[key] !== undefined).length;
 
   return (
@@ -312,12 +298,7 @@ export function CreateForm({
           <CharCount value={description} max={DESCRIPTION_MAX} />
         </Field>
 
-        <Field
-          label="Категория"
-          required
-          hint="Чтобы идею нашли в поиске и в ленте."
-          error={errors.category}
-        >
+        <Field label="Категория" required hint="Чтобы идею нашли в поиске и в ленте." error={errors.category}>
           <CategoryPicker
             categories={categories}
             value={categoryId}
@@ -465,7 +446,13 @@ export function CreateForm({
               </p>
             ) : null}
             <Button type="submit" size="lg" full disabled={submitting}>
-              {editing ? (submitting ? "Сохраняем…" : "Сохранить") : submitting ? "Публикуем…" : "Создать идею"}
+              {editing
+                ? submitting
+                  ? "Сохраняем…"
+                  : "Сохранить"
+                : submitting
+                  ? "Публикуем…"
+                  : "Создать идею"}
             </Button>
           </div>
         </div>
@@ -475,15 +462,7 @@ export function CreateForm({
 }
 
 /** A labelled block of fields, separated from the previous one by a hairline. */
-function Group({
-  title,
-  children,
-  first = false,
-}: {
-  title: string;
-  children: ReactNode;
-  first?: boolean;
-}) {
+function Group({ title, children, first = false }: { title: string; children: ReactNode; first?: boolean }) {
   return (
     <section className={`space-y-6 ${first ? "" : "mt-8 border-t border-line pt-8"}`}>
       <h2 className="text-[13px] font-medium text-ink-faint">{title}</h2>

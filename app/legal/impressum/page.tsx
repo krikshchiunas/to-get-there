@@ -69,7 +69,8 @@ export default function ImpressumPage() {
           </p>
           <p className="mt-1.5 text-[14px] leading-[1.5] text-ink-soft">
             Оператор сервиса должен указать имя, адрес и почту в настройках развёртывания (переменные
-            LEGAL_OPERATOR_*, см. docs/LEGAL.md). Пока по вопросам о сервисе пиши через форму жалобы в приложении.
+            LEGAL_OPERATOR_*, см. docs/LEGAL.md). Пока по вопросам о сервисе пиши через форму жалобы в
+            приложении.
           </p>
         </div>
       )}

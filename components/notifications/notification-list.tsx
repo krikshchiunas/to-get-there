@@ -160,7 +160,9 @@ function Row({ item }: { item: NotificationItem }) {
         .join(" ")}
     >
       {actor ? (
-        <span className={listLead}><Avatar user={actor} size="md" /></span>
+        <span className={listLead}>
+          <Avatar user={actor} size="md" />
+        </span>
       ) : (
         <span
           aria-hidden
@@ -261,7 +263,8 @@ function describe(notification: Notification, actor: UserView | null): Line {
         href: postHref,
         sentence: (
           <>
-            Новая идея от <span className="font-medium">{name}</span>{title ? ":" : ""}
+            Новая идея от <span className="font-medium">{name}</span>
+            {title ? ":" : ""}
             {idea}
           </>
         ),

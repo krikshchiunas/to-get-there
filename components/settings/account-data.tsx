@@ -36,8 +36,8 @@ export function AccountData({ nickname, demo }: { nickname: string; demo: boolea
         <h2 className="px-4 pt-6 pb-2 text-[13px] font-medium text-ink-faint">Копия твоих данных</h2>
         <div className="px-4">
           <p className="text-[14px] leading-[1.45] text-ink-soft">
-            Один файл JSON: профиль и настройки, твои идеи, сообщения в чатах и в личке, подписки,
-            голоса, жалобы и уведомления. Подходит, чтобы сохранить себе или перенести в другой сервис.
+            Один файл JSON: профиль и настройки, твои идеи, сообщения в чатах и в личке, подписки, голоса,
+            жалобы и уведомления. Подходит, чтобы сохранить себе или перенести в другой сервис.
           </p>
           {demo ? (
             <p className="mt-3 text-[14px] text-ink-soft">В демо без базы выгружать нечего.</p>

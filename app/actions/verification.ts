@@ -20,7 +20,10 @@ export async function startVerification(): Promise<ActionResult<{ url: string }>
   if (!actor) return noActor();
 
   if (!identityConfigured()) {
-    return { ok: false, error: "Проверка личности ещё не подключена. Как только подключим — кнопка заработает." };
+    return {
+      ok: false,
+      error: "Проверка личности ещё не подключена. Как только подключим — кнопка заработает.",
+    };
   }
 
   const { data: me } = await actor.supabase

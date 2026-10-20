@@ -77,12 +77,7 @@ export function PollComposer({
       }
     >
       <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
-        <Field
-          label="Вопрос"
-          htmlFor="poll-question"
-          required
-          hint="Результаты видят все в чате."
-        >
+        <Field label="Вопрос" htmlFor="poll-question" required hint="Результаты видят все в чате.">
           <TextInput
             id="poll-question"
             value={question}

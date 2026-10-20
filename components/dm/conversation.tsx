@@ -114,7 +114,10 @@ export function Conversation({
   const lastReadOwnId = useMemo(() => {
     if (!partnerReadAt) return null;
     const own = thread.filter(
-      (message) => message.sender_id === viewerId && !message.id.startsWith("local-") && message.created_at <= partnerReadAt,
+      (message) =>
+        message.sender_id === viewerId &&
+        !message.id.startsWith("local-") &&
+        message.created_at <= partnerReadAt,
     );
     return own[own.length - 1]?.id ?? null;
   }, [thread, partnerReadAt, viewerId]);
@@ -211,9 +214,17 @@ export function Conversation({
     const mine = message.sender_id === viewerId;
     const list: SheetAction[] = [];
     if (canReply) list.push({ label: "Ответить", icon: "reply", onSelect: () => setReplyTo(message) });
-    if (message.content.trim()) list.push({ label: "Скопировать текст", icon: "copy", onSelect: () => void copyText(message) });
-    if (mine) list.push({ label: "Удалить у обоих", icon: "trash", danger: true, onSelect: () => setDeleting(message) });
-    else list.push({ label: "Пожаловаться", icon: "flag", danger: true, onSelect: () => setReporting(message) });
+    if (message.content.trim())
+      list.push({ label: "Скопировать текст", icon: "copy", onSelect: () => void copyText(message) });
+    if (mine)
+      list.push({
+        label: "Удалить у обоих",
+        icon: "trash",
+        danger: true,
+        onSelect: () => setDeleting(message),
+      });
+    else
+      list.push({ label: "Пожаловаться", icon: "flag", danger: true, onSelect: () => setReporting(message) });
     return list;
   }
 
@@ -234,11 +245,7 @@ export function Conversation({
           }
         />
       ) : (
-        <div
-          role="log"
-          aria-label={`Сообщения с ${partner.nickname}`}
-          className="px-4 pb-2"
-        >
+        <div role="log" aria-label={`Сообщения с ${partner.nickname}`} className="px-4 pb-2">
           {groups.map((group) => (
             <section key={group.key}>
               <h2 className="py-4 text-center text-[13px] font-medium text-ink-faint">{group.label}</h2>
@@ -263,7 +270,11 @@ export function Conversation({
       )}
 
       <p className="min-h-5 px-4 pb-1 text-[13px] text-ink-soft" aria-hidden>
-        {partnerTyping ? `${partner.nickname} печатает…` : partnerHere ? `${partner.nickname} сейчас в чате` : ""}
+        {partnerTyping
+          ? `${partner.nickname} печатает…`
+          : partnerHere
+            ? `${partner.nickname} сейчас в чате`
+            : ""}
       </p>
 
       {canReply ? (

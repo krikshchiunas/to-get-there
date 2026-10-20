@@ -74,7 +74,13 @@ export function ProfileMenu({ user }: { user: UserView }) {
       </ConfirmSheet>
 
       {open === "report" ? (
-        <ReportSheet open onClose={() => setOpen(null)} targetType="user" targetId={user.id} subject={user.nickname} />
+        <ReportSheet
+          open
+          onClose={() => setOpen(null)}
+          targetType="user"
+          targetId={user.id}
+          subject={user.nickname}
+        />
       ) : null}
     </>
   );

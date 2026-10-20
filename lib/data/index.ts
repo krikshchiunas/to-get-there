@@ -45,8 +45,7 @@ export const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
 export { CHAT_HISTORY_LIMIT } from "./posts";
 
-export { canEnterChat, chatAccessReason, canMessage, canSeeProfile, canSeeInterests }
-  from "@/lib/access";
+export { canEnterChat, chatAccessReason, canMessage, canSeeProfile, canSeeInterests } from "@/lib/access";
 
 /* ── зритель ────────────────────────────────────────────────────── */
 
@@ -165,9 +164,7 @@ export async function getActivePostsByAuthor(authorId: string, now: Date): Promi
 }
 
 export async function getPastPostsByAuthor(authorId: string, now: Date): Promise<PostView[]> {
-  return usingMocks
-    ? mock.getPastPostsByAuthor(authorId, now)
-    : dbPeople.getPastPostsByAuthor(authorId, now);
+  return usingMocks ? mock.getPastPostsByAuthor(authorId, now) : dbPeople.getPastPostsByAuthor(authorId, now);
 }
 
 /* ── личные сообщения ───────────────────────────────────────────── */
@@ -213,7 +210,6 @@ export async function searchPosts(filters: SearchFilters, now: Date): Promise<Po
 export async function searchUsers(query: string): Promise<UserView[]> {
   return usingMocks ? mock.searchUsers(query) : dbSearch.searchUsers(query);
 }
-
 
 export type { VerificationState } from "./verification";
 

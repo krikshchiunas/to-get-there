@@ -121,10 +121,7 @@ export async function ProfileHeader({ user }: { user: UserView }) {
 /** Follower and following counts. Tabular, because they sit side by side. */
 function CountLink({ href, value, label }: { href: string; value: number; label: string }) {
   return (
-    <Link
-      href={href}
-      className="inline-flex min-h-10 items-center gap-1.5 transition-colors hover:text-ink"
-    >
+    <Link href={href} className="inline-flex min-h-10 items-center gap-1.5 transition-colors hover:text-ink">
       <span className="u-tnum font-medium text-ink">{formatCount(value)}</span>
       {label}
     </Link>

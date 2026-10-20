@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  avatarPathFromUrl,
-  avatarPublicUrl,
-  chatMediaPath,
-  isChatMediaPath,
-  isOwnAvatarUrl,
-} from "./media";
+import { avatarPathFromUrl, avatarPublicUrl, chatMediaPath, isChatMediaPath, isOwnAvatarUrl } from "./media";
 
 const BASE = "https://abc.supabase.co";
 const USER = "3c77304a-29bc-4617-b9b2-7085efb7bea0";
@@ -71,7 +65,9 @@ describe("isChatMediaPath", () => {
 
 describe("avatarPathFromUrl", () => {
   it("достаёт путь внутри бакета", () => {
-    expect(avatarPathFromUrl(avatarPublicUrl(BASE, `${USER}/${FILE}.webp`), BASE)).toBe(`${USER}/${FILE}.webp`);
+    expect(avatarPathFromUrl(avatarPublicUrl(BASE, `${USER}/${FILE}.webp`), BASE)).toBe(
+      `${USER}/${FILE}.webp`,
+    );
   });
 
   it("на чужой ссылке возвращает null", () => {

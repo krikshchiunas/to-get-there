@@ -68,4 +68,3 @@ export function chatAccessReason(post: PostView): string | null {
     ? `Зайти в чат могут только подписчики ${post.author.nickname}.`
     : `Зайти в чат могут только друзья ${post.author.nickname}.`;
 }
-

@@ -24,7 +24,8 @@ export async function sendMessage(
 
   const text = content.trim();
   if (!text && !mediaUrl) return { ok: false, error: "Пустое сообщение не отправить." };
-  if (text.length > MAX_MESSAGE) return { ok: false, error: `Сообщение — не больше ${MAX_MESSAGE} символов.` };
+  if (text.length > MAX_MESSAGE)
+    return { ok: false, error: `Сообщение — не больше ${MAX_MESSAGE} символов.` };
   // Только файл из папки этой идеи: ни внешней ссылки, ни фото из чужого чата.
   if (mediaUrl !== null && !isChatMediaPath(mediaUrl, postId)) {
     return { ok: false, error: "Фото должно быть загружено через приложение." };
@@ -33,7 +34,13 @@ export async function sendMessage(
   // RLS: автор — сам зритель, он участник чата, а медиа — только с can_post_media.
   const { data, error } = await actor.supabase
     .from("messages")
-    .insert({ post_id: postId, author_id: actor.viewerId, content: text, media_url: mediaUrl, reply_to_id: reply.value })
+    .insert({
+      post_id: postId,
+      author_id: actor.viewerId,
+      content: text,
+      media_url: mediaUrl,
+      reply_to_id: reply.value,
+    })
     .select("id, created_at")
     .single();
 
@@ -41,7 +48,9 @@ export async function sendMessage(
     if (error?.code === "42501") {
       return {
         ok: false,
-        error: mediaUrl ? "Отправлять фото могут только автор и модераторы с этим правом." : "Писать могут только участники чата.",
+        error: mediaUrl
+          ? "Отправлять фото могут только автор и модераторы с этим правом."
+          : "Писать могут только участники чата.",
       };
     }
     return fail(error);
@@ -140,7 +149,8 @@ export async function createPoll(
   const opts = options.map((option) => option.trim()).filter(Boolean);
   if (q.length < 3 || q.length > 140) return { ok: false, error: "Вопрос — от 3 до 140 символов." };
   if (opts.length < 2 || opts.length > 6) return { ok: false, error: "Вариантов — от 2 до 6." };
-  if (opts.some((option) => option.length > 60)) return { ok: false, error: "Вариант — не длиннее 60 символов." };
+  if (opts.some((option) => option.length > 60))
+    return { ok: false, error: "Вариант — не длиннее 60 символов." };
 
   const { data, error } = await actor.supabase
     .from("polls")
@@ -154,7 +164,8 @@ export async function createPoll(
     .single();
 
   if (error || !data) {
-    if (error?.code === "42501") return { ok: false, error: "Создавать голосования могут автор и модераторы с этим правом." };
+    if (error?.code === "42501")
+      return { ok: false, error: "Создавать голосования могут автор и модераторы с этим правом." };
     return fail(error);
   }
   revalidatePath(`/post/${postId}`);

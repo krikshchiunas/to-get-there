@@ -220,18 +220,12 @@ export function feedExitReason(
 }
 
 /** Null when the author set no cap. */
-export function seatsLeft(
-  post: Pick<Post, "max_participants">,
-  participantCount: number,
-): number | null {
+export function seatsLeft(post: Pick<Post, "max_participants">, participantCount: number): number | null {
   if (post.max_participants == null) return null;
   return Math.max(0, post.max_participants - participantCount);
 }
 
-export function isFull(
-  post: Pick<Post, "max_participants">,
-  participantCount: number,
-): boolean {
+export function isFull(post: Pick<Post, "max_participants">, participantCount: number): boolean {
   const left = seatsLeft(post, participantCount);
   return left !== null && left === 0;
 }
@@ -284,18 +278,14 @@ export function initialsOf(nickname: string): string {
 }
 
 /** Metres between two points, for the "radius around me" filter. */
-export function distanceMetres(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number {
+export function distanceMetres(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
   const R = 6371000;
   const toRad = (deg: number) => (deg * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
   const lat1 = toRad(a.lat);
   const lat2 = toRad(b.lat);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return Math.round(2 * R * Math.asin(Math.sqrt(h)));
 }
 

@@ -35,8 +35,7 @@ export function Nav({
     { href: "/settings", label: "Настройки", icon: "settings" },
   ];
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <>
@@ -76,7 +75,9 @@ export function Nav({
         className="sticky top-0 hidden h-dvh shrink-0 flex-col gap-1 border-r border-line px-3 py-5 md:flex md:w-[13.5rem]"
       >
         <Link href="/" className="mb-5 px-3 text-[18px] leading-tight font-semibold">
-          To Get<br />There
+          To Get
+          <br />
+          There
         </Link>
 
         {items.map((item) => (
@@ -142,6 +143,9 @@ function NavRow({ item, active }: { item: Item; active: boolean }) {
 /** Только для глаз: число для скринридера стоит рядом с подписью. */
 function Dot() {
   return (
-    <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-heat ring-2 ring-paper" />
+    <span
+      aria-hidden="true"
+      className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-heat ring-2 ring-paper"
+    />
   );
 }

@@ -10,9 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
-export type ActionResult<T = undefined> =
-  | { ok: true; data?: T }
-  | { ok: false; error: string };
+export type ActionResult<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
 
 export async function getActor() {
   // Моки — витрина без базы: записывать некуда (см. noActor).
@@ -39,9 +37,7 @@ export const notSignedIn: ActionResult = {
 
 /** Почему действовать некому: в демо-режиме — не сессия виновата. */
 export function noActor(): ActionResult {
-  return usingMocks
-    ? { ok: false, error: "Это демо без базы: изменения не сохраняются." }
-    : notSignedIn;
+  return usingMocks ? { ok: false, error: "Это демо без базы: изменения не сохраняются." } : notSignedIn;
 }
 
 /** Коды Postgres и PostgREST — на русский и словами пользователя. */

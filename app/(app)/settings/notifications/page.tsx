@@ -12,11 +12,7 @@ export default async function NotificationSettingsPage() {
   const viewer = await getViewer();
   return (
     <>
-      <PageHeader
-        title="Уведомления"
-        subtitle="О чём сообщать, а о чём молчать"
-        backHref="/settings"
-      />
+      <PageHeader title="Уведомления" subtitle="О чём сообщать, а о чём молчать" backHref="/settings" />
       <NotificationForm user={viewer} />
     </>
   );

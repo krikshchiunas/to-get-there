@@ -123,10 +123,7 @@ function toFilters(draft: Draft, base: SearchFilters): SearchFilters {
   return {
     ...base,
     ...dates,
-    time_window:
-      timeFrom !== null && timeTo !== null
-        ? { from_minutes: timeFrom, to_minutes: timeTo }
-        : null,
+    time_window: timeFrom !== null && timeTo !== null ? { from_minutes: timeFrom, to_minutes: timeTo } : null,
     geo_mode: draft.placeMode === "any" ? null : draft.placeMode,
     geo_radius_m: draft.placeMode === "radius" ? draft.radius : null,
     geo_city: draft.placeMode === "city" && draft.city ? draft.city : null,
@@ -192,9 +189,7 @@ export function FilterSheet({
 
   const windowFrom = toMinutes(draft.timeFrom);
   const windowTo = toMinutes(draft.timeTo);
-  const activePreset = presets.find(
-    (preset) => windowFrom === preset.from && windowTo === preset.to,
-  );
+  const activePreset = presets.find((preset) => windowFrom === preset.from && windowTo === preset.to);
 
   return (
     <Sheet
@@ -208,10 +203,7 @@ export function FilterSheet({
             size="lg"
             onClick={() => setDraft(draftFrom(emptyFilters))}
             disabled={
-              draft.dateMode === "any" &&
-              !draft.timeFrom &&
-              !draft.timeTo &&
-              draft.placeMode === "any"
+              draft.dateMode === "any" && !draft.timeFrom && !draft.timeTo && draft.placeMode === "any"
             }
           >
             Сбросить
@@ -236,10 +228,7 @@ export function FilterSheet({
           </h3>
 
           <div role="group" aria-labelledby="filter-date-heading" className="flex flex-wrap gap-2">
-            <ChipButton
-              active={draft.dateMode === "any"}
-              onClick={() => patch({ dateMode: "any" })}
-            >
+            <ChipButton active={draft.dateMode === "any"} onClick={() => patch({ dateMode: "any" })}>
               Любая
             </ChipButton>
             <ChipButton
@@ -297,10 +286,7 @@ export function FilterSheet({
           ) : null}
         </section>
 
-        <section
-          aria-labelledby="filter-time-heading"
-          className="space-y-3 border-t border-line py-6"
-        >
+        <section aria-labelledby="filter-time-heading" className="space-y-3 border-t border-line py-6">
           <h3 id="filter-time-heading" className="text-[13px] font-medium text-ink-faint">
             Время суток
           </h3>
@@ -353,20 +339,15 @@ export function FilterSheet({
             <SectionError>{timeError}</SectionError>
           ) : windowFrom !== null && windowTo !== null ? (
             <p className="u-tnum text-[13px] text-ink-soft">
-              Идеи, которые начинаются между {formatMinutesOfDay(windowFrom)} и{" "}
-              {formatMinutesOfDay(windowTo)}.
+              Идеи, которые начинаются между {formatMinutesOfDay(windowFrom)} и {formatMinutesOfDay(windowTo)}
+              .
             </p>
           ) : (
-            <p className="text-[13px] text-ink-soft">
-              Без окна в результатах остаётся любое время дня.
-            </p>
+            <p className="text-[13px] text-ink-soft">Без окна в результатах остаётся любое время дня.</p>
           )}
         </section>
 
-        <section
-          aria-labelledby="filter-place-heading"
-          className="space-y-3 border-t border-line pt-6"
-        >
+        <section aria-labelledby="filter-place-heading" className="space-y-3 border-t border-line pt-6">
           <h3 id="filter-place-heading" className="text-[13px] font-medium text-ink-faint">
             Где
           </h3>
@@ -445,9 +426,8 @@ export function FilterSheet({
                 Выбор области появится вместе с картами
               </p>
               <p className="text-[13px] leading-[1.4] text-ink-soft">
-                Карты в приложении пока нет, рисовать область не на чем — этот режим начнёт
-                работать вместе с их интеграцией. Сейчас он результаты не сужает: возьми радиус
-                вокруг себя или укажи город.
+                Карты в приложении пока нет, рисовать область не на чем — этот режим начнёт работать вместе с
+                их интеграцией. Сейчас он результаты не сужает: возьми радиус вокруг себя или укажи город.
               </p>
             </div>
           ) : null}
@@ -468,9 +448,7 @@ export function FilterSheet({
               {placeError ? (
                 <SectionError>{placeError}</SectionError>
               ) : (
-                <p className="text-[13px] text-ink-soft">
-                  Города в списке — те, где прямо сейчас есть идеи.
-                </p>
+                <p className="text-[13px] text-ink-soft">Города в списке — те, где прямо сейчас есть идеи.</p>
               )}
             </div>
           ) : null}

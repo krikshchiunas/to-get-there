@@ -1,8 +1,4 @@
-import type {
-  NotificationSettings,
-  PrivacySettings,
-  UserView,
-} from "@/lib/types";
+import type { NotificationSettings, PrivacySettings, UserView } from "@/lib/types";
 import { universityById } from "./universities";
 import { daysAgo } from "./time";
 

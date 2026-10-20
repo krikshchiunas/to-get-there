@@ -27,9 +27,7 @@ const sizes: Record<ButtonSize, string> = {
 };
 
 function classesFor(variant: ButtonVariant, size: ButtonSize, full?: boolean, extra?: string) {
-  return [base, variants[variant], sizes[size], full ? "w-full" : "", extra ?? ""]
-    .filter(Boolean)
-    .join(" ");
+  return [base, variants[variant], sizes[size], full ? "w-full" : "", extra ?? ""].filter(Boolean).join(" ");
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

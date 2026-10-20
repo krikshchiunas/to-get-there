@@ -49,23 +49,15 @@ export function ModerationSheet({
         <section>
           <h3 className="text-[13px] font-medium text-ink-faint">Права модераторов</h3>
           <p className="mt-1 text-[14px] leading-[1.5] text-ink-soft">
-            Каждое право выдаётся отдельно. Что выключено здесь, того человек в чате даже не
-            увидит.
+            Каждое право выдаётся отдельно. Что выключено здесь, того человек в чате даже не увидит.
           </p>
 
           {moderators.length === 0 ? (
             <div className="mt-3">
               <p className="text-[14px] leading-[1.5] text-ink-soft">
-                Эту идею пока никто не модерирует. Сделать модератором можно в списке
-                участников.
+                Эту идею пока никто не модерирует. Сделать модератором можно в списке участников.
               </p>
-              <Button
-                type="button"
-                variant="quiet"
-                size="sm"
-                className="mt-3"
-                onClick={onOpenParticipants}
-              >
+              <Button type="button" variant="quiet" size="sm" className="mt-3" onClick={onOpenParticipants}>
                 Открыть участников
               </Button>
             </div>
@@ -94,23 +86,17 @@ export function ModerationSheet({
                       <Switch
                         label="Закреплять сообщения"
                         checked={permissions.can_pin}
-                        onChange={(next) =>
-                          onPermissionChange(user.id, { ...permissions, can_pin: next })
-                        }
+                        onChange={(next) => onPermissionChange(user.id, { ...permissions, can_pin: next })}
                       />
                       <Switch
                         label="Создавать голосования"
                         checked={permissions.can_poll}
-                        onChange={(next) =>
-                          onPermissionChange(user.id, { ...permissions, can_poll: next })
-                        }
+                        onChange={(next) => onPermissionChange(user.id, { ...permissions, can_poll: next })}
                       />
                       <Switch
                         label="Удалять из чата"
                         checked={permissions.can_kick}
-                        onChange={(next) =>
-                          onPermissionChange(user.id, { ...permissions, can_kick: next })
-                        }
+                        onChange={(next) => onPermissionChange(user.id, { ...permissions, can_kick: next })}
                       />
                     </div>
                   </div>
@@ -123,8 +109,8 @@ export function ModerationSheet({
         <section className="border-t border-line pt-5">
           <h3 className="text-[13px] font-medium text-ink-faint">Закрыть набор</h3>
           <p className="mt-1 text-[14px] leading-[1.5] text-ink-soft">
-            Идея исчезнет из ленты, присоединиться больше нельзя. Чат остаётся открытым для
-            всех, кто уже в нём.
+            Идея исчезнет из ленты, присоединиться больше нельзя. Чат остаётся открытым для всех, кто уже в
+            нём.
           </p>
 
           {isClosed ? (
@@ -147,12 +133,7 @@ export function ModerationSheet({
                 >
                   Закрыть набор
                 </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmClose(false)}
-                >
+                <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmClose(false)}>
                   Отмена
                 </Button>
               </div>

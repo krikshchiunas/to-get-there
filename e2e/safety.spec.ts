@@ -38,7 +38,10 @@ test("ссылка «Перейти к содержанию» — первая �
 test("регистрация показывает условия и возраст", async ({ page }) => {
   await page.goto("/auth/signup");
   await expect(page.getByText(/тебе есть 16/)).toBeVisible();
-  await expect(page.getByRole("link", { name: "условия", exact: true })).toHaveAttribute("href", "/legal/terms");
+  await expect(page.getByRole("link", { name: "условия", exact: true })).toHaveAttribute(
+    "href",
+    "/legal/terms",
+  );
 });
 
 test("служебные адреса отвечают", async ({ request }) => {

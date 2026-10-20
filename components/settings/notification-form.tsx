@@ -107,9 +107,7 @@ export function NotificationForm({ user }: { user: UserView }) {
   const [confirmed, setConfirmed] = useState(false);
 
   const dirty = !same(draft, saved);
-  const offCount = groups
-    .flatMap((group) => group.rows)
-    .filter((row) => !draft[row.key]).length;
+  const offCount = groups.flatMap((group) => group.rows).filter((row) => !draft[row.key]).length;
 
   function toggle(key: SettingKey, next: boolean) {
     setDraft((current) => {
@@ -165,8 +163,8 @@ export function NotificationForm({ user }: { user: UserView }) {
       ))}
 
       <p className="mt-7 px-4 text-[14px] leading-[1.4] text-ink-soft">
-        Пуши и письма подключим вместе с бэкендом. Пока это список того, о чём приложение будет
-        сообщать, а сами уведомления в приложении приходят из тестовых данных.
+        Пуши и письма подключим вместе с бэкендом. Пока это список того, о чём приложение будет сообщать, а
+        сами уведомления в приложении приходят из тестовых данных.
       </p>
 
       <div className="sticky bottom-0 z-10 -mb-24 mt-7 border-t border-line bg-paper/95 px-4 backdrop-blur-sm md:-mb-10">
@@ -174,9 +172,7 @@ export function NotificationForm({ user }: { user: UserView }) {
           <div className="pb-[4.25rem] md:pb-3">
             {confirmed && !dirty ? (
               <p role="status" className="pb-2 text-center text-[12px] text-ink-soft">
-                {offCount === 0
-                  ? "Сохранено. Все уведомления включены."
-                  : "Сохранено."}
+                {offCount === 0 ? "Сохранено. Все уведомления включены." : "Сохранено."}
               </p>
             ) : null}
 

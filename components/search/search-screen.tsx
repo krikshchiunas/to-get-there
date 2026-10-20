@@ -11,13 +11,7 @@ import { Sheet } from "@/components/ui/sheet";
 import { formatDayLabel, formatMinutesOfDay, formatRadius, pluralRu } from "@/lib/format";
 import { filterPosts } from "@/lib/search-filter";
 import { usePlace } from "@/lib/use-place";
-import {
-  emptyFilters,
-  type Category,
-  type PostView,
-  type SearchFilters,
-  type UserView,
-} from "@/lib/types";
+import { emptyFilters, type Category, type PostView, type SearchFilters, type UserView } from "@/lib/types";
 import { activeFilterCount, FilterSheet } from "./filter-sheet";
 import { ResultCard } from "./result-card";
 import { usePeopleSearch } from "./use-people-search";
@@ -51,9 +45,7 @@ function dateLabel(filters: SearchFilters, now: Date): string | null {
 function placeLabel(filters: SearchFilters): string | null {
   switch (filters.geo_mode) {
     case "radius":
-      return filters.geo_radius_m === null
-        ? null
-        : `${formatRadius(filters.geo_radius_m)} вокруг меня`;
+      return filters.geo_radius_m === null ? null : `${formatRadius(filters.geo_radius_m)} вокруг меня`;
     case "city":
       return filters.geo_city;
     case "area":
@@ -114,8 +106,17 @@ export function SearchScreen({
 
   // Набор приходит с сервера один раз, а сужается здесь — так ввод в поле
   // отзывается мгновенно, без похода на сервер на каждую букву.
-  const { place: originPlace, locate, resetToCampus, locating, error: locateError } = usePlace(viewer.university);
-  const origin = useMemo(() => ({ lat: originPlace.lat, lng: originPlace.lng }), [originPlace.lat, originPlace.lng]);
+  const {
+    place: originPlace,
+    locate,
+    resetToCampus,
+    locating,
+    error: locateError,
+  } = usePlace(viewer.university);
+  const origin = useMemo(
+    () => ({ lat: originPlace.lat, lng: originPlace.lng }),
+    [originPlace.lat, originPlace.lng],
+  );
   const ideas = useMemo(() => filterPosts(posts, filters, now, origin), [posts, filters, now, origin]);
   const { people, searching: peopleLoading } = usePeopleSearch(filters.query, tab === "people");
 
@@ -123,9 +124,7 @@ export function SearchScreen({
   const selectedCategories = filters.category_ids
     .map((id) => getCategory(id))
     .filter((category): category is Category => category !== undefined);
-  const selectedOther = otherCategories.filter((category) =>
-    filters.category_ids.includes(category.id),
-  );
+  const selectedOther = otherCategories.filter((category) => filters.category_ids.includes(category.id));
 
   const hasQuery = filters.query.trim().length > 0;
   const hasFilters = selectedCategories.length > 0 || sheetFilterCount > 0;
@@ -148,9 +147,7 @@ export function SearchScreen({
         filters.time_window.to_minutes,
       )}`
     : null;
-  const summary = [categoryLabel, date, timeLabel, place].filter(
-    (part): part is string => part !== null,
-  );
+  const summary = [categoryLabel, date, timeLabel, place].filter((part): part is string => part !== null);
 
   function toggleCategory(id: string) {
     setFilters((current) => ({
@@ -243,15 +240,9 @@ export function SearchScreen({
               Другое
             </ChipButton>
 
-            <ChipButton
-              icon="settings"
-              active={sheetFilterCount > 0}
-              onClick={() => setFilterOpen(true)}
-            >
+            <ChipButton icon="settings" active={sheetFilterCount > 0} onClick={() => setFilterOpen(true)}>
               Фильтры
-              {sheetFilterCount > 0 ? (
-                <span className="u-tnum">{sheetFilterCount}</span>
-              ) : null}
+              {sheetFilterCount > 0 ? <span className="u-tnum">{sheetFilterCount}</span> : null}
             </ChipButton>
           </div>
         </div>
@@ -266,12 +257,7 @@ export function SearchScreen({
               <p className="u-tnum min-w-0 flex-1 text-[14px] leading-[1.4] text-ink-soft">
                 {summary.join(" · ")}
               </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="-mr-2 shrink-0"
-              >
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="-mr-2 shrink-0">
                 Сбросить
               </Button>
             </div>
@@ -321,8 +307,7 @@ export function SearchScreen({
         <>
           {hasFilters ? (
             <p className="px-4 pt-3 text-[13px] leading-[1.4] text-ink-soft">
-              Категории и фильтры работают для идей. Людей находим по слову из ника, факультета
-              или интересов.
+              Категории и фильтры работают для идей. Людей находим по слову из ника, факультета или интересов.
             </p>
           ) : null}
 

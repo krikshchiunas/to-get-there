@@ -30,7 +30,9 @@ describe("verifyStripeSignature", () => {
   });
 
   it("отклоняет подпись чужим секретом", () => {
-    expect(verifyStripeSignature(payload, signStripePayload(payload, "whsec_other", NOW), SECRET, NOW)).toBe(false);
+    expect(verifyStripeSignature(payload, signStripePayload(payload, "whsec_other", NOW), SECRET, NOW)).toBe(
+      false,
+    );
   });
 
   it("отклоняет старый вебхук — повтор перехваченного запроса", () => {
@@ -81,7 +83,9 @@ describe("outcomeOf", () => {
   });
 
   it("пропускает сессии без нашего user_id", () => {
-    expect(outcomeOf({ type: "identity.verification_session.verified", data: { object: { id: "vs_1" } } })).toBeNull();
+    expect(
+      outcomeOf({ type: "identity.verification_session.verified", data: { object: { id: "vs_1" } } }),
+    ).toBeNull();
     expect(
       outcomeOf({
         type: "identity.verification_session.verified",
@@ -104,7 +108,11 @@ describe("sessionRequestBody", () => {
     expect(body.get("metadata[user_id]")).toBe(USER);
     expect(body.get("options[document][require_matching_selfie]")).toBe("true");
     expect(body.get("options[document][require_live_capture]")).toBe("true");
-    expect(body.getAll("options[document][allowed_types][]")).toEqual(["passport", "id_card", "driving_license"]);
+    expect(body.getAll("options[document][allowed_types][]")).toEqual([
+      "passport",
+      "id_card",
+      "driving_license",
+    ]);
   });
 });
 
@@ -112,7 +120,10 @@ describe("identityConfigured", () => {
   it("требует все три ключа", () => {
     expect(identityConfigured({} as NodeJS.ProcessEnv)).toBe(false);
     expect(
-      identityConfigured({ STRIPE_SECRET_KEY: "sk", STRIPE_WEBHOOK_SECRET: "wh" } as unknown as NodeJS.ProcessEnv),
+      identityConfigured({
+        STRIPE_SECRET_KEY: "sk",
+        STRIPE_WEBHOOK_SECRET: "wh",
+      } as unknown as NodeJS.ProcessEnv),
     ).toBe(false);
     expect(
       identityConfigured({

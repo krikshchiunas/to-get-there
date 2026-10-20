@@ -53,7 +53,12 @@ export function IdeaMenu({ post, isAuthor }: { post: PostView; isAuthor: boolean
         <Icon name="more" size={19} />
       </IconButton>
 
-      <ActionSheet open={open === "menu"} onClose={() => setOpen(null)} title={post.title} actions={actions} />
+      <ActionSheet
+        open={open === "menu"}
+        onClose={() => setOpen(null)}
+        title={post.title}
+        actions={actions}
+      />
 
       {isAuthor ? (
         <ConfirmSheet
@@ -64,11 +69,20 @@ export function IdeaMenu({ post, isAuthor }: { post: PostView; isAuthor: boolean
           onConfirm={remove}
           pending={pending}
         >
-          <p>Идея исчезнет из ленты, а вместе с ней чат, голосования и фото. Участники больше не смогут туда зайти.</p>
+          <p>
+            Идея исчезнет из ленты, а вместе с ней чат, голосования и фото. Участники больше не смогут туда
+            зайти.
+          </p>
           <p>Если просто больше никого не ждёшь — лучше закрой набор: чат тогда останется.</p>
         </ConfirmSheet>
       ) : open === "report" ? (
-        <ReportSheet open onClose={() => setOpen(null)} targetType="post" targetId={post.id} subject={`«${post.title}»`} />
+        <ReportSheet
+          open
+          onClose={() => setOpen(null)}
+          targetType="post"
+          targetId={post.id}
+          subject={`«${post.title}»`}
+        />
       ) : null}
     </>
   );

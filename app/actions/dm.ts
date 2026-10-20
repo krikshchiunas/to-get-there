@@ -26,7 +26,8 @@ export async function sendDirectMessage(
 
   const text = content.trim();
   if (!text) return { ok: false, error: "Пустое сообщение не отправить." };
-  if (text.length > MAX_MESSAGE) return { ok: false, error: `Сообщение — не больше ${MAX_MESSAGE} символов.` };
+  if (text.length > MAX_MESSAGE)
+    return { ok: false, error: `Сообщение — не больше ${MAX_MESSAGE} символов.` };
 
   const { data, error } = await actor.supabase
     .from("direct_messages")

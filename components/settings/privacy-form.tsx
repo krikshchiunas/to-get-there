@@ -7,13 +7,7 @@ import { useState, useTransition } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, RadioRow, Switch } from "@/components/ui/field";
-import type {
-  IconName,
-  MessageAudience,
-  PrivacySettings,
-  ProfileAudience,
-  UserView,
-} from "@/lib/types";
+import type { IconName, MessageAudience, PrivacySettings, ProfileAudience, UserView } from "@/lib/types";
 
 /**
  * Приватность.
@@ -130,8 +124,8 @@ export function PrivacyForm({ user }: { user: UserView }) {
   return (
     <form onSubmit={handleSubmit} className="pt-5">
       <p className="px-4 text-[14px] leading-[1.4] text-ink-soft">
-        Эти настройки решают, кто видит тебя и кто может тебе написать. Сами идеи видны всем —
-        иначе к ним никто не присоединится.
+        Эти настройки решают, кто видит тебя и кто может тебе написать. Сами идеи видны всем — иначе к ним
+        никто не присоединится.
       </p>
 
       <section className="mt-6 space-y-7 px-4">

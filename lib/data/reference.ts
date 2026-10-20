@@ -7,7 +7,11 @@ import { toCategory, toUniversity } from "./map";
 
 export const loadCategories = cache(async (): Promise<Category[]> => {
   const supabase = await createClient();
-  const { data } = await supabase.from("categories").select("*").order("is_main", { ascending: false }).order("name");
+  const { data } = await supabase
+    .from("categories")
+    .select("*")
+    .order("is_main", { ascending: false })
+    .order("name");
   return (data ?? []).map(toCategory);
 });
 

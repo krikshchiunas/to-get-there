@@ -44,7 +44,11 @@ export function Bubble({
           ].join(" ")}
         >
           {reply !== undefined ? (
-            <ReplyQuote reply={reply} onJump={reply ? onJump : undefined} tone={mine ? "inverse" : "default"} />
+            <ReplyQuote
+              reply={reply}
+              onJump={reply ? onJump : undefined}
+              tone={mine ? "inverse" : "default"}
+            />
           ) : null}
 
           {message.media_url ? (
@@ -59,7 +63,9 @@ export function Bubble({
             </div>
           ) : null}
 
-          {text ? <p className="text-[15px] leading-[1.4] whitespace-pre-wrap [overflow-wrap:anywhere]">{text}</p> : null}
+          {text ? (
+            <p className="text-[15px] leading-[1.4] whitespace-pre-wrap [overflow-wrap:anywhere]">{text}</p>
+          ) : null}
         </div>
 
         {pending ? null : (
@@ -85,4 +91,3 @@ export function Bubble({
     </li>
   );
 }
-

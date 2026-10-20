@@ -20,11 +20,7 @@ export default async function VerificationSettingsPage({
   const [viewer, state, params] = await Promise.all([getViewer(), getLatestVerification(), searchParams]);
   return (
     <>
-      <PageHeader
-        title="Верификация"
-        subtitle="Добровольно и без привилегий"
-        backHref="/settings"
-      />
+      <PageHeader title="Верификация" subtitle="Добровольно и без привилегий" backHref="/settings" />
       <VerificationFlow
         user={viewer}
         state={state}

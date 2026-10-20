@@ -12,11 +12,7 @@ export default async function PrivacySettingsPage() {
   const viewer = await getViewer();
   return (
     <>
-      <PageHeader
-        title="Приватность"
-        subtitle="Кто видит тебя и кто может писать"
-        backHref="/settings"
-      />
+      <PageHeader title="Приватность" subtitle="Кто видит тебя и кто может писать" backHref="/settings" />
       <PrivacyForm user={viewer} />
     </>
   );

@@ -114,9 +114,7 @@ export function Composer({
             <Button type="button" size="lg" full onClick={onJoin}>
               Присоединиться
             </Button>
-            <p className="mt-2 text-center text-[14px] text-ink-soft">
-              После этого сможешь писать в чат.
-            </p>
+            <p className="mt-2 text-center text-[14px] text-ink-soft">После этого сможешь писать в чат.</p>
           </>
         )}
       </div>
@@ -166,12 +164,7 @@ export function Composer({
         ) : null}
 
         {canPoll ? (
-          <IconButton
-            type="button"
-            variant="ghost"
-            label="Создать голосование"
-            onClick={onOpenPoll}
-          >
+          <IconButton type="button" variant="ghost" label="Создать голосование" onClick={onOpenPoll}>
             <Icon name="poll" size={19} />
           </IconButton>
         ) : null}

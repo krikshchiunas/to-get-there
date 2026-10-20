@@ -53,7 +53,9 @@ describe("POST /api/webhooks/stripe", () => {
 
   it("с подписью чужим секретом — 400", async () => {
     const body = JSON.stringify(verified);
-    const response = await POST(request(body, signStripePayload(body, "whsec_attacker", Math.floor(Date.now() / 1000))));
+    const response = await POST(
+      request(body, signStripePayload(body, "whsec_attacker", Math.floor(Date.now() / 1000))),
+    );
     expect(response.status).toBe(400);
     expect(rpc).not.toHaveBeenCalled();
   });
@@ -73,13 +75,18 @@ describe("POST /api/webhooks/stripe", () => {
     await POST(
       signed({
         type: "identity.verification_session.requires_input",
-        data: { object: { id: "vs_abc", metadata: { user_id: USER }, last_error: { code: "document_expired" } } },
+        data: {
+          object: { id: "vs_abc", metadata: { user_id: USER }, last_error: { code: "document_expired" } },
+        },
       }),
     );
-    expect(rpc).toHaveBeenCalledWith("apply_verification_result", expect.objectContaining({
-      new_status: "requires_input",
-      error_code: "document_expired",
-    }));
+    expect(rpc).toHaveBeenCalledWith(
+      "apply_verification_result",
+      expect.objectContaining({
+        new_status: "requires_input",
+        error_code: "document_expired",
+      }),
+    );
   });
 
   it("чужие события подтверждает 200, но в базу не пишет", async () => {

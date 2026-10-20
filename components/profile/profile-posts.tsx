@@ -62,9 +62,7 @@ export async function ProfilePosts({ user, now }: { user: UserView; now: Date })
 
       {over.length > 0 ? (
         <section>
-          <h2 className="px-4 pt-5 text-[13px] font-medium text-ink-faint">
-            Закрытые и прошедшие
-          </h2>
+          <h2 className="px-4 pt-5 text-[13px] font-medium text-ink-faint">Закрытые и прошедшие</h2>
           <p className="px-4 pt-0.5 pb-1.5 text-[13px] text-ink-soft">
             Чаты остаются доступными для всех, кто был внутри.
           </p>
@@ -92,9 +90,7 @@ function PostRow({ post, now, past = false }: { post: PostView; now: Date; past?
       >
         <time
           dateTime={post.date_start}
-          className={`${listLead} ${listTime} ${
-            soon ? "text-heat" : "text-ink"
-          }`}
+          className={`${listLead} ${listTime} ${soon ? "text-heat" : "text-ink"}`}
         >
           <span className="sr-only">Начало в </span>
           {formatTime(post.date_start)}
@@ -102,22 +98,24 @@ function PostRow({ post, now, past = false }: { post: PostView; now: Date; past?
 
         <span className="min-w-0 flex-1">
           <span
-            className={`block text-[16px] leading-[1.4] font-medium ${
-              past ? "text-ink-soft" : "text-ink"
-            }`}
+            className={`block text-[16px] leading-[1.4] font-medium ${past ? "text-ink-soft" : "text-ink"}`}
           >
             {post.title}
           </span>
 
           <span className="mt-0.5 flex items-center gap-x-1.5 overflow-hidden text-[14px] whitespace-nowrap text-ink-soft">
             <span className="u-tnum shrink-0">{formatDayLabel(post.date_start, now)}</span>
-            <span aria-hidden className="shrink-0">·</span>
+            <span aria-hidden className="shrink-0">
+              ·
+            </span>
             <span className="min-w-0 truncate">{shortPlace(post.geo_address, post.geo_city)}</span>
             {reason ? (
               <Pill className="shrink-0">{reason === "closed" ? "Набор закрыт" : "Уже прошла"}</Pill>
             ) : (
               <>
-                <span aria-hidden className="shrink-0">·</span>
+                <span aria-hidden className="shrink-0">
+                  ·
+                </span>
                 <span className="shrink-0">
                   <Seats count={post.participant_count} max={post.max_participants} />
                 </span>

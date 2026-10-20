@@ -19,8 +19,8 @@ export default async function CheckEmailPage({
       </span>
       <h1 className="mb-2 text-[24px] font-semibold">Проверь почту</h1>
       <p className="text-[15px] leading-[1.5] text-ink-soft">
-        Мы отправили письмо {email ? <span className="text-ink">на {email}</span> : "на твой адрес"}.
-        Перейди по ссылке в нём — и сразу окажешься в приложении.
+        Мы отправили письмо {email ? <span className="text-ink">на {email}</span> : "на твой адрес"}. Перейди
+        по ссылке в нём — и сразу окажешься в приложении.
       </p>
       <p className="mt-4 text-[14px] leading-[1.5] text-ink-soft">
         Письма нет несколько минут — загляни в спам. Ссылка действует один раз.

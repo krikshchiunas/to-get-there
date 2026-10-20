@@ -38,7 +38,10 @@ export async function updateProfile(input: ProfileInput): Promise<ActionResult> 
 
   const nickname = input.nickname.trim().toLowerCase();
   if (!NICKNAME.test(nickname)) {
-    return { ok: false, error: "Ник — 3–24 символа: латиница, цифры, точка и подчёркивание, начинается с буквы или цифры." };
+    return {
+      ok: false,
+      error: "Ник — 3–24 символа: латиница, цифры, точка и подчёркивание, начинается с буквы или цифры.",
+    };
   }
   const faculty = input.faculty.trim();
   if (faculty && (faculty.length < 2 || faculty.length > 120)) {

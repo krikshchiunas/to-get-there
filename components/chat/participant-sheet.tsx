@@ -156,12 +156,7 @@ export function ParticipantSheet({
                           >
                             Удалить из чата
                           </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setConfirmRow(null)}
-                          >
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmRow(null)}>
                             Отмена
                           </Button>
                         </div>

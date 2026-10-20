@@ -9,7 +9,18 @@ describe("isUuid", () => {
   });
 
   it("отклоняет всё остальное", () => {
-    for (const value of ["", "abc", "AAAAAAAA-0000-0000-0000-00000000000A", `${id} `, `${id}x`, 42, null, undefined, {}, [id]]) {
+    for (const value of [
+      "",
+      "abc",
+      "AAAAAAAA-0000-0000-0000-00000000000A",
+      `${id} `,
+      `${id}x`,
+      42,
+      null,
+      undefined,
+      {},
+      [id],
+    ]) {
       expect(isUuid(value)).toBe(false);
     }
   });

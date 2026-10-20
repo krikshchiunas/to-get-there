@@ -62,15 +62,7 @@ export function IdeaChatList({
   );
 }
 
-function IdeaChatRow({
-  entry,
-  viewerId,
-  now,
-}: {
-  entry: IdeaChatEntry;
-  viewerId: string;
-  now: Date;
-}) {
+function IdeaChatRow({ entry, viewerId, now }: { entry: IdeaChatEntry; viewerId: string; now: Date }) {
   const { post, last_message, participant_count } = entry;
 
   // The chat outlives the listing: a closed or finished idea keeps its room.
@@ -90,13 +82,8 @@ function IdeaChatRow({
 
   return (
     <li className="u-feed-divider">
-      <Link
-        href={`/post/${post.id}`}
-        className="flex gap-3 px-4 py-3.5 transition-colors hover:bg-sunken"
-      >
-        <span className={`${listLead} ${listTime} ${timeTone}`}>
-          {formatTime(post.date_start)}
-        </span>
+      <Link href={`/post/${post.id}`} className="flex gap-3 px-4 py-3.5 transition-colors hover:bg-sunken">
+        <span className={`${listLead} ${listTime} ${timeTone}`}>{formatTime(post.date_start)}</span>
 
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[16px] font-medium">{post.title}</span>
@@ -110,9 +97,7 @@ function IdeaChatRow({
               {last_message.content.trim() || "Фото"}
             </span>
           ) : (
-            <span className="mt-0.5 block text-[15px] leading-[1.4] text-ink-soft">
-              Сообщений пока нет
-            </span>
+            <span className="mt-0.5 block text-[15px] leading-[1.4] text-ink-soft">Сообщений пока нет</span>
           )}
 
           <span className="mt-1 flex items-center gap-1.5 text-[14px] text-ink-soft">
@@ -120,9 +105,7 @@ function IdeaChatRow({
             <span aria-hidden>·</span>
             <Seats count={participant_count} max={null} />
             {exit ? (
-              <Pill className="ml-0.5">
-                {exit === "closed" ? "Набор закрыт" : "Уже прошла"}
-              </Pill>
+              <Pill className="ml-0.5">{exit === "closed" ? "Набор закрыт" : "Уже прошла"}</Pill>
             ) : null}
           </span>
         </span>
@@ -185,7 +168,9 @@ function DirectChatRow({
         href={`/messages/${partner.nickname}`}
         className="flex gap-3 px-4 py-3.5 transition-colors hover:bg-sunken"
       >
-        <span className={listLead}><Avatar user={partner} size="md" /></span>
+        <span className={listLead}>
+          <Avatar user={partner} size="md" />
+        </span>
 
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-1.5">

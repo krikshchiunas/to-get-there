@@ -1,10 +1,4 @@
-import type {
-  ChatAccess,
-  ChatRole,
-  GeoMode,
-  GeoRadius,
-  PostView,
-} from "@/lib/types";
+import type { ChatAccess, ChatRole, GeoMode, GeoRadius, PostView } from "@/lib/types";
 import { categoryById } from "./categories";
 import { userById } from "./users";
 import { at, hoursAgo, nextWeekday } from "./time";
@@ -359,8 +353,7 @@ const seeds: Seed[] = [
     id: "p-festsaal",
     author_id: "u-ayse",
     title: "Концерт в Festsaal Kreuzberg",
-    description:
-      "Было громко и хорошо. Чат остаётся открытым, если кто-то ещё хочет выложить фотографии.",
+    description: "Было громко и хорошо. Чат остаётся открытым, если кто-то ещё хочет выложить фотографии.",
     category_id: "c-musik",
     date_start: at(-1, 20, 0),
     city: "Берлин",

@@ -12,11 +12,7 @@ export default async function ProfileSettingsPage() {
   const viewer = await getViewer();
   return (
     <>
-      <PageHeader
-        title="Профиль"
-        subtitle="Это видят другие студенты"
-        backHref="/settings"
-      />
+      <PageHeader title="Профиль" subtitle="Это видят другие студенты" backHref="/settings" />
       <ProfileForm user={viewer} />
     </>
   );

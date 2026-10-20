@@ -69,7 +69,11 @@ const threads: ThreadSeed[] = [
     partner_id: "u-elif",
     unread: 0,
     messages: [
-      { from: "them", content: "На вечер настолок в чате только друзья, так что скажи, если захочешь.", minutes_ago: 4000 },
+      {
+        from: "them",
+        content: "На вечер настолок в чате только друзья, так что скажи, если захочешь.",
+        minutes_ago: 4000,
+      },
     ],
   },
 ];

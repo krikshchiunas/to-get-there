@@ -59,7 +59,9 @@ export async function searchPosts(
   if (filters.date_to) {
     // Конец дня — полночь следующего по Берлину. Полдень UTC как опора не
     // даёт перехода на летнее время сдвинуть дату.
-    const next = new Date(new Date(`${filters.date_to}T12:00:00Z`).getTime() + DAY_MS).toISOString().slice(0, 10);
+    const next = new Date(new Date(`${filters.date_to}T12:00:00Z`).getTime() + DAY_MS)
+      .toISOString()
+      .slice(0, 10);
     const end = berlinDayStart(next);
     if (end) query = query.lt("date_start", end);
   }

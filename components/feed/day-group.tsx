@@ -13,20 +13,10 @@ import { PostCard } from "./post-card";
  * Липкое смещение — высота шапки ленты: строка логотипа плюс вкладки на
  * телефоне, одни вкладки от `md`, где логотип показывает рельс навигации.
  */
-export function DayGroup({
-  label,
-  posts,
-  now,
-}: {
-  label: string;
-  posts: PostView[];
-  now: Date;
-}) {
+export function DayGroup({ label, posts, now }: { label: string; posts: PostView[]; now: Date }) {
   return (
     <section>
-      <h2 className={groupHeading}>
-        {label}
-      </h2>
+      <h2 className={groupHeading}>{label}</h2>
 
       <div className="u-feed">
         {posts.map((post) => (

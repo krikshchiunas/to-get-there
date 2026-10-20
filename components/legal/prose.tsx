@@ -14,7 +14,15 @@ export function Prose({ children }: { children: ReactNode }) {
   );
 }
 
-export function DocTitle({ title, subtitle, revision }: { title: string; subtitle?: string; revision: string }) {
+export function DocTitle({
+  title,
+  subtitle,
+  revision,
+}: {
+  title: string;
+  subtitle?: string;
+  revision: string;
+}) {
   return (
     <div className="mb-6">
       <h1 className="text-[24px] leading-tight font-semibold">{title}</h1>

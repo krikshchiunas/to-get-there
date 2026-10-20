@@ -55,11 +55,7 @@ export default async function MessagesPage({
       {tab === "ideas" ? (
         <IdeaChatList chats={ideaChats} viewerId={viewer.id} now={now} />
       ) : (
-        <DirectChatList
-          conversations={conversations}
-          viewerId={viewer.id}
-          now={now}
-        />
+        <DirectChatList conversations={conversations} viewerId={viewer.id} now={now} />
       )}
     </>
   );

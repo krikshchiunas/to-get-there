@@ -6,13 +6,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { PageHeader } from "@/components/ui/page-header";
 import { Segmented } from "@/components/ui/segmented";
-import {
-  canSeeProfile,
-  getViewer,
-  getFollowers,
-  getFollowing,
-  getUserByNickname,
-} from "@/lib/data";
+import { canSeeProfile, getViewer, getFollowers, getFollowing, getUserByNickname } from "@/lib/data";
 import type { UserView } from "@/lib/types";
 
 type FollowsTab = "followers" | "following";
@@ -32,10 +26,7 @@ function tabFrom(value: string | string[] | undefined): FollowsTab {
   return raw === "following" ? "following" : "followers";
 }
 
-export async function generateMetadata({
-  params,
-  searchParams,
-}: FollowsPageProps): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: FollowsPageProps): Promise<Metadata> {
   const { nickname } = await params;
   const user = await getUserByNickname(nickname);
 
@@ -104,15 +95,7 @@ export default async function FollowsPage({ params, searchParams }: FollowsPageP
   );
 }
 
-function FollowsEmpty({
-  user,
-  tab,
-  viewerId,
-}: {
-  user: UserView;
-  tab: FollowsTab;
-  viewerId: string;
-}) {
+function FollowsEmpty({ user, tab, viewerId }: { user: UserView; tab: FollowsTab; viewerId: string }) {
   const isViewer = user.id === viewerId;
 
   if (tab === "followers") {

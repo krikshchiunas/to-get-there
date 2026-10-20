@@ -30,11 +30,64 @@ export function BrandMark({
       }}
     >
       <div style={{ position: "relative", width: px(32), height: px(32), display: "flex" }}>
-        <div style={{ position: "absolute", left: px(10), top: px(6.5), width: px(2), height: px(19), borderRadius: px(1), background: ink, opacity: 0.55 }} />
-        <div style={{ position: "absolute", left: px(7.9), top: px(8.9), width: px(6.2), height: px(6.2), borderRadius: px(3.1), background: ink }} />
-        <div style={{ position: "absolute", left: px(9), top: px(18), width: px(4), height: px(4), borderRadius: px(2), background: ink, opacity: 0.6 }} />
-        <div style={{ position: "absolute", left: px(17), top: px(11), width: px(9), height: px(2), borderRadius: px(1), background: ink }} />
-        <div style={{ position: "absolute", left: px(17), top: px(19), width: px(6.5), height: px(2), borderRadius: px(1), background: ink, opacity: 0.6 }} />
+        <div
+          style={{
+            position: "absolute",
+            left: px(10),
+            top: px(6.5),
+            width: px(2),
+            height: px(19),
+            borderRadius: px(1),
+            background: ink,
+            opacity: 0.55,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: px(7.9),
+            top: px(8.9),
+            width: px(6.2),
+            height: px(6.2),
+            borderRadius: px(3.1),
+            background: ink,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: px(9),
+            top: px(18),
+            width: px(4),
+            height: px(4),
+            borderRadius: px(2),
+            background: ink,
+            opacity: 0.6,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: px(17),
+            top: px(11),
+            width: px(9),
+            height: px(2),
+            borderRadius: px(1),
+            background: ink,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: px(17),
+            top: px(19),
+            width: px(6.5),
+            height: px(2),
+            borderRadius: px(1),
+            background: ink,
+            opacity: 0.6,
+          }}
+        />
       </div>
     </div>
   );

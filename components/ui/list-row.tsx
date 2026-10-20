@@ -11,8 +11,7 @@ import type { Urgency } from "@/lib/format";
  */
 
 /** Контейнер строки: отступы, разделитель снизу, подсветка наведения. */
-export const listRow =
-  "u-feed-divider relative flex gap-3 px-4 py-3.5 transition-colors hover:bg-sunken";
+export const listRow = "u-feed-divider relative flex gap-3 px-4 py-3.5 transition-colors hover:bg-sunken";
 
 /**
  * Ведущий слот. В ленте, поиске и чатах это аватар 40px; в списках, где

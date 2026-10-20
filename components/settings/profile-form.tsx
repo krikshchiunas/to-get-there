@@ -131,9 +131,7 @@ export function ProfileForm({ user }: { user: UserView }) {
 
     setErrors(next);
 
-    const firstProblem = (["nickname", "faculty", "bio"] as const).find(
-      (key) => next[key] !== undefined,
-    );
+    const firstProblem = (["nickname", "faculty", "bio"] as const).find((key) => next[key] !== undefined);
     if (firstProblem !== undefined) {
       const element = document.getElementById(FIELD_IDS[firstProblem]);
       if (element) {
@@ -236,8 +234,8 @@ export function ProfileForm({ user }: { user: UserView }) {
               {user.university.name}
             </p>
             <p className="mt-1 text-[13px] leading-[1.4] text-ink-soft">
-              Приходит из подтверждённой университетской почты, поэтому здесь не меняется. От него
-              зависит лента «Университет».
+              Приходит из подтверждённой университетской почты, поэтому здесь не меняется. От него зависит
+              лента «Университет».
             </p>
           </div>
         </Field>

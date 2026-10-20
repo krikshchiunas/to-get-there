@@ -21,9 +21,10 @@ export interface AuthState {
 const MIN_PASSWORD = 8;
 
 function readEmail(form: FormData): string {
-  return String(form.get("email") ?? "").trim().toLowerCase();
+  return String(form.get("email") ?? "")
+    .trim()
+    .toLowerCase();
 }
-
 
 /** Сообщения Supabase — на русский и словами пользователя. */
 function explain(message: string): string {

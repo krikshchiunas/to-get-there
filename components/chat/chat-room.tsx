@@ -10,13 +10,7 @@ import { EmptyState } from "@/components/ui/empty";
 import { Icon } from "@/components/ui/icon";
 import { ReportSheet } from "@/components/safety/report-sheet";
 import { formatPresent, formatTyping } from "@/lib/format";
-import type {
-  MessageView,
-  ParticipantView,
-  PollView,
-  ReplyPreview,
-  UserView,
-} from "@/lib/types";
+import type { MessageView, ParticipantView, PollView, ReplyPreview, UserView } from "@/lib/types";
 import { messageActions, type Rights } from "@/lib/rights";
 import { usePresence } from "@/lib/use-presence";
 import { mergeById, useSyncedState } from "@/lib/use-synced-state";
@@ -178,7 +172,9 @@ export function ChatRoom({
 
   function deliver(
     localId: string,
-    run: () => Promise<{ ok: true; data?: { id: string; created_at: string } } | { ok: false; error: string }>,
+    run: () => Promise<
+      { ok: true; data?: { id: string; created_at: string } } | { ok: false; error: string }
+    >,
   ) {
     startTransition(async () => {
       const result = await run();
@@ -348,7 +344,12 @@ export function ChatRoom({
         case "unpin":
           return { label: "Открепить", icon: "pin", onSelect: () => handleTogglePin(message.id) };
         case "delete":
-          return { label: "Удалить сообщение", icon: "trash", danger: true, onSelect: () => setDeleting(message) };
+          return {
+            label: "Удалить сообщение",
+            icon: "trash",
+            danger: true,
+            onSelect: () => setDeleting(message),
+          };
         case "report":
           return { label: "Пожаловаться", icon: "flag", danger: true, onSelect: () => setReporting(message) };
       }
@@ -372,9 +373,7 @@ export function ChatRoom({
             onClick={() => jumpToMessage(pinned.id)}
             className="min-h-10 min-w-0 flex-1 px-1 text-left"
           >
-            <span className="block text-[12px] text-ink-soft">
-              Закреплено: {pinned.author.nickname}
-            </span>
+            <span className="block text-[12px] text-ink-soft">Закреплено: {pinned.author.nickname}</span>
             <span className="block truncate text-[14px]">{previewOf(pinned)}</span>
             <span className="sr-only">Перейти к закреплённому сообщению</span>
           </button>
@@ -438,11 +437,7 @@ export function ChatRoom({
       />
 
       {rights.canPoll ? (
-        <PollComposer
-          open={pollOpen}
-          onClose={() => setPollOpen(false)}
-          onCreate={handleCreatePoll}
-        />
+        <PollComposer open={pollOpen} onClose={() => setPollOpen(false)} onCreate={handleCreatePoll} />
       ) : null}
 
       <ActionSheet

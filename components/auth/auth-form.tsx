@@ -34,7 +34,10 @@ export function AuthForm({
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
       {notice && !state.error ? (
-        <p role="status" className="rounded-field bg-sunken px-4 py-3 text-[14px] leading-[1.4] text-ink-soft">
+        <p
+          role="status"
+          className="rounded-field bg-sunken px-4 py-3 text-[14px] leading-[1.4] text-ink-soft"
+        >
           {notice}
         </p>
       ) : null}
@@ -43,7 +46,9 @@ export function AuthForm({
         label={isSignup ? "Университетская почта" : "Почта"}
         htmlFor="email"
         required
-        hint={isSignup ? "Регистрация открыта для адресов вузов из списка — например, @tu-berlin.de." : undefined}
+        hint={
+          isSignup ? "Регистрация открыта для адресов вузов из списка — например, @tu-berlin.de." : undefined
+        }
       >
         <TextInput
           id="email"
@@ -61,12 +66,7 @@ export function AuthForm({
         />
       </Field>
 
-      <Field
-        label="Пароль"
-        htmlFor="password"
-        required
-        hint={isSignup ? "Не короче 8 символов." : undefined}
-      >
+      <Field label="Пароль" htmlFor="password" required hint={isSignup ? "Не короче 8 символов." : undefined}>
         <TextInput
           id="password"
           name="password"

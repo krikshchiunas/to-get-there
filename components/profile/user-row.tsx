@@ -18,13 +18,13 @@ import { FollowButton } from "./follow-button";
  */
 export function UserRow({ user, viewerId }: { user: UserView; viewerId: string }) {
   const isViewer = user.id === viewerId;
-  const place = user.faculty
-    ? `${user.university.short_name} · ${user.faculty}`
-    : user.university.short_name;
+  const place = user.faculty ? `${user.university.short_name} · ${user.faculty}` : user.university.short_name;
 
   return (
     <div className={`${listRow} items-center`}>
-      <span className={listLead}><Avatar user={user} size="md" /></span>
+      <span className={listLead}>
+        <Avatar user={user} size="md" />
+      </span>
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">

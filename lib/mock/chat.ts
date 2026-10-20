@@ -1,10 +1,4 @@
-import type {
-  ChatRole,
-  MessageView,
-  ModeratorPermissions,
-  ParticipantView,
-  PollView,
-} from "@/lib/types";
+import type { ChatRole, MessageView, ModeratorPermissions, ParticipantView, PollView } from "@/lib/types";
 import { userById, users } from "./users";
 import { posts } from "./posts";
 import { hoursAgo, minutesAgo } from "./time";
@@ -41,14 +35,24 @@ const explicitRoster: Record<
 > = {
   "p-kanal": [
     { user_id: "u-jonas", role: "author", minutes_ago: 360 },
-    { user_id: "u-mira", role: "moderator", permissions: { can_pin: true, can_poll: true }, minutes_ago: 330 },
+    {
+      user_id: "u-mira",
+      role: "moderator",
+      permissions: { can_pin: true, can_poll: true },
+      minutes_ago: 330,
+    },
     { user_id: "me", role: "participant", minutes_ago: 180 },
     { user_id: "u-tobi", role: "participant", minutes_ago: 120 },
     { user_id: "u-kwame", role: "participant", minutes_ago: 65 },
   ],
   "p-analysis": [
     { user_id: "u-mira", role: "author", minutes_ago: 1800 },
-    { user_id: "me", role: "moderator", permissions: { can_pin: true, can_poll: true, can_post_media: true }, minutes_ago: 1500 },
+    {
+      user_id: "me",
+      role: "moderator",
+      permissions: { can_pin: true, can_poll: true, can_post_media: true },
+      minutes_ago: 1500,
+    },
     { user_id: "u-tobi", role: "participant", minutes_ago: 900 },
     { user_id: "u-kwame", role: "participant", minutes_ago: 240 },
   ],
@@ -180,9 +184,19 @@ const threads: Record<string, MessageSeed[]> = {
     },
     { author_id: "u-mira", content: "Я прямо из библиотеки, задержусь минут на десять.", minutes_ago: 300 },
     { author_id: "me", content: "Что-нибудь принести? Я всё равно пройду мимо ларька.", minutes_ago: 240 },
-    { author_id: "u-jonas", content: "Мороженое было бы отлично, остальное есть.", minutes_ago: 235, reply_to: 2 },
+    {
+      author_id: "u-jonas",
+      content: "Мороженое было бы отлично, остальное есть.",
+      minutes_ago: 235,
+      reply_to: 2,
+    },
     { author_id: "u-tobi", content: "Я впервые с вами, как вас узнать?", minutes_ago: 120 },
-    { author_id: "u-mira", content: "Жёлтый плед и два велосипеда рядом. Напиши, когда будешь на месте.", minutes_ago: 114, reply_to: 4 },
+    {
+      author_id: "u-mira",
+      content: "Жёлтый плед и два велосипеда рядом. Напиши, когда будешь на месте.",
+      minutes_ago: 114,
+      reply_to: 4,
+    },
     { author_id: "u-kwame", content: "Беру с собой коробку черешни.", minutes_ago: 58 },
     { author_id: "me", content: "Отлично, тогда до вечера.", minutes_ago: 42 },
   ],
@@ -194,9 +208,21 @@ const threads: Record<string, MessageSeed[]> = {
       minutes_ago: 1400,
       pinned: true,
     },
-    { author_id: "me", content: "Я набрала решения третьей и четвёртой задачи, выложу позже.", minutes_ago: 1200 },
-    { author_id: "u-tobi", content: "Я всё ещё не понимаю теорему Стокса. Кто-нибудь объяснит?", minutes_ago: 900 },
-    { author_id: "u-mira", content: "Выделим на это пятнадцать минут в начале. Возьми конспект.", minutes_ago: 880 },
+    {
+      author_id: "me",
+      content: "Я набрала решения третьей и четвёртой задачи, выложу позже.",
+      minutes_ago: 1200,
+    },
+    {
+      author_id: "u-tobi",
+      content: "Я всё ещё не понимаю теорему Стокса. Кто-нибудь объяснит?",
+      minutes_ago: 900,
+    },
+    {
+      author_id: "u-mira",
+      content: "Выделим на это пятнадцать минут в начале. Возьми конспект.",
+      minutes_ago: 880,
+    },
     { author_id: "u-kwame", content: "Кофе беру на всех, скажите только, кому не нужно.", minutes_ago: 200 },
   ],
   "p-ostbloc": [
@@ -214,13 +240,16 @@ const threads: Record<string, MessageSeed[]> = {
   "p-lesekreis": [
     {
       author_id: "u-ayse",
-      content:
-        "На этой неделе страницы с 1 по 34. Читаем по очереди вслух, идеально читать никто не обязан.",
+      content: "На этой неделе страницы с 1 по 34. Читаем по очереди вслух, идеально читать никто не обязан.",
       minutes_ago: 3000,
       pinned: true,
     },
     { author_id: "u-elif", content: "Есть PDF этого издания? В моей библиотеке его нет.", minutes_ago: 1700 },
-    { author_id: "u-ayse", content: "Издание Reclam за три евро в книжном у Хакешер Маркт.", minutes_ago: 1680 },
+    {
+      author_id: "u-ayse",
+      content: "Издание Reclam за три евро в книжном у Хакешер Маркт.",
+      minutes_ago: 1680,
+    },
     { author_id: "me", content: "У меня есть второй экземпляр, могу принести.", minutes_ago: 800 },
   ],
   "p-mensa": [
@@ -228,7 +257,12 @@ const threads: Record<string, MessageSeed[]> = {
     { author_id: "u-paul", content: "Буду через пять минут.", minutes_ago: 35 },
   ],
   "p-festsaal": [
-    { author_id: "u-ayse", content: "Спасибо всем, вечер получился хороший.", minutes_ago: 1200, pinned: true },
+    {
+      author_id: "u-ayse",
+      content: "Спасибо всем, вечер получился хороший.",
+      minutes_ago: 1200,
+      pinned: true,
+    },
     { author_id: "me", content: "Фотографии выложу завтра.", minutes_ago: 1100 },
   ],
   "p-flohmarkt": [

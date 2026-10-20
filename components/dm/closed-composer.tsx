@@ -28,12 +28,23 @@ export function ClosedComposer({ partner, viewerId }: { partner: UserView; viewe
     <div className="px-4 py-4">
       <div className="rounded-field bg-sunken p-4">
         <p className="flex items-center gap-2 text-[15px]">
-          <Icon name={partner.viewer_blocked ? "block" : "lock"} size={17} className="shrink-0 text-ink-soft" />
+          <Icon
+            name={partner.viewer_blocked ? "block" : "lock"}
+            size={17}
+            className="shrink-0 text-ink-soft"
+          />
           {notice.title}
         </p>
         <p className="mt-1 text-[14px] leading-[1.4] text-ink-soft">{notice.body}</p>
         {partner.viewer_blocked ? (
-          <Button type="button" variant="quiet" size="md" className="mt-3" onClick={unblock} disabled={pending}>
+          <Button
+            type="button"
+            variant="quiet"
+            size="md"
+            className="mt-3"
+            onClick={unblock}
+            disabled={pending}
+          >
             Разблокировать
           </Button>
         ) : (

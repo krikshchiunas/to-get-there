@@ -41,7 +41,8 @@ function normalize(raw: unknown): CreatePostInput | null {
   const input = raw as Record<string, unknown>;
   const geoMode = oneOf(input.geoMode, GEO_MODES);
   const chatAccess = oneOf(input.chatAccess, CHAT_ACCESS);
-  if (!geoMode || !chatAccess || !isUuid(input.categoryId) || typeof input.dateStart !== "string") return null;
+  if (!geoMode || !chatAccess || !isUuid(input.categoryId) || typeof input.dateStart !== "string")
+    return null;
   const radius = finiteOrNull(input.geoRadiusM);
   const max = finiteOrNull(input.maxParticipants);
   return {
@@ -78,7 +79,8 @@ function validate(input: CreatePostInput): string | null {
   }
   if (input.geoMode === "area" && !input.geoAddress?.trim()) return "Опиши, как найти друг друга на месте.";
   if ((input.geoLat == null) !== (input.geoLng == null)) return "Координаты задаются парой.";
-  if (input.geoLat != null && !isValidCoord(input.geoLat, input.geoLng)) return "Точка на карте не распознана.";
+  if (input.geoLat != null && !isValidCoord(input.geoLat, input.geoLng))
+    return "Точка на карте не распознана.";
   if (input.geoMode !== "city" && input.geoLat == null) return "Отметь место на карте.";
 
   if (input.maxParticipants != null && (input.maxParticipants < 2 || input.maxParticipants > 500)) {
@@ -263,8 +265,13 @@ export async function deletePost(postId: string): Promise<ActionResult> {
   if (!actor) return noActor();
   if (!isUuid(postId)) return invalidInput;
 
-  const { data: post } = await actor.supabase.from("posts").select("author_id").eq("id", postId).maybeSingle();
-  if (!post || post.author_id !== actor.viewerId) return { ok: false, error: "Удалить идею может только её автор." };
+  const { data: post } = await actor.supabase
+    .from("posts")
+    .select("author_id")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!post || post.author_id !== actor.viewerId)
+    return { ok: false, error: "Удалить идею может только её автор." };
 
   const bucket = actor.supabase.storage.from(CHAT_MEDIA_BUCKET);
   const { data: files } = await bucket.list(postId, { limit: 1000 });

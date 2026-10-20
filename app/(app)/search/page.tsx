@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
 import { SearchScreen, type SearchTab } from "@/components/search/search-screen";
 import { PageHeader } from "@/components/ui/page-header";
-import {
-  emptyFilters,
-} from "@/lib/types";
-import {
-  getCategories,
-  getCitiesWithPosts,
-  getViewer,
-  searchPosts,
-} from "@/lib/data";
+import { emptyFilters } from "@/lib/types";
+import { getCategories, getCitiesWithPosts, getViewer, searchPosts } from "@/lib/data";
 
 /** Results depend on the clock, so it is read once per request. */
 export const dynamic = "force-dynamic";

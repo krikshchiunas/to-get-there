@@ -73,7 +73,8 @@ export function MapView({
       });
       L.tileLayer(TILE_URL, { attribution: ATTRIBUTION, maxZoom: 19 }).addTo(instance);
 
-      const accent = getComputedStyle(document.documentElement).getPropertyValue("--c-signal").trim() || "#2f3bee";
+      const accent =
+        getComputedStyle(document.documentElement).getPropertyValue("--c-signal").trim() || "#2f3bee";
       circle.current = L.circle([center.lat, center.lng], {
         radius: radiusM ?? 0,
         color: accent,

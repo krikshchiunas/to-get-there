@@ -59,9 +59,7 @@ export function PollCard({
                 <span aria-hidden className="relative size-4 shrink-0" />
               )}
               <span className="relative min-w-0 flex-1 text-[14px]">{option.label}</span>
-              <span className="u-tnum relative shrink-0 text-[13px] text-ink-soft">
-                {percent} %
-              </span>
+              <span className="u-tnum relative shrink-0 text-[13px] text-ink-soft">{percent} %</span>
             </>
           );
 
@@ -75,16 +73,9 @@ export function PollCard({
 
           return (
             <li key={`${poll.id}-${index}`}>
-              <button
-                type="button"
-                aria-pressed={chosen}
-                onClick={() => onVote(index)}
-                className={rowClass}
-              >
+              <button type="button" aria-pressed={chosen} onClick={() => onVote(index)} className={rowClass}>
                 {inner}
-                <span className="sr-only">
-                  {chosen ? "твой голос" : `голосовать за ${option.label}`}
-                </span>
+                <span className="sr-only">{chosen ? "твой голос" : `голосовать за ${option.label}`}</span>
               </button>
             </li>
           );
@@ -92,8 +83,7 @@ export function PollCard({
       </ul>
 
       <p className="mt-2.5 text-[12px] text-ink-soft">
-        <span className="u-tnum">{total}</span>{" "}
-        {pluralRu(total, ["голос", "голоса", "голосов"])}
+        <span className="u-tnum">{total}</span> {pluralRu(total, ["голос", "голоса", "голосов"])}
         {canVote ? null : ", голос есть у каждого участника"}
       </p>
     </div>

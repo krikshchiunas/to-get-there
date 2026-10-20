@@ -66,8 +66,18 @@ describe("filterPosts — день по Берлину", () => {
 
 describe("filterPosts — слово, категория, время, город", () => {
   const now = new Date("2026-10-24T10:00:00Z");
-  const base = post("a", { title: "Пиво у канала", geo_city: "Berlin", category_id: "party", date_start: "2026-10-24T18:00:00Z" });
-  const quiz = post("b", { title: "Паб-квиз", geo_city: "Leipzig", category_id: "games", date_start: "2026-10-25T08:00:00Z" });
+  const base = post("a", {
+    title: "Пиво у канала",
+    geo_city: "Berlin",
+    category_id: "party",
+    date_start: "2026-10-24T18:00:00Z",
+  });
+  const quiz = post("b", {
+    title: "Паб-квиз",
+    geo_city: "Leipzig",
+    category_id: "games",
+    date_start: "2026-10-25T08:00:00Z",
+  });
 
   it("ищет по названию без учёта регистра", () => {
     const result = filterPosts([base, quiz], { ...none, query: "КВИЗ" }, now, null);
@@ -98,8 +108,14 @@ describe("filterPosts — слово, категория, время, город
 
 describe("filterUsers", () => {
   it("пустой запрос — никого; скрытых из поиска и себя — нет", () => {
-    const visible = { ...users[1], privacy_settings: { ...users[1].privacy_settings, visible_in_search: true } };
-    const hidden = { ...users[2], privacy_settings: { ...users[2].privacy_settings, visible_in_search: false } };
+    const visible = {
+      ...users[1],
+      privacy_settings: { ...users[1].privacy_settings, visible_in_search: true },
+    };
+    const hidden = {
+      ...users[2],
+      privacy_settings: { ...users[2].privacy_settings, visible_in_search: false },
+    };
     expect(filterUsers([visible, hidden], "  ", "me")).toEqual([]);
     expect(filterUsers([visible, hidden], visible.nickname, "me")).toEqual([visible]);
     expect(filterUsers([visible, hidden], hidden.nickname, "me")).toEqual([]);

@@ -170,10 +170,7 @@ export function getUserById(id: string): UserView | undefined {
   return userById.get(id);
 }
 
-function audienceAllows(
-  audience: "everyone" | "university" | "friends",
-  user: UserView,
-): boolean {
+function audienceAllows(audience: "everyone" | "university" | "friends", user: UserView): boolean {
   if (user.id === currentUser.id) return true;
   switch (audience) {
     case "everyone":

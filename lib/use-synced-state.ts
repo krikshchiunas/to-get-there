@@ -49,9 +49,7 @@ export function mergeById<T extends { id: string }>(
   order?: (a: T, b: T) => number,
 ): T[] {
   const known = new Set(server.map((item) => item.id));
-  const extra = local.filter(
-    (item) => !known.has(item.id) && (isLocalId(item.id) || confirmed.has(item.id)),
-  );
+  const extra = local.filter((item) => !known.has(item.id) && (isLocalId(item.id) || confirmed.has(item.id)));
   if (extra.length === 0) return server;
   const out = [...server, ...extra];
   return order ? out.sort(order) : out;

@@ -85,7 +85,10 @@ function ChatImage({
         }}
       />
       {uploading ? (
-        <span className="absolute inset-x-0 bottom-0 bg-paper/85 px-2.5 py-1 text-[12px] text-ink-soft" role="status">
+        <span
+          className="absolute inset-x-0 bottom-0 bg-paper/85 px-2.5 py-1 text-[12px] text-ink-soft"
+          role="status"
+        >
           Загружается…
         </span>
       ) : null}
@@ -112,7 +115,9 @@ export function ReplyQuote({
 
   if (!reply) {
     return (
-      <p className={`mb-1 border-l-2 pl-2.5 text-[13px] italic ${line} ${meta}`}>Исходное сообщение удалено</p>
+      <p className={`mb-1 border-l-2 pl-2.5 text-[13px] italic ${line} ${meta}`}>
+        Исходное сообщение удалено
+      </p>
     );
   }
 
@@ -142,8 +147,7 @@ export function ReplyQuote({
 function tucksUnder(previous: Entry | undefined, message: MessageView): boolean {
   if (!previous || previous.kind !== "message") return false;
   if (previous.message.author_id !== message.author_id) return false;
-  const gap =
-    new Date(message.created_at).getTime() - new Date(previous.message.created_at).getTime();
+  const gap = new Date(message.created_at).getTime() - new Date(previous.message.created_at).getTime();
   return gap < GROUP_WINDOW_MS;
 }
 

@@ -23,11 +23,7 @@ export async function toUserViews(rows: UserWithUniversity[]): Promise<UserView[
 
 export async function getUserByNickname(nickname: string): Promise<UserView | undefined> {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("users")
-    .select(USER_SELECT)
-    .eq("nickname", nickname)
-    .maybeSingle();
+  const { data } = await supabase.from("users").select(USER_SELECT).eq("nickname", nickname).maybeSingle();
   if (!data) return undefined;
   const [view] = await toUserViews([data as unknown as UserWithUniversity]);
   return view;
@@ -83,10 +79,7 @@ export async function getFollowing(userId: string): Promise<UserView[]> {
 
 /** Друзья — взаимная подписка, то есть пересечение двух списков. */
 export async function getFriends(viewerId: string): Promise<UserView[]> {
-  const [following, followers] = await Promise.all([
-    getFollowing(viewerId),
-    getFollowers(viewerId),
-  ]);
+  const [following, followers] = await Promise.all([getFollowing(viewerId), getFollowers(viewerId)]);
   const followerIds = new Set(followers.map((user) => user.id));
   return following.filter((user) => followerIds.has(user.id));
 }

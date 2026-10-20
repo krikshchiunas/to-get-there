@@ -37,4 +37,7 @@ export function oneOf<T extends string>(value: unknown, allowed: readonly T[]): 
   return typeof value === "string" && (allowed as readonly string[]).includes(value) ? (value as T) : null;
 }
 
-export const invalidInput = { ok: false as const, error: "Запрос не распознан. Обнови страницу и попробуй снова." };
+export const invalidInput = {
+  ok: false as const,
+  error: "Запрос не распознан. Обнови страницу и попробуй снова.",
+};
