@@ -11,73 +11,18 @@ import { Icon } from "@/components/ui/icon";
 import { ReportSheet } from "@/components/safety/report-sheet";
 import { formatPresent, formatTyping } from "@/lib/format";
 import type {
-  ChatRole,
   MessageView,
-  ModeratorPermissions,
   ParticipantView,
   PollView,
   ReplyPreview,
   UserView,
 } from "@/lib/types";
+import { messageActions, type Rights } from "@/lib/rights";
 import { usePresence } from "@/lib/use-presence";
 import { mergeById, useSyncedState } from "@/lib/use-synced-state";
 import { Composer } from "./composer";
 import { MessageList } from "./message-list";
 import { PollComposer } from "./poll-composer";
-
-/**
- * What the viewer may do in this idea chat.
- *
- * Derived once from the role plus the per-person moderator rights; every
- * affordance in the chat is rendered from this object, so nothing is offered
- * and then refused. The author holds everything, a moderator holds exactly
- * what the author granted, a participant may send text.
- */
-export interface Rights {
-  role: ChatRole;
-  isAuthor: boolean;
-  canSend: boolean;
-  canPostMedia: boolean;
-  canPin: boolean;
-  canPoll: boolean;
-  canKick: boolean;
-}
-
-export function rightsOf(role: ChatRole, permissions: ModeratorPermissions | null): Rights {
-  if (role === "author") {
-    return {
-      role,
-      isAuthor: true,
-      canSend: true,
-      canPostMedia: true,
-      canPin: true,
-      canPoll: true,
-      canKick: true,
-    };
-  }
-
-  if (role === "moderator") {
-    return {
-      role,
-      isAuthor: false,
-      canSend: true,
-      canPostMedia: permissions?.can_post_media ?? false,
-      canPin: permissions?.can_pin ?? false,
-      canPoll: permissions?.can_poll ?? false,
-      canKick: permissions?.can_kick ?? false,
-    };
-  }
-
-  return {
-    role,
-    isAuthor: false,
-    canSend: role === "participant",
-    canPostMedia: false,
-    canPin: false,
-    canPoll: false,
-    canKick: false,
-  };
-}
 
 function byCreatedAt(a: { created_at: string }, b: { created_at: string }): number {
   return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
@@ -390,26 +335,24 @@ export function ChatRoom({
     flashTimer.current = window.setTimeout(() => setFlashId(null), 2000);
   }
 
-  /** Что можно сделать с сообщением — ровно то, что разрешит база. */
+  /** «⋯» у сообщения: какие пункты — решает messageActions (lib/rights.ts). */
   function actionsOf(message: MessageView): SheetAction[] {
-    const own = message.author_id === viewer.id;
-    const list: SheetAction[] = [];
-    if (canSend) list.push({ label: "Ответить", icon: "reply", onSelect: () => setReplyTo(message) });
-    if (message.content.trim()) list.push({ label: "Скопировать текст", icon: "copy", onSelect: () => void copyText(message) });
-    if (rights.canPin) {
-      list.push({
-        label: message.is_pinned ? "Открепить" : "Закрепить",
-        icon: "pin",
-        onSelect: () => handleTogglePin(message.id),
-      });
-    }
-    if (own || rights.isAuthor) {
-      list.push({ label: "Удалить сообщение", icon: "trash", danger: true, onSelect: () => setDeleting(message) });
-    }
-    if (!own) {
-      list.push({ label: "Пожаловаться", icon: "flag", danger: true, onSelect: () => setReporting(message) });
-    }
-    return list;
+    return messageActions(message, viewer.id, rights, canSend).map((action): SheetAction => {
+      switch (action) {
+        case "reply":
+          return { label: "Ответить", icon: "reply", onSelect: () => setReplyTo(message) };
+        case "copy":
+          return { label: "Скопировать текст", icon: "copy", onSelect: () => void copyText(message) };
+        case "pin":
+          return { label: "Закрепить", icon: "pin", onSelect: () => handleTogglePin(message.id) };
+        case "unpin":
+          return { label: "Открепить", icon: "pin", onSelect: () => handleTogglePin(message.id) };
+        case "delete":
+          return { label: "Удалить сообщение", icon: "trash", danger: true, onSelect: () => setDeleting(message) };
+        case "report":
+          return { label: "Пожаловаться", icon: "flag", danger: true, onSelect: () => setReporting(message) };
+      }
+    });
   }
 
   const empty = messages.length === 0 && polls.length === 0;

@@ -1,20 +1,17 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { deleteDirectMessage, markConversationRead, sendDirectMessage } from "@/app/actions/dm";
-import { setBlocked } from "@/app/actions/safety";
 import { notify } from "@/components/ui/toast";
 import { ActionSheet, ConfirmSheet, type SheetAction } from "@/components/ui/action-sheet";
-import { Button, IconButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
-import { Icon } from "@/components/ui/icon";
-import { TimeFromNow } from "@/components/ui/time-from-now";
 import { ReportSheet } from "@/components/safety/report-sheet";
-import { ReplyQuote } from "@/components/chat/message-list";
 import { dayKey, formatDayLabel } from "@/lib/format";
 import type { DirectMessage, ReplyPreview, UserView } from "@/lib/types";
 import { dmTopic, usePresence } from "@/lib/use-presence";
+import { Bubble } from "./bubble";
+import { ClosedComposer } from "./closed-composer";
+import { DmComposer } from "./dm-composer";
 
 /**
  * One direct conversation. Two sides, so the thread reads as bubbles: the
@@ -32,8 +29,6 @@ import { dmTopic, usePresence } from "@/lib/use-presence";
  * (0033), «Прочитано» — по отметке собеседника (0032), если оба её не
  * выключили.
  */
-const MAX_COMPOSER_HEIGHT = 160;
-const MAX_MESSAGE = 2000;
 
 type DayGroup = { key: string; label: string; items: DirectMessage[] };
 
@@ -272,7 +267,7 @@ export function Conversation({
       </p>
 
       {canReply ? (
-        <Composer
+        <DmComposer
           partnerNickname={partner.nickname}
           replyTo={quoteOf(replyTo)}
           onCancelReply={() => setReplyTo(null)}
@@ -312,262 +307,4 @@ export function Conversation({
       ) : null}
     </div>
   );
-}
-
-/* ── bubbles ────────────────────────────────────────────────────── */
-
-function Bubble({
-  message,
-  mine,
-  reply,
-  read,
-  flashed,
-  onJump,
-  onOpenActions,
-}: {
-  message: DirectMessage;
-  mine: boolean;
-  /** undefined — не ответ; null — ответ на удалённое или незагруженное. */
-  reply: ReplyPreview | null | undefined;
-  read: boolean;
-  flashed: boolean;
-  onJump: (messageId: string) => void;
-  onOpenActions: () => void;
-}) {
-  const text = message.content.trim();
-  const pending = message.id.startsWith("local-");
-
-  return (
-    <li
-      id={`dm-${message.id}`}
-      className={`group flex scroll-mt-28 flex-col rounded-2xl transition-colors ${mine ? "items-end" : "items-start"} ${
-        flashed ? "bg-sunken" : ""
-      }`}
-    >
-      <div className={`flex max-w-full items-center gap-1 ${mine ? "flex-row-reverse" : ""}`}>
-        <div
-          className={[
-            "max-w-[78vw] min-w-0 rounded-2xl px-3.5 py-2 sm:max-w-[26rem]",
-            mine ? "bg-signal text-signal-ink" : "bg-sunken text-ink",
-            pending ? "opacity-70" : "",
-          ].join(" ")}
-        >
-          {reply !== undefined ? (
-            <ReplyQuote reply={reply} onJump={reply ? onJump : undefined} tone={mine ? "inverse" : "default"} />
-          ) : null}
-
-          {message.media_url ? (
-            <div
-              className={[
-                "mb-2 flex h-32 w-56 max-w-full flex-col items-center justify-center gap-1.5 rounded-field text-[13px]",
-                mine ? "bg-signal-ink/15 text-signal-ink/85" : "bg-paper text-ink-soft",
-              ].join(" ")}
-            >
-              <Icon name="image" size={20} />
-              Фото пока не загружается
-            </div>
-          ) : null}
-
-          {text ? <p className="text-[15px] leading-[1.4] whitespace-pre-wrap [overflow-wrap:anywhere]">{text}</p> : null}
-        </div>
-
-        {pending ? null : (
-          <span className="shrink-0 pointer-fine:opacity-0 pointer-fine:transition-opacity pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100">
-            <IconButton
-              type="button"
-              variant="ghost"
-              label={mine ? "Действия с твоим сообщением" : "Действия с сообщением"}
-              aria-haspopup="dialog"
-              onClick={onOpenActions}
-              className="text-ink-faint"
-            >
-              <Icon name="more" size={16} />
-            </IconButton>
-          </span>
-        )}
-      </div>
-
-      <span className="u-tnum mt-1 px-1 text-[12px] text-ink-faint">
-        {pending ? "Отправляется…" : <TimeFromNow value={message.created_at} mode="stamp" />}
-        {read ? <span> · Прочитано</span> : null}
-      </span>
-    </li>
-  );
-}
-
-/* ── composer ───────────────────────────────────────────────────── */
-
-function Composer({
-  partnerNickname,
-  replyTo,
-  onCancelReply,
-  onTyping,
-  onSend,
-}: {
-  partnerNickname: string;
-  replyTo: ReplyPreview | null;
-  onCancelReply: () => void;
-  onTyping: () => void;
-  onSend: (content: string) => void;
-}) {
-  const [draft, setDraft] = useState("");
-  const fieldRef = useRef<HTMLTextAreaElement>(null);
-
-  // Grow with the text instead of scrolling inside a two-line box.
-  useEffect(() => {
-    const field = fieldRef.current;
-    if (!field) return;
-    field.style.height = "auto";
-    field.style.height = `${Math.min(field.scrollHeight, MAX_COMPOSER_HEIGHT)}px`;
-  }, [draft]);
-
-  // На следующем кадре: закрываясь, лист действий возвращает фокус на «⋯».
-  useEffect(() => {
-    if (!replyTo) return;
-    const frame = requestAnimationFrame(() => fieldRef.current?.focus());
-    return () => cancelAnimationFrame(frame);
-  }, [replyTo]);
-
-  function submit() {
-    const content = draft.trim();
-    if (!content) return;
-    onSend(content);
-    setDraft("");
-    fieldRef.current?.focus();
-  }
-
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        submit();
-      }}
-      className="border-t border-line bg-paper px-4 py-3"
-    >
-      {replyTo ? (
-        <div className="mb-2 flex items-center gap-2">
-          <Icon name="reply" size={16} className="shrink-0 text-signal" />
-          <div className="min-w-0 flex-1 border-l-2 border-signal/60 pl-2.5">
-            <p className="text-[13px] font-medium text-ink-soft">
-              {replyTo.author_nickname === "ты" ? "Ответ на своё сообщение" : `Ответ ${replyTo.author_nickname}`}
-            </p>
-            <p className="truncate text-[13px] text-ink-soft">{replyTo.content || "Сообщение"}</p>
-          </div>
-          <IconButton type="button" variant="ghost" label="Отменить ответ" onClick={onCancelReply}>
-            <Icon name="close" size={16} />
-          </IconButton>
-        </div>
-      ) : null}
-
-      <div className="flex items-end gap-2">
-        <label htmlFor="dm-composer" className="sr-only">
-          Сообщение для {partnerNickname}
-        </label>
-        <textarea
-          id="dm-composer"
-          ref={fieldRef}
-          rows={1}
-          value={draft}
-          maxLength={MAX_MESSAGE}
-          onChange={(event) => {
-            setDraft(event.target.value);
-            if (event.target.value.trim()) onTyping();
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && replyTo) {
-              event.preventDefault();
-              onCancelReply();
-              return;
-            }
-            if (event.key !== "Enter" || event.shiftKey) return;
-            if (event.nativeEvent.isComposing) return;
-            event.preventDefault();
-            submit();
-          }}
-          placeholder="Напиши сообщение"
-          className="min-h-10 flex-1 resize-none rounded-pill bg-sunken px-4 py-2.5 text-[15px] leading-[1.4] outline-none transition-shadow focus:ring-2 focus:ring-signal/35"
-        />
-        <IconButton
-          type="submit"
-          label="Отправить"
-          variant="primary"
-          disabled={draft.trim().length === 0}
-        >
-          <Icon name="send" size={19} />
-        </IconButton>
-      </div>
-      <p className="mt-2 hidden text-[13px] text-ink-faint sm:block">
-        Enter отправляет, Shift и Enter переносят строку.
-      </p>
-    </form>
-  );
-}
-
-/**
- * A composer that cannot work is worse than none: the recipient's setting is
- * spelled out instead, and the profile stays one tap away. Если писать нельзя
- * из-за своей же блокировки — тут же и разблокировать.
- */
-function ClosedComposer({ partner, viewerId }: { partner: UserView; viewerId: string }) {
-  const notice = noticeFor(partner, viewerId);
-  const [pending, startTransition] = useTransition();
-
-  function unblock() {
-    startTransition(async () => {
-      const result = await setBlocked(partner.id, false);
-      if (!result.ok) notify(result.error);
-    });
-  }
-
-  return (
-    <div className="px-4 py-4">
-      <div className="rounded-field bg-sunken p-4">
-        <p className="flex items-center gap-2 text-[15px]">
-          <Icon name={partner.viewer_blocked ? "block" : "lock"} size={17} className="shrink-0 text-ink-soft" />
-          {notice.title}
-        </p>
-        <p className="mt-1 text-[14px] leading-[1.4] text-ink-soft">{notice.body}</p>
-        {partner.viewer_blocked ? (
-          <Button type="button" variant="quiet" size="md" className="mt-3" onClick={unblock} disabled={pending}>
-            Разблокировать
-          </Button>
-        ) : (
-          <Link
-            href={`/u/${partner.nickname}`}
-            className="mt-1.5 -mx-1 inline-block px-1 py-2 text-[15px] text-signal"
-          >
-            Открыть профиль
-          </Link>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function noticeFor(partner: UserView, viewerId: string): { title: string; body: string } {
-  if (partner.id === viewerId) {
-    return {
-      title: "Это твой профиль",
-      body: "Себе написать нельзя.",
-    };
-  }
-
-  if (partner.viewer_blocked) {
-    return {
-      title: `Ты заблокировал ${partner.nickname}`,
-      body: "Пока блокировка стоит, вы не можете писать друг другу. История переписки остаётся у тебя.",
-    };
-  }
-
-  if (partner.privacy_settings.who_can_message === "friends") {
-    return {
-      title: "Писать могут только друзья",
-      body: `${partner.nickname} принимает сообщения только от друзей. Друзьями вы станете, когда подпишетесь друг на друга.`,
-    };
-  }
-
-  return {
-    title: "Сообщения выключены",
-    body: `${partner.nickname} не принимает сообщения. Написать можно в чате общей идеи.`,
-  };
 }

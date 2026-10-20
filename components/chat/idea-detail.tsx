@@ -42,7 +42,8 @@ import type {
   PostView,
   UserView,
 } from "@/lib/types";
-import { ChatRoom, rightsOf } from "./chat-room";
+import { rightsOf } from "@/lib/rights";
+import { ChatRoom } from "./chat-room";
 import { IdeaMenu } from "./idea-menu";
 import { ModerationSheet } from "./moderation-sheet";
 import { ParticipantSheet } from "./participant-sheet";
