@@ -31,6 +31,7 @@ import type {
 } from "@/lib/types";
 import * as mock from "@/lib/mock";
 import * as dbFeed from "./feed";
+import { FEED_MAX, FEED_PAGE } from "./feed";
 import * as dbPosts from "./posts";
 import * as dbPeople from "./people";
 import * as dbDm from "./dm";
@@ -44,6 +45,7 @@ import { loadViewer } from "./social";
 export const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
 export { CHAT_HISTORY_LIMIT } from "./posts";
+export { FEED_MAX, FEED_PAGE } from "./feed";
 
 export { canEnterChat, chatAccessReason, canMessage, canSeeProfile, canSeeInterests } from "@/lib/access";
 
@@ -86,8 +88,18 @@ export async function getCitiesWithPosts(): Promise<string[]> {
 
 /* ── лента и идеи ───────────────────────────────────────────────── */
 
-export async function getFeed(tab: FeedTab, now: Date): Promise<PostView[]> {
-  return usingMocks ? mock.getFeed(tab, now) : dbFeed.getFeed(tab, now);
+/**
+ * Ближайшие `limit` идей ленты и есть ли дальше. Запрашивается на одну
+ * больше — так «Показать ещё» появляется, только когда есть что показать.
+ */
+export async function getFeed(
+  tab: FeedTab,
+  now: Date,
+  limit: number = FEED_PAGE,
+): Promise<{ posts: PostView[]; hasMore: boolean }> {
+  const take = Math.min(Math.max(1, Math.floor(limit)), FEED_MAX);
+  const list = usingMocks ? mock.getFeed(tab, now).slice(0, take + 1) : await dbFeed.getFeed(tab, now, take + 1);
+  return { posts: list.slice(0, take), hasMore: list.length > take };
 }
 
 export async function getPost(id: string): Promise<PostView | undefined> {

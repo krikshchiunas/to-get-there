@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { DayGroup } from "@/components/feed/day-group";
 import { FeedHeader } from "@/components/feed/feed-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { dayKey, formatDayLabel } from "@/lib/format";
-import { getFeed } from "@/lib/data";
+import { FEED_MAX, FEED_PAGE, getFeed } from "@/lib/data";
 import type { FeedTab, PostView } from "@/lib/types";
 
 /** The feed depends on the clock, so it is rendered per request. */
@@ -16,6 +17,13 @@ export const metadata: Metadata = {
 
 function tabFrom(value: string | string[] | undefined): FeedTab {
   return value === "following" ? "following" : "university";
+}
+
+/** Сколько страниц ленты показать: ?pages=2 — сто ближайших идей. */
+function pagesFrom(value: string | string[] | undefined): number {
+  const parsed = Number(Array.isArray(value) ? value[0] : value);
+  const most = FEED_MAX / FEED_PAGE;
+  return Number.isInteger(parsed) && parsed >= 1 ? Math.min(parsed, most) : 1;
 }
 
 /**
@@ -46,7 +54,10 @@ export default async function FeedPage({
   const now = new Date();
   const params = await searchParams;
   const tab = tabFrom(params.tab);
-  const groups = groupByDay(await getFeed(tab, now));
+  const pages = pagesFrom(params.pages);
+  const { posts, hasMore } = await getFeed(tab, now, pages * FEED_PAGE);
+  const groups = groupByDay(posts);
+  const canGrow = hasMore && (pages + 1) * FEED_PAGE <= FEED_MAX;
 
   return (
     <>
@@ -86,6 +97,30 @@ export default async function FeedPage({
               now={now}
             />
           ))}
+
+          {canGrow ? (
+            <div className="px-4 pt-6">
+              {/* Ссылка, а не кнопка с запросом из браузера: лента остаётся
+                  серверной, а scroll={false} держит прокрутку на месте. */}
+              <ButtonLink
+                href={`/?tab=${tab}&pages=${pages + 1}`}
+                scroll={false}
+                variant="quiet"
+                size="lg"
+                full
+              >
+                Показать ещё
+              </ButtonLink>
+            </div>
+          ) : hasMore ? (
+            <p className="px-4 pt-6 text-[14px] leading-[1.4] text-ink-soft">
+              Это ближайшие {FEED_MAX} идей. Что дальше по времени — найдётся в{" "}
+              <Link href="/search" className="text-signal underline underline-offset-2">
+                поиске по дате
+              </Link>
+              .
+            </p>
+          ) : null}
 
           <p className="px-4 py-6 text-[13px] leading-[1.4] text-ink-faint">
             Идея пропадает из ленты, когда автор закрыл набор или прошёл час после начала. Чат остаётся

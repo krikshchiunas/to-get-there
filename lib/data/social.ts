@@ -83,7 +83,7 @@ export type FollowCounts = Map<string, SocialFacts>;
 
 /**
  * Счётчики подписчиков и подписок для набора людей плюс отношение к зрителю.
- * Два запроса по индексам вместо запроса на каждого человека.
+ * Считает база — один вызов get_follow_counts на каждые 200 человек.
  */
 export async function loadFollowCounts(userIds: string[]): Promise<FollowCounts> {
   const unique = [...new Set(userIds)];
@@ -93,25 +93,21 @@ export async function loadFollowCounts(userIds: string[]): Promise<FollowCounts>
   const supabase = await createClient();
   const edges = await loadViewerEdges();
 
-  const [followersOf, followingOf] = await Promise.all([
-    supabase.from("follows").select("following_id").in("following_id", unique),
-    supabase.from("follows").select("follower_id").in("follower_id", unique),
-  ]);
-
-  const followers = new Map<string, number>();
-  for (const row of followersOf.data ?? []) {
-    followers.set(row.following_id, (followers.get(row.following_id) ?? 0) + 1);
-  }
-
-  const following = new Map<string, number>();
-  for (const row of followingOf.data ?? []) {
-    following.set(row.follower_id, (following.get(row.follower_id) ?? 0) + 1);
+  // Считает база (get_follow_counts, 0041): строки подписок в приложение
+  // не едут, и у популярного автора счётчик не упирается в 1 000 строк
+  // ответа PostgREST. За вызов — не больше 200 человек.
+  const counts = new Map<string, { followers: number; following: number }>();
+  for (let start = 0; start < unique.length; start += 200) {
+    const { data } = await supabase.rpc("get_follow_counts", { user_ids: unique.slice(start, start + 200) });
+    for (const row of data ?? []) {
+      counts.set(row.user_id, { followers: Number(row.followers), following: Number(row.following) });
+    }
   }
 
   for (const id of unique) {
     result.set(id, {
-      follower_count: followers.get(id) ?? 0,
-      following_count: following.get(id) ?? 0,
+      follower_count: counts.get(id)?.followers ?? 0,
+      following_count: counts.get(id)?.following ?? 0,
       viewer_follows: edges.viewerFollows.has(id),
       follows_viewer: edges.followsViewer.has(id),
       viewer_blocked: edges.blockedByViewer.has(id),

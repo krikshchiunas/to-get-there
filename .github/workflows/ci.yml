@@ -162,6 +162,11 @@ jobs:
       - name: Database tests (pgTAP)
         run: supabase test db
 
+      # Десятки тысяч строк, запросы приложения от имени человека под RLS,
+      # EXPLAIN ANALYZE и бюджет времени на каждый (supabase/perf).
+      - name: Load test (EXPLAIN on tens of thousands of rows)
+        run: psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/perf/load.sql
+
       - name: Schema lint
         run: supabase db lint --level warning --fail-on error
 

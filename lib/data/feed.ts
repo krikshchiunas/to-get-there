@@ -89,7 +89,11 @@ export async function toPostViews(rows: PostRow[]): Promise<PostView[]> {
   });
 }
 
-export async function getFeed(tab: FeedTab, now: Date): Promise<PostView[]> {
+/** Идей на страницу ленты и предел, после которого «Показать ещё» ведёт в поиск. */
+export const FEED_PAGE = 50;
+export const FEED_MAX = 500;
+
+export async function getFeed(tab: FeedTab, now: Date, limit: number): Promise<PostView[]> {
   const supabase = await createClient();
 
   // Идея уходит из ленты через час после начала; то же условие, что в
@@ -101,7 +105,10 @@ export async function getFeed(tab: FeedTab, now: Date): Promise<PostView[]> {
     .select(POST_SELECT)
     .eq("is_closed", false)
     .gt("date_start", cutoff)
-    .order("date_start", { ascending: true });
+    // При равном времени — по id: страницы не теряют и не повторяют идеи.
+    .order("date_start", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(limit);
 
   if (tab === "following") {
     const edges = await loadViewerEdges();

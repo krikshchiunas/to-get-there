@@ -742,6 +742,14 @@ export type Database = {
       cast_vote: { Args: { option_index: number; poll: string }; Returns: undefined }
       delete_my_account: { Args: never; Returns: undefined }
       export_my_data: { Args: never; Returns: Json }
+      get_follow_counts: {
+        Args: { user_ids: string[] }
+        Returns: {
+          followers: number
+          following: number
+          user_id: string
+        }[]
+      }
       is_poll_options: { Args: { options: Json }; Returns: boolean }
       is_tag_array: {
         Args: { arr: string[]; max_items: number; max_len: number }
