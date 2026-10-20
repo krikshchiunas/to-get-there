@@ -16,6 +16,10 @@ export const RECOVERY_TTL_SECONDS = 15 * 60;
 
 export const RESET_PATH = "/auth/reset";
 
+/**
+ * `secure` — в продакшене всегда: Chrome принимает Secure-cookie и на
+ * http://localhost, поэтому локальный `next start` тоже работает.
+ */
 export function recoveryCookieOptions(secure: boolean) {
   return {
     httpOnly: true,

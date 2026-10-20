@@ -10,16 +10,15 @@
 
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RECOVERY_COOKIE, recoveryCookieOptions, RESET_PATH } from "@/lib/recovery";
-import { siteUrl } from "@/lib/site-url";
+import { relativeRedirect } from "@/lib/relative-redirect";
 
 const ACCEPTED: readonly EmailOtpType[] = ["recovery", "signup", "email"];
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
-  const origin = await siteUrl();
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const recovery = type === "recovery";
@@ -32,15 +31,13 @@ export async function GET(request: NextRequest) {
         (await cookies()).set(
           RECOVERY_COOKIE,
           data.user.id,
-          recoveryCookieOptions(origin.startsWith("https:")),
+          recoveryCookieOptions(process.env.NODE_ENV === "production"),
         );
-        return NextResponse.redirect(`${origin}${RESET_PATH}`);
+        return relativeRedirect(RESET_PATH);
       }
-      return NextResponse.redirect(`${origin}/`);
+      return relativeRedirect("/");
     }
   }
 
-  return NextResponse.redirect(
-    recovery ? `${origin}/auth/forgot?error=link` : `${origin}/auth/login?error=link`,
-  );
+  return relativeRedirect(recovery ? "/auth/forgot?error=link" : "/auth/login?error=link");
 }
