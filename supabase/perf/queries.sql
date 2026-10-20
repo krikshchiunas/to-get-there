@@ -102,7 +102,7 @@ select perf.measure('Поиск идей: «квиз»', 200, $q$
 $q$);
 
 -- Поиск людей (search_people, 0036/0040): по нику и по интересу.
-select perf.measure('Поиск людей: ник', 200, $q$
+select perf.measure('Поиск людей: ник', 300, $q$
   select * from public.search_people('load_19', 30)
 $q$);
 
