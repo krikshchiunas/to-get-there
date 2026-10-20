@@ -185,19 +185,45 @@ alter policy user_tags_select_allowed on public.user_tags
 
 /* ── 3. функции, которые звали current_user_id() на каждой строке ──── */
 
+-- Счётчик непрочитанных — в бейдже навигации на каждом экране. Считает
+-- функция в private с явным «только мои входящие» вместо политики на
+-- каждой строке; публичная обёртка — с правами вызывающего (как в 0035).
+create or replace function private.unread_direct_total_of_caller()
+returns integer
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with me as (select private.current_user_id() as id),
+       seen as (
+         select r.partner_id, r.read_at
+         from public.direct_message_reads r, me
+         where r.user_id = me.id
+       )
+  select count(*)::integer
+  from me
+  join public.direct_messages dm on dm.receiver_id = me.id
+  left join seen on seen.partner_id = dm.sender_id
+  where seen.read_at is null or dm.created_at > seen.read_at;
+$$;
+
+revoke all on function private.unread_direct_total_of_caller() from public, anon;
+grant execute on function private.unread_direct_total_of_caller() to authenticated;
+
 create or replace function public.unread_direct_total()
 returns integer
 language sql
 stable
 set search_path = ''
 as $$
-  with me as (select private.current_user_id() as id)
-  select count(*)::integer
-  from me
-  join public.direct_messages dm on dm.receiver_id = me.id
-  left join public.direct_message_reads r on r.user_id = me.id and r.partner_id = dm.sender_id
-  where r.read_at is null or dm.created_at > r.read_at;
+  select private.unread_direct_total_of_caller();
 $$;
+
+-- Входящие по собеседнику и времени: и общий счётчик, и счётчик на
+-- собеседника (unread_direct_count) читают только индекс.
+create index if not exists direct_messages_inbox_idx
+  on public.direct_messages (receiver_id, sender_id, created_at);
 
 create or replace function private.unread_direct_count(partner uuid)
 returns integer
