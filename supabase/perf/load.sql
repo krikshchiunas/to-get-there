@@ -146,10 +146,12 @@ where pp.post_id <> pg_temp.pid(1)
 limit 180000;
 
 -- Подписки: 200 000 случайных, человек 1 читает 300 человек, у «звезды» (2) — 5 000 подписчиков.
+-- Десять подписок у каждого: на соседей со сдвигом 1, 38, 75 … — пары не
+-- повторяются и не бывают на себя.
 insert into public.follows (follower_id, following_id, created_at)
-select pg_temp.uid(1 + (i * 7) % 20000), pg_temp.uid(1 + (i * 13 + 5) % 20000), now() - (i % 400) * interval '1 hour'
-from generate_series(1, 200000) i
-where (i * 7) % 20000 <> (i * 13 + 5) % 20000
+select pg_temp.uid(1 + i % 20000), pg_temp.uid(1 + (i % 20000 + 1 + (i / 20000) * 37) % 20000),
+       now() - (i % 400) * interval '1 hour'
+from generate_series(0, 199999) i
 on conflict (follower_id, following_id) do nothing;
 insert into public.follows (follower_id, following_id)
 select pg_temp.uid(1), pg_temp.uid(u) from generate_series(2, 301) u
@@ -181,7 +183,8 @@ select pg_temp.uid(1 + i * 37), pg_temp.uid(1 + i * 53) from generate_series(1, 
 on conflict do nothing;
 
 set local session_replication_role = origin;
-analyze;
+analyze public.users, public.user_tags, public.user_settings, public.posts, public.post_participants,
+        public.messages, public.follows, public.direct_messages, public.notifications, public.user_blocks;
 
 select
   (select count(*) from public.users) as "люди",
@@ -219,7 +222,9 @@ select set_config('request.jwt.claims',
   '{"sub":"aaaaaaaa-0000-4000-8000-000000000001","role":"authenticated","email":"load_1@perf.local"}', true);
 set local role authenticated;
 
+\o /dev/null
 \i supabase/perf/queries.sql
+\o
 
 reset role;
 
