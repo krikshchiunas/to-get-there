@@ -98,7 +98,9 @@ export async function getFeed(
   limit: number = FEED_PAGE,
 ): Promise<{ posts: PostView[]; hasMore: boolean }> {
   const take = Math.min(Math.max(1, Math.floor(limit)), FEED_MAX);
-  const list = usingMocks ? mock.getFeed(tab, now).slice(0, take + 1) : await dbFeed.getFeed(tab, now, take + 1);
+  const list = usingMocks
+    ? mock.getFeed(tab, now).slice(0, take + 1)
+    : await dbFeed.getFeed(tab, now, take + 1);
   return { posts: list.slice(0, take), hasMore: list.length > take };
 }
 

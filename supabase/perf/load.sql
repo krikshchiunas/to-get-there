@@ -121,7 +121,8 @@ select p.id, p.author_id, p.created_at from public.posts p where p.id::text like
 insert into public.post_participants (post_id, user_id, joined_at)
 select distinct on (pg_temp.pid(i), u) pg_temp.pid(i), pg_temp.uid(u), now() - interval '1 hour'
 from generate_series(1, 50000) i,
-     lateral (select 1 + ((i * 104729 + k * 7907) % 20000) as u from generate_series(1, i % 7) k) j
+     lateral (select (1 + ((i::bigint * 104729 + k * 7907) % 20000))::integer as u
+              from generate_series(1, i % 7) k) j
 on conflict (post_id, user_id) do nothing;
 
 -- «Горячая» идея 1: 2 000 участников (человек 1 среди них) и 20 000 сообщений.
@@ -140,7 +141,7 @@ from generate_series(1, 20000) i;
 -- Остальные 180 000 сообщений — по участникам их идей.
 insert into public.messages (post_id, author_id, content, created_at)
 select pp.post_id, pp.user_id, 'Привет из чата', now() - (row_number() over ()) * interval '1 second'
-from public.post_participants pp, generate_series(1, 1) g
+from public.post_participants pp
 where pp.post_id <> pg_temp.pid(1)
 limit 180000;
 

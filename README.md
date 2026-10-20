@@ -77,13 +77,17 @@ npm run dev
 | `npm test` | юнит-тесты (Vitest) |
 | `npm run test:e2e` | все экраны в браузере, axe (WCAG 2.2 AA), клавиатура, телефон (Playwright) |
 | `npm run test:db` | права и триггеры в базе (pgTAP), нужен `supabase start` |
+| `npm run test:e2e:live` | со входом на локальной Supabase: регистрация с письмом, вход, сброс пароля, права, realtime у двоих |
+| `psql … -f supabase/perf/load.sql` | нагрузочный прогон: десятки тысяч строк, планы запросов, бюджет времени (`docs/PERFORMANCE.md`) |
 
 Локально E2E можно гонять установленным Chrome, без скачивания браузера:
 `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`.
 
 CI (`.github/workflows`) на каждый push и pull request: линт, юнит,
-сборка, типы, аудит зависимостей, E2E на десктопе и телефоне, все миграции
-с нуля на чистой Supabase + pgTAP + линт схемы, CodeQL.
+сборка, типы, аудит зависимостей, E2E на десктопе и телефоне, E2E со входом
+на локальной Supabase, все миграции с нуля + pgTAP + нагрузочный прогон +
+линт схемы, CodeQL. Как изменения схемы доходят до прода —
+`docs/STAGING.md`.
 
 ## Переменные окружения
 
@@ -105,7 +109,7 @@ app/
     (feed)/               лента: ?tab=following | ?tab=university
     create/  post/[id]/  post/[id]/edit/
     u/[nickname]/  messages/  search/  notifications/  settings/
-  auth/                   вход, регистрация, подтверждение почты
+  auth/                   вход, регистрация, подтверждение почты, сброс пароля
   legal/                  Impressum, конфиденциальность, условия, правила
   actions/                server actions — вся запись
   api/                    health, выгрузка данных, вебхук Stripe
@@ -121,10 +125,12 @@ lib/
   types.ts format.ts …    домен и чистые правила (с юнит-тестами)
   mock/                   демо-данные
 supabase/
-  migrations/             0001…0039 — схема, RLS, триггеры, cron
+  migrations/             0001…0041 — схема, RLS, триггеры, cron
   tests/database/         pgTAP: права и триггеры
+  perf/                   нагрузочный прогон: данные, запросы, бюджеты
   seed.sql  config.toml
-e2e/                      Playwright + axe
+e2e/                      Playwright + axe, демо-данные
+e2e-live/                 Playwright со входом на локальной Supabase
 docs/                     см. ниже
 ```
 

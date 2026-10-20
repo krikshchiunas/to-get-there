@@ -115,6 +115,8 @@ flowchart LR
 | Юнит | `lib/*.test.ts` | правила, форматирование, проверка ввода, CSP | `npm test`, CI |
 | База | `supabase/tests/database/*` | RLS и триггеры от имени настоящих пользователей; миграции с нуля | `supabase test db`, CI |
 | E2E | `e2e/*` | каждый экран, axe (WCAG 2.2 AA), клавиатура, телефон | `npm run test:e2e`, CI |
+| E2E со входом | `e2e-live/*` | регистрация с письмом (Mailpit), вход, выход, истёкшая сессия, сброс пароля, запись, realtime у двоих, приватность интересов | `npm run test:e2e:live`, CI |
+| Нагрузка | `supabase/perf/*` | планы и время запросов ленты, чата, поиска на десятках тысяч строк под RLS | `psql … -f supabase/perf/load.sql`, CI |
 | Статический анализ | CodeQL, `supabase db lint`, советник Supabase | уязвимости в коде и схеме | CI, панель |
 
 ## Решения, которые стоит знать

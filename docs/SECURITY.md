@@ -38,6 +38,9 @@ Supabase с сессией пользователя, и политики RLS р�
 | Мусор в аргументах server actions | `lib/validate.ts` | все `app/actions/*` |
 | Подделка вебхука | HMAC-SHA256, окно 5 минут, лимит тела | `app/api/webhooks/stripe` |
 | Открытый редирект после входа | `safeNext()` | `lib/safe-next.ts` |
+| Смена пароля с чужой открытой сессии | новый пароль — только по свежей ссылке из письма: httpOnly-метка на 15 минут, привязанная к аккаунту | `lib/recovery.ts`, `app/auth/reset` |
+| «Есть ли такой аккаунт?» через сброс пароля | ответ одинаковый для любой почты | `app/auth/actions.ts` |
+| Потеря сессии после ссылки из письма за прокси | редирект относительным путём — на тот же хост | `lib/relative-redirect.ts` |
 | Подмена Host в ссылках из писем | адрес из настроек | `lib/site-url.ts` |
 | XSS | CSP с nonce на каждый запрос, без `unsafe-inline` для скриптов | `lib/csp.ts`, `middleware.ts`, `app/layout.tsx` |
 | Кликджекинг | `frame-ancestors 'none'`, `X-Frame-Options: DENY` | `next.config.ts` |
@@ -74,8 +77,14 @@ Supabase с сессией пользователя, и политики RLS р�
   passwords** (платный тариф).
 - **Supabase → Authentication → URL Configuration**: Site URL —
   `https://to-get-there-mu.vercel.app`; Redirect URLs —
-  `https://to-get-there-mu.vercel.app/auth/callback` и
-  `http://localhost:3000/auth/callback`.
+  `https://to-get-there-mu.vercel.app/**` и `http://localhost:3000/**`
+  (сброс пароля возвращает на `/auth/callback?type=recovery`).
+- **Supabase → Authentication → Email Templates → Reset Password**: ссылку
+  `{{ .ConfirmationURL }}` заменить на
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`.
+  Со стандартной ссылкой (PKCE) сброс работает только в том браузере, где
+  его запросили; с этой — и когда письмо открывают на телефоне. Оба пути
+  проверяет `e2e-live/reset.spec.ts`.
 - **Supabase → Authentication → SMTP**: свой провайдер почты. Встроенный
   отправляет письма только адресам участников команды проекта — студенты
   не получат письмо подтверждения.

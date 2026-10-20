@@ -33,7 +33,18 @@ PLAYWRIGHT_CHANNEL=chrome npm run test:e2e
 ```bash
 supabase start
 supabase test db
+psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -v ON_ERROR_STOP=1 -f supabase/perf/load.sql
 ```
+
+Если менялись вход, запись или realtime:
+
+```bash
+supabase start
+eval "$(supabase status -o env)"
+npm run test:e2e:live
+```
+
+Новая миграция — по правилам `docs/STAGING.md`.
 
 CI повторяет всё это на каждый push и pull request, плюс аудит
 зависимостей и CodeQL.
