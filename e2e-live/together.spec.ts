@@ -23,7 +23,7 @@ async function createIdea(page: Page, title: string): Promise<string> {
   // визуально скрыта, нажимают на строку с подписью.
   await page.getByText("Указать город", { exact: true }).click();
   await expect(page.getByRole("radio", { name: /Указать город/ })).toBeChecked();
-  await page.getByLabel("Город").fill("Берлин");
+  await page.getByLabel("Город", { exact: true }).fill("Берлин");
   await page.getByRole("button", { name: "Создать идею" }).click();
 
   await expect(page).toHaveURL(/\/post\/[0-9a-f-]{36}$/);
@@ -126,7 +126,7 @@ test("интересы только для друзей: незнакомец н
 
   // …а незнакомец — без интересов, и в ответе сервера их нет вовсе.
   const response = await stranger.goto(`/u/${ownerNick}`);
-  await expect(stranger.getByRole("heading", { name: ownerNick })).toBeVisible();
+  await expect(stranger.getByRole("heading", { name: ownerNick, exact: true }).first()).toBeVisible();
   await expect(stranger.getByText(`${ownerNick} показывает интересы и цели только друзьям.`)).toBeVisible();
   expect(await response?.text()).not.toContain(interest);
 

@@ -1,30 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Field, TextInput } from "@/components/ui/field";
 import { updatePassword, type PasswordState } from "@/app/auth/actions";
 import { MIN_PASSWORD } from "@/lib/recovery";
 
-/** Новый пароль дважды. После успеха — вместо формы короткое «готово». */
+/** Новый пароль дважды. После успеха действие ведёт на /auth/reset/done. */
 export function NewPasswordForm() {
-  const [state, submit, pending] = useActionState<PasswordState, FormData>(updatePassword, {
-    error: null,
-    done: false,
-  });
-
-  if (state.done) {
-    return (
-      <div role="status" className="space-y-6">
-        <p className="text-[15px] leading-[1.5] text-ink-soft">
-          Пароль обновлён. Ты уже внутри — со следующего раза входи с новым паролем.
-        </p>
-        <ButtonLink href="/" size="lg" full>
-          В приложение
-        </ButtonLink>
-      </div>
-    );
-  }
+  const [state, submit, pending] = useActionState<PasswordState, FormData>(updatePassword, { error: null });
 
   const describedBy = state.error ? "password-error" : undefined;
 

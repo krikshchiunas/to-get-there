@@ -10,7 +10,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { checkNewPassword, MIN_PASSWORD, RECOVERY_COOKIE, recoveryMatches } from "@/lib/recovery";
+import {
+  checkNewPassword,
+  MIN_PASSWORD,
+  RECOVERY_COOKIE,
+  recoveryMatches,
+  RESET_DONE_PATH,
+} from "@/lib/recovery";
 import { safeNext } from "@/lib/safe-next";
 import { siteUrl } from "@/lib/site-url";
 
@@ -122,7 +128,6 @@ export async function requestPasswordReset(_: AuthState, form: FormData): Promis
 
 export interface PasswordState {
   error: string | null;
-  done: boolean;
 }
 
 /** Новый пароль — только по свежей ссылке из письма (lib/recovery.ts). */
@@ -131,7 +136,7 @@ export async function updatePassword(_: PasswordState, form: FormData): Promise<
   const repeat = String(form.get("repeat") ?? "");
 
   const problem = checkNewPassword(password, repeat);
-  if (problem) return { error: problem, done: false };
+  if (problem) return { error: problem };
 
   const store = await cookies();
   const supabase = await createClient();
@@ -139,14 +144,14 @@ export async function updatePassword(_: PasswordState, form: FormData): Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!recoveryMatches(store.get(RECOVERY_COOKIE)?.value, user?.id)) {
-    return { error: "Ссылка устарела. Запроси новое письмо — это займёт минуту.", done: false };
+    return { error: "Ссылка устарела. Запроси новое письмо — это займёт минуту." };
   }
 
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: explain(error.message), done: false };
+  if (error) return { error: explain(error.message) };
 
   store.delete({ name: RECOVERY_COOKIE, path: "/auth" });
-  return { error: null, done: true };
+  redirect(RESET_DONE_PATH);
 }
 
 export async function signOut(): Promise<void> {

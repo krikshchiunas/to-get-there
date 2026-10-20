@@ -15,6 +15,7 @@ export const RECOVERY_COOKIE = "tgt-recovery";
 export const RECOVERY_TTL_SECONDS = 15 * 60;
 
 export const RESET_PATH = "/auth/reset";
+export const RESET_DONE_PATH = "/auth/reset/done";
 
 /**
  * `secure` — в продакшене всегда: Chrome принимает Secure-cookie и на

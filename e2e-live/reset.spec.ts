@@ -23,7 +23,8 @@ async function setNewPassword(page: Page, password: string): Promise<void> {
   await page.getByLabel("Новый пароль").fill(password);
   await page.getByLabel("Ещё раз").fill(password);
   await page.getByRole("button", { name: "Сохранить пароль" }).click();
-  await expect(page.getByRole("status")).toContainText("Пароль обновлён");
+  await expect(page).toHaveURL(/\/auth\/reset\/done$/);
+  await expect(page.getByRole("heading", { name: "Пароль обновлён" })).toBeVisible();
 }
 
 async function loginFails(page: Page, person: Person): Promise<void> {
