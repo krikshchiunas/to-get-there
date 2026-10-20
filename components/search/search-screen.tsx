@@ -9,7 +9,7 @@ import { ChipButton } from "@/components/ui/pill";
 import { Segmented } from "@/components/ui/segmented";
 import { Sheet } from "@/components/ui/sheet";
 import { formatDayLabel, formatMinutesOfDay, formatRadius, pluralRu } from "@/lib/format";
-import { filterPosts, filterUsers } from "@/lib/search-filter";
+import { filterPosts } from "@/lib/search-filter";
 import { usePlace } from "@/lib/use-place";
 import {
   emptyFilters,
@@ -20,6 +20,7 @@ import {
 } from "@/lib/types";
 import { activeFilterCount, FilterSheet } from "./filter-sheet";
 import { ResultCard } from "./result-card";
+import { usePeopleSearch } from "./use-people-search";
 
 /**
  * Search over ideas and people.
@@ -88,7 +89,6 @@ export function SearchScreen({
   tab,
   viewer,
   posts,
-  people: searchablePeople,
   categories,
   cities,
 }: {
@@ -98,8 +98,6 @@ export function SearchScreen({
   viewer: UserView;
   /** Идеи, которые сейчас в ленте. Фильтруются здесь же, без похода на сервер. */
   posts: PostView[];
-  /** Люди, видимые в поиске. */
-  people: UserView[];
   categories: Category[];
   cities: string[];
 }) {
@@ -119,10 +117,7 @@ export function SearchScreen({
   const { place: originPlace, locate, resetToCampus, locating, error: locateError } = usePlace(viewer.university);
   const origin = useMemo(() => ({ lat: originPlace.lat, lng: originPlace.lng }), [originPlace.lat, originPlace.lng]);
   const ideas = useMemo(() => filterPosts(posts, filters, now, origin), [posts, filters, now, origin]);
-  const people = useMemo(
-    () => filterUsers(searchablePeople, filters.query, viewer.id),
-    [searchablePeople, filters.query, viewer.id],
-  );
+  const { people, searching: peopleLoading } = usePeopleSearch(filters.query, tab === "people");
 
   const sheetFilterCount = activeFilterCount(filters);
   const selectedCategories = filters.category_ids
@@ -342,6 +337,12 @@ export function SearchScreen({
                 </ButtonLink>
               }
             />
+          ) : filters.query.trim().length < 2 ? (
+            <p className="px-4 pt-4 text-[14px] text-ink-soft">Набери хотя бы две буквы.</p>
+          ) : peopleLoading && people.length === 0 ? (
+            <p role="status" className="px-4 pt-4 text-[14px] text-ink-soft">
+              Ищем…
+            </p>
           ) : people.length === 0 ? (
             <EmptyState
               icon="person"

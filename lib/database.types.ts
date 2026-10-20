@@ -708,6 +708,11 @@ export type Database = {
         Returns: boolean
       }
       mark_conversation_read: { Args: { partner: string }; Returns: undefined }
+      search_people: {
+        Args: { max_results?: number; q: string }
+        Returns: Database["public"]["Tables"]["users"]["Row"][]
+        SetofOptions: { from: "*"; to: "users"; isOneToOne: false; isSetofReturn: true }
+      }
       unread_direct_total: { Args: never; Returns: number }
     }
     Enums: {

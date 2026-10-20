@@ -12,7 +12,6 @@ import { berlinLocalToIso, DAY_MS, distanceMetres, FEED_GRACE_MS, minutesOfDay }
 import type { PostView, SearchFilters, UserView } from "@/lib/types";
 import { POST_SELECT, toPostViews, type PostRow } from "./feed";
 import { toUserViews } from "./people";
-import { requireViewerId } from "./session";
 import type { Tables } from "@/lib/database.types";
 
 /** PostgREST-фильтр `or` ломается на запятых и скобках внутри значения. */
@@ -24,6 +23,9 @@ function escapeForOr(value: string): string {
 function berlinDayStart(day: string): string | null {
   return berlinLocalToIso(`${day}T00:00`);
 }
+
+/** Сколько ближайших идей берёт поиск. */
+export const SEARCH_POSTS_LIMIT = 500;
 
 export async function searchPosts(
   filters: SearchFilters,
@@ -38,7 +40,9 @@ export async function searchPosts(
     .select(POST_SELECT)
     .eq("is_closed", false)
     .gt("date_start", cutoff)
-    .order("date_start", { ascending: true });
+    .order("date_start", { ascending: true })
+    // Ближайшие идеи; дальше по времени экран всё равно не листают.
+    .limit(SEARCH_POSTS_LIMIT);
 
   const needle = escapeForOr(filters.query);
   if (needle) {
@@ -87,31 +91,22 @@ export async function searchPosts(
   return posts;
 }
 
-/** Все, кого видно в поиске. Клиентский экран фильтрует этот список у себя. */
-export async function getSearchableUsers(): Promise<UserView[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("users")
-    .select("*,university:universities(*)")
-    .eq("privacy_settings->>visible_in_search", "true")
-    .order("nickname");
+/** Сколько людей отдаёт один запрос поиска (0036 ограничивает и сам). */
+export const PEOPLE_RESULTS_LIMIT = 30;
 
-  type UserWithUniversity = Tables<"users"> & { university: Tables<"universities"> | null };
-  return toUserViews((data ?? []) as unknown as UserWithUniversity[]);
-}
-
+/**
+ * Люди по нику, факультету, интересам или вузу. Ищет база (search_people,
+ * 0036) с правами зрителя — в браузер уходят только совпадения, а не все
+ * профили сразу.
+ */
 export async function searchUsers(query: string): Promise<UserView[]> {
-  const needle = escapeForOr(query);
-  if (!needle) return [];
+  const needle = query.trim();
+  if (needle.length < 2) return [];
 
   const supabase = await createClient();
   const { data } = await supabase
-    .from("users")
-    .select("*,university:universities(*)")
-    .eq("privacy_settings->>visible_in_search", "true")
-    .neq("id", await requireViewerId())
-    .or(`nickname.ilike.%${needle}%,faculty.ilike.%${needle}%`)
-    .order("nickname");
+    .rpc("search_people", { q: needle, max_results: PEOPLE_RESULTS_LIMIT })
+    .select("*,university:universities(*)");
 
   type UserWithUniversity = Tables<"users"> & { university: Tables<"universities"> | null };
   return toUserViews((data ?? []) as unknown as UserWithUniversity[]);

@@ -7,7 +7,6 @@ import {
 import {
   getCategories,
   getCitiesWithPosts,
-  getSearchableUsers,
   getViewer,
   searchPosts,
 } from "@/lib/data";
@@ -33,11 +32,11 @@ export default async function SearchPage({
   const params = await searchParams;
   const now = new Date();
 
-  const [viewer, posts, people, categories, cities] = await Promise.all([
+  // Идеи, которые сейчас в ленте, сужает уже экран. Людей экран ищет сам,
+  // по мере ввода (app/actions/search.ts): все профили сразу сюда не грузим.
+  const [viewer, posts, categories, cities] = await Promise.all([
     getViewer(),
-    // Весь набор идей, которые сейчас в ленте: сужает его уже экран.
     searchPosts(emptyFilters, now),
-    getSearchableUsers(),
     getCategories(),
     getCitiesWithPosts(),
   ]);
@@ -50,7 +49,6 @@ export default async function SearchPage({
         tab={tabFrom(params.tab)}
         viewer={viewer}
         posts={posts}
-        people={people}
         categories={categories}
         cities={cities}
       />

@@ -214,11 +214,6 @@ export async function searchUsers(query: string): Promise<UserView[]> {
   return usingMocks ? mock.searchUsers(query) : dbSearch.searchUsers(query);
 }
 
-/** Все, кого видно в поиске: экран поиска фильтрует этот список в браузере. */
-export async function getSearchableUsers(): Promise<UserView[]> {
-  if (!usingMocks) return dbSearch.getSearchableUsers();
-  return mock.users.filter((user) => user.privacy_settings.visible_in_search);
-}
 
 export type { VerificationState } from "./verification";
 
