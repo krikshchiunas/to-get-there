@@ -8,13 +8,16 @@ import { expect, test } from "./fixtures";
 test.describe("чат идеи", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/post/p-kanal");
+    // Клик до гидрации React не попадёт в обработчик — ждём, пока всё загрузится.
+    await page.waitForLoadState("networkidle");
   });
 
   test("ответ показывает цитату и ведёт к исходному", async ({ page }) => {
     const quote = page.getByRole("button", { name: /Ответ на сообщение/ }).first();
     await expect(quote).toBeVisible();
     await quote.click();
-    await expect(page.locator("li.bg-sunken")).toHaveCount(1);
+    // Первый ответ в моке — jonas_k на сообщение mara_t «Что-нибудь принести?».
+    await expect(page.locator("#msg-p-kanal-m-2")).toHaveClass(/bg-sunken/);
   });
 
   test("«⋯» открывает действия; Esc закрывает и возвращает фокус", async ({ page }) => {

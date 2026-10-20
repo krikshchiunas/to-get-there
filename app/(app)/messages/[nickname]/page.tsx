@@ -45,11 +45,18 @@ export default async function DirectConversationPage({ params }: PageParams) {
       <PageHeader
         backHref="/messages"
         title={partner.nickname}
-        subtitle={partner.university.short_name}
+        subtitle={
+          // Путь в профиль — текстом: его называют вслух и находят Tab'ом.
+          <Link href={`/u/${partner.nickname}`} className="underline-offset-2 hover:text-ink hover:underline">
+            {partner.university.short_name} · профиль
+          </Link>
+        }
         action={
+          // Аватар — тот же путь для пальца, для читалок — дубль (WCAG 2.5.3).
           <Link
             href={`/u/${partner.nickname}`}
-            aria-label={`Профиль ${partner.nickname}`}
+            aria-hidden
+            tabIndex={-1}
             className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-sunken"
           >
             <Avatar user={partner} size="sm" withBadge />

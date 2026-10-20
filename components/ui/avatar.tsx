@@ -78,9 +78,16 @@ export function Avatar({ user, size = "md", withBadge = false, className = "" }:
 }
 
 /** Avatar that links to the profile. Used in cards, chat and lists. */
+/**
+ * Аватар, по которому можно нажать. Рядом с ним всегда есть ник — ссылка на
+ * тот же профиль, — поэтому для клавиатуры и экранных читалок аватар —
+ * декоративный дубль: вне порядка Tab и вне дерева доступности. Иначе
+ * каждая строка чата давала бы две одинаковые остановки, а видимые
+ * инициалы не совпадали бы с именем ссылки (WCAG 2.5.3).
+ */
 export function AvatarLink({ user, size, withBadge, className }: AvatarProps) {
   return (
-    <Link href={`/u/${user.nickname}`} aria-label={`Профиль ${user.nickname}`} className="rounded-full">
+    <Link href={`/u/${user.nickname}`} aria-hidden tabIndex={-1} className="rounded-full">
       <Avatar user={user} size={size} withBadge={withBadge} className={className} />
     </Link>
   );
