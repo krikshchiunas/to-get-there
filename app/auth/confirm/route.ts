@@ -13,11 +13,13 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RECOVERY_COOKIE, recoveryCookieOptions, RESET_PATH } from "@/lib/recovery";
+import { siteUrl } from "@/lib/site-url";
 
 const ACCEPTED: readonly EmailOtpType[] = ["recovery", "signup", "email"];
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  const origin = await siteUrl();
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const recovery = type === "recovery";

@@ -32,7 +32,7 @@ export default defineConfig({
   use: {
     // Тот же адрес, что site_url в supabase/config.toml: на него GoTrue
     // ведёт ссылки из писем.
-    baseURL: `http://127.0.0.1:${PORT}`,
+    baseURL: `http://localhost:${PORT}`,
     locale: "ru-RU",
     timezoneId: "Europe/Berlin",
     trace: "retain-on-failure",
@@ -47,14 +47,14 @@ export default defineConfig({
   ],
   webServer: {
     command: `npm run build && npx next start -p ${PORT}`,
-    url: `http://127.0.0.1:${PORT}/api/health`,
+    url: `http://localhost:${PORT}/api/health`,
     timeout: 300_000,
     reuseExistingServer: !process.env.CI,
     env: {
       NEXT_PUBLIC_USE_MOCKS: "false",
       NEXT_PUBLIC_SUPABASE_URL: API_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY,
-      NEXT_PUBLIC_SITE_URL: `http://127.0.0.1:${PORT}`,
+      NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}`,
       NEXT_DIST_DIR: ".next-live",
       NEXT_TELEMETRY_DISABLED: "1",
     },

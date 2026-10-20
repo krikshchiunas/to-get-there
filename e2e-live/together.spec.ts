@@ -19,8 +19,10 @@ async function createIdea(page: Page, title: string): Promise<string> {
   await page.getByLabel("Название").fill(title);
   await page.getByLabel("Описание").fill("Проверка E2E: двое в одном чате, сообщения в реальном времени.");
   await page.getByRole("button", { name: "Спорт" }).click();
-  // Город, а не радиус: у вузов в сиде нет координат кампуса, а геолокации в тесте нет.
-  await page.getByRole("radio", { name: /Указать город/ }).check();
+  // Город — самый короткий путь: без карты и геолокации. Сама радиокнопка
+  // визуально скрыта, нажимают на строку с подписью.
+  await page.getByText("Указать город", { exact: true }).click();
+  await expect(page.getByRole("radio", { name: /Указать город/ })).toBeChecked();
   await page.getByLabel("Город").fill("Берлин");
   await page.getByRole("button", { name: "Создать идею" }).click();
 
@@ -112,10 +114,9 @@ test("интересы только для друзей: незнакомец н
   await expect(stranger.getByRole("link", { name: new RegExp(ownerNick) }).first()).toBeVisible();
 
   await owner.goto("/settings/privacy");
-  await owner
-    .getByRole("radiogroup", { name: "Кто видит интересы и цели" })
-    .getByRole("radio", { name: /Только друзья/ })
-    .check();
+  const interestsAudience = owner.getByRole("radiogroup", { name: "Кто видит интересы и цели" });
+  await interestsAudience.getByText("Только друзья", { exact: true }).click();
+  await expect(interestsAudience.getByRole("radio", { name: /Только друзья/ })).toBeChecked();
   await owner.getByRole("button", { name: "Сохранить" }).click();
   await expect(owner.getByText("Сохранено.", { exact: true })).toBeVisible();
 

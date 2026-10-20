@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { createConfirmedPerson, linkFromMail, signIn, signOut, type Person } from "./helpers";
+import { alertIn, createConfirmedPerson, linkFromMail, signIn, signOut, type Person } from "./helpers";
 
 /**
  * Сброс пароля: письмо, ссылка, новый пароль. И то, чего быть не должно:
@@ -31,7 +31,7 @@ async function loginFails(page: Page, person: Person): Promise<void> {
   await page.getByLabel("Почта").fill(person.email);
   await page.getByLabel("Пароль").fill(person.password);
   await page.getByRole("button", { name: "Войти" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Неверная почта или пароль.");
+  await expect(alertIn(page)).toHaveText("Неверная почта или пароль.");
 }
 
 test("сброс в том же браузере: ссылка из письма, новый пароль, старый больше не подходит", async ({
@@ -48,7 +48,7 @@ test("сброс в том же браузере: ссылка из письма
   await page.getByLabel("Новый пароль").fill(fresh);
   await page.getByLabel("Ещё раз").fill(`${fresh}!`);
   await page.getByRole("button", { name: "Сохранить пароль" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Пароли не совпадают.");
+  await expect(alertIn(page)).toHaveText("Пароли не совпадают.");
 
   await setNewPassword(page, fresh);
   await page.getByRole("link", { name: "В приложение" }).click();

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  alertIn,
   createConfirmedPerson,
   expireSession,
   linkFromMail,
@@ -27,7 +28,7 @@ test("регистрация по университетской почте: п�
   await expect(page.getByRole("heading", { name: "Проверь почту" })).toBeVisible();
 
   await page.goto(await linkFromMail(person.email, since));
-  await expect(page).toHaveURL(/127\.0\.0\.1:3000\/$/);
+  await expect(page).toHaveURL(/localhost:3000\/$/);
   await expect(page).toHaveTitle(/Идеи/);
 
   // Профиль создал мост 0013: ник из адреса, университет по домену.
@@ -41,7 +42,7 @@ test("чужой домен регистрацию не проходит", async
   await page.getByLabel("Университетская почта").fill(`e2e.${Date.now()}@gmail.com`);
   await page.getByLabel("Пароль").fill("long-enough-password");
   await page.getByRole("button", { name: "Создать аккаунт" }).click();
-  await expect(page.getByRole("alert")).toContainText(/не относится ни к одному университету|не принимается/);
+  await expect(alertIn(page)).toContainText(/не относится ни к одному университету|не принимается/);
   await expect(page).toHaveURL(/\/auth\/signup/);
 });
 
@@ -65,7 +66,7 @@ test("неверный пароль — понятная ошибка, почт�
   await page.getByLabel("Пароль").fill(`${person.password}-nope`);
   await page.getByRole("button", { name: "Войти" }).click();
 
-  await expect(page.getByRole("alert")).toHaveText("Неверная почта или пароль.");
+  await expect(alertIn(page)).toHaveText("Неверная почта или пароль.");
   await expect(page.getByLabel("Почта")).toHaveValue(person.email);
   await expect(page).toHaveURL(/\/auth\/login/);
 });
@@ -75,7 +76,7 @@ test("выход закрывает приложение, вошедшему ф�
   await signIn(page, person);
 
   await page.goto("/auth/login");
-  await expect(page).toHaveURL(/127\.0\.0\.1:3000\/$/);
+  await expect(page).toHaveURL(/localhost:3000\/$/);
 
   await signOut(page);
   await page.goto("/notifications");

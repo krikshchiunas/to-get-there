@@ -14,9 +14,14 @@ import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { RECOVERY_COOKIE, recoveryCookieOptions, RESET_PATH } from "@/lib/recovery";
+import { siteUrl } from "@/lib/site-url";
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = request.nextUrl;
+  const { searchParams } = request.nextUrl;
+  // Не request.nextUrl.origin: за прокси и в `next start` это адрес самого
+  // сервера (localhost), а не тот, что в адресной строке, — и cookie сессии
+  // остались бы на другом хосте.
+  const origin = await siteUrl();
   const code = searchParams.get("code");
   const recovery = searchParams.get("type") === "recovery";
 

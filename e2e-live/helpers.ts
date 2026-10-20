@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { expect, type BrowserContext, type Page } from "@playwright/test";
+import { expect, type BrowserContext, type Locator, type Page } from "@playwright/test";
 
 /**
  * Общее для E2E со входом: люди, письма и сессия.
@@ -89,6 +89,11 @@ export async function linkFromMail(email: string, since: number): Promise<string
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error(`Письмо для ${email} не пришло за 20 секунд`);
+}
+
+/** Сообщение об ошибке формы — не считая пустого объявления переходов Next.js. */
+export function alertIn(page: Page): Locator {
+  return page.locator('[role="alert"]:not(#__next-route-announcer__)');
 }
 
 /** Вход через форму — так же, как входит человек. */
