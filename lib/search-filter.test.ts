@@ -32,6 +32,7 @@ const none: SearchFilters = {
   geo_mode: null,
   geo_radius_m: null,
   geo_city: null,
+  geo_point: null,
 } as unknown as SearchFilters;
 
 describe("filterPosts — радиус", () => {
@@ -49,6 +50,28 @@ describe("filterPosts — радиус", () => {
 
   it("без точки отсчёта радиус ничего не отбирает", () => {
     expect(filterPosts(posts, radius, NOW, null)).toEqual([]);
+  });
+});
+
+describe("filterPosts — область на карте", () => {
+  const posts = [
+    post("kreuzberg", { geo_lat: 52.4986, geo_lng: 13.4033 }),
+    post("charlottenburg", { geo_lat: 52.5167, geo_lng: 13.3041 }),
+  ];
+  const area = {
+    ...none,
+    geo_mode: "area",
+    geo_radius_m: 1000,
+    geo_point: { lat: 52.499, lng: 13.41 },
+  } as SearchFilters;
+
+  it("круг — от выбранной точки, а не от зрителя", () => {
+    const farAway = { lat: 48.15, lng: 11.58 };
+    expect(filterPosts(posts, area, NOW, farAway).map((p) => p.id)).toEqual(["kreuzberg"]);
+  });
+
+  it("без точки область не отбирает ничего", () => {
+    expect(filterPosts(posts, { ...area, geo_point: null }, NOW, null)).toEqual([]);
   });
 });
 

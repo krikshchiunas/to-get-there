@@ -327,8 +327,11 @@ export interface SearchFilters {
   date_to: string | null;
   time_window: TimeWindow | null;
   geo_mode: GeoMode | null;
+  /** Радиус для «вокруг меня» и для «области на карте». */
   geo_radius_m: GeoRadius | null;
   geo_city: string | null;
+  /** Центр области на карте; только для geo_mode = "area". */
+  geo_point: { lat: number; lng: number } | null;
 }
 
 export const emptyFilters: SearchFilters = {
@@ -340,6 +343,7 @@ export const emptyFilters: SearchFilters = {
   geo_mode: null,
   geo_radius_m: null,
   geo_city: null,
+  geo_point: null,
 };
 
 /* ── icons ──────────────────────────────────────────────────────── */

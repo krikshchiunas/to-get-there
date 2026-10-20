@@ -13,6 +13,7 @@ import type { PostView, SearchFilters, UserView } from "@/lib/types";
 import { POST_SELECT, toPostViews, type PostRow } from "./feed";
 import { toUserViews } from "./people";
 import { PROFILE_FIELDS, type UserRecord } from "./map";
+import { circleCenter } from "@/lib/search-filter";
 
 /** PostgREST-фильтр `or` ломается на запятых и скобках внутри значения. */
 function escapeForOr(value: string): string {
@@ -82,11 +83,12 @@ export async function searchPosts(
     });
   }
 
-  if (filters.geo_mode === "radius" && filters.geo_radius_m) {
+  const center = circleCenter(filters, origin);
+  if (center !== undefined && filters.geo_radius_m) {
     const radius = filters.geo_radius_m;
     posts = posts.filter((post) => {
-      if (!origin || post.geo_lat == null || post.geo_lng == null) return false;
-      return distanceMetres(origin, { lat: post.geo_lat, lng: post.geo_lng }) <= radius;
+      if (!center || post.geo_lat == null || post.geo_lng == null) return false;
+      return distanceMetres(center, { lat: post.geo_lat, lng: post.geo_lng }) <= radius;
     });
   }
 

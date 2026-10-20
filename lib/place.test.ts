@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campusPlace, isValidCoord, roundCoord } from "./place";
+import { campusPlace, isValidCoord, roundCoord, zoomForRadius } from "./place";
 
 describe("campusPlace", () => {
   it("берёт кампус своего университета", () => {
@@ -29,5 +29,11 @@ describe("isValidCoord", () => {
     expect(isValidCoord(Number.NaN, 0)).toBe(false);
     expect(isValidCoord("52", 13)).toBe(false);
     expect(isValidCoord(null, null)).toBe(false);
+  });
+});
+
+describe("zoomForRadius", () => {
+  it("чем больше круг, тем мельче масштаб", () => {
+    expect([500, 1000, 2000, 5000, 10000].map(zoomForRadius)).toEqual([15, 14, 13, 12, 11]);
   });
 });

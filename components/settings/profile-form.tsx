@@ -1,38 +1,40 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import type { ChangeEvent, FormEvent } from "react";
-import { updateAvatar, updateProfile } from "@/app/actions/settings";
+import { useState, useTransition } from "react";
+import type { FormEvent } from "react";
+import { updateProfile } from "@/app/actions/settings";
 import { notify } from "@/components/ui/toast";
 import { pluralRu } from "@/lib/format";
-import { uploadAvatar } from "@/lib/upload";
-import { Avatar } from "@/components/ui/avatar";
+import {
+  BIO_MAX,
+  checkProfile,
+  draftOf,
+  FACULTY_MAX,
+  NICKNAME_MAX,
+  PROFILE_FIELD_ORDER,
+  sameDraft,
+  type ProfileDraft,
+  type ProfileErrors,
+  type ProfileField,
+} from "@/lib/profile-draft";
 import { Button } from "@/components/ui/button";
 import { CharCount, Field, TextArea, TextInput } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import { Pill } from "@/components/ui/pill";
 import type { UserView } from "@/lib/types";
+import { AvatarPicker } from "./avatar-picker";
+import { TagEditor } from "./tag-editor";
 
 /**
  * Профиль.
  *
  * Правка живёт в локальном состоянии: кнопка «Сохранить» становится активной
  * только когда что-то действительно изменилось. Фото сохраняется отдельно,
- * сразу после загрузки.
+ * сразу после загрузки (avatar-picker.tsx). Правила полей — в
+ * lib/profile-draft.ts.
  *
  * Рамок на экране нет: поля — заливка, секции разделены заголовком и
  * воздухом, фото профиля лежит прямо на фоне, а не в карточке.
  */
-
-const NICKNAME_MIN = 3;
-const NICKNAME_MAX = 24;
-const FACULTY_MAX = 60;
-const BIO_MAX = 280;
-const LIST_MAX = 10;
-const ITEM_MAX = 24;
-
-// То же правило, что CHECK users_nickname_fmt в 0003: ник — часть адреса /u/<ник>.
-const NICKNAME_ALLOWED = /^[a-z0-9][a-z0-9._]*$/;
 
 const FIELD_IDS = {
   nickname: "profile-nickname",
@@ -42,56 +44,20 @@ const FIELD_IDS = {
   goals: "profile-goals",
 } as const;
 
-type FieldKey = "nickname" | "faculty" | "bio";
-
-type Errors = Partial<Record<FieldKey, string>>;
-
-interface Draft {
-  nickname: string;
-  faculty: string;
-  bio: string;
-  interests: string[];
-  goals: string[];
-}
-
-function draftOf(user: UserView): Draft {
-  return {
-    nickname: user.nickname,
-    faculty: user.faculty ?? "",
-    bio: user.bio ?? "",
-    interests: [...user.interests],
-    goals: [...user.goals],
-  };
-}
-
-function sameList(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((value, index) => value === b[index]);
-}
-
-function sameDraft(a: Draft, b: Draft): boolean {
-  return (
-    a.nickname === b.nickname &&
-    a.faculty === b.faculty &&
-    a.bio === b.bio &&
-    sameList(a.interests, b.interests) &&
-    sameList(a.goals, b.goals)
-  );
-}
-
 export function ProfileForm({ user }: { user: UserView }) {
-  const [draft, setDraft] = useState<Draft>(() => draftOf(user));
-  const [saved, setSaved] = useState<Draft>(() => draftOf(user));
-  const [errors, setErrors] = useState<Errors>({});
+  const [draft, setDraft] = useState<ProfileDraft>(() => draftOf(user));
+  const [saved, setSaved] = useState<ProfileDraft>(() => draftOf(user));
+  const [errors, setErrors] = useState<ProfileErrors>({});
   const [confirmed, setConfirmed] = useState(false);
 
   const dirty = !sameDraft(draft, saved);
 
-  function patch(change: Partial<Draft>) {
+  function patch(change: Partial<ProfileDraft>) {
     setDraft((current) => ({ ...current, ...change }));
     setConfirmed(false);
   }
 
-  function dismissError(key: FieldKey) {
+  function dismissError(key: ProfileField) {
     setErrors((previous) => {
       if (previous[key] === undefined) return previous;
       const next = { ...previous };
@@ -105,33 +71,10 @@ export function ProfileForm({ user }: { user: UserView }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const next: Errors = {};
-    const nickname = draft.nickname.trim().toLowerCase();
-    const faculty = draft.faculty.trim();
-    const bio = draft.bio.trim();
-
-    if (!nickname) {
-      next.nickname = "Ник нужен: по нему тебя находят в поиске и узнают в чатах.";
-    } else if (nickname.length < NICKNAME_MIN) {
-      next.nickname = `В нике минимум ${NICKNAME_MIN} символа. Добавь ещё.`;
-    } else if (nickname.length > NICKNAME_MAX) {
-      next.nickname = `Ник длиннее ${NICKNAME_MAX} символов. Убери ${nickname.length - NICKNAME_MAX}.`;
-    } else if (!NICKNAME_ALLOWED.test(nickname)) {
-      next.nickname =
-        "В нике — латиница, цифры, точка и подчёркивание, начало — с буквы или цифры. Остальное убери.";
-    }
-
-    if (faculty.length > FACULTY_MAX) {
-      next.faculty = `Строка длиннее ${FACULTY_MAX} символов. Убери ${faculty.length - FACULTY_MAX}.`;
-    }
-
-    if (bio.length > BIO_MAX) {
-      next.bio = `Описание длиннее ${BIO_MAX} символов. Убери ${bio.length - BIO_MAX}.`;
-    }
-
+    const { errors: next, clean } = checkProfile(draft);
     setErrors(next);
 
-    const firstProblem = (["nickname", "faculty", "bio"] as const).find((key) => next[key] !== undefined);
+    const firstProblem = PROFILE_FIELD_ORDER.find((key) => next[key] !== undefined);
     if (firstProblem !== undefined) {
       const element = document.getElementById(FIELD_IDS[firstProblem]);
       if (element) {
@@ -140,8 +83,6 @@ export function ProfileForm({ user }: { user: UserView }) {
       }
       return;
     }
-
-    const clean: Draft = { ...draft, nickname, faculty, bio };
 
     startTransition(async () => {
       const result = await updateProfile({
@@ -291,202 +232,5 @@ export function ProfileForm({ user }: { user: UserView }) {
         </div>
       </div>
     </form>
-  );
-}
-
-/**
- * Список-массив: чипы с удалением и поле, которое добавляет по Enter или по
- * кнопке. Весь чип — одна кнопка, поэтому цель нажатия остаётся крупной.
- */
-function TagEditor({
-  id,
-  label,
-  hint,
-  placeholder,
-  emptyNote,
-  items,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  hint: string;
-  placeholder: string;
-  emptyNote: string;
-  items: string[];
-  onChange: (next: string[]) => void;
-}) {
-  const [value, setValue] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const full = items.length >= LIST_MAX;
-
-  function add() {
-    const clean = value.trim().replace(/\s+/g, " ");
-
-    if (!clean) {
-      setError("Сначала впиши, что добавить.");
-      return;
-    }
-    if (clean.length > ITEM_MAX) {
-      setError(`В одной записи не больше ${ITEM_MAX} символов.`);
-      return;
-    }
-    if (items.some((item) => item.toLowerCase() === clean.toLowerCase())) {
-      setError("Это уже в списке.");
-      return;
-    }
-    if (full) {
-      setError(`Больше ${LIST_MAX} не добавить. Удали что-нибудь.`);
-      return;
-    }
-
-    onChange([...items, clean]);
-    setValue("");
-    setError(null);
-  }
-
-  function remove(item: string) {
-    onChange(items.filter((entry) => entry !== item));
-    setError(null);
-  }
-
-  return (
-    <Field label={label} hint={hint} htmlFor={id} error={error ?? undefined}>
-      {items.length > 0 ? (
-        <ul className="flex flex-wrap items-center gap-x-2">
-          {items.map((item) => (
-            <li key={item}>
-              {/* Чип — плашка, но цель нажатия остаётся высотой в строку. */}
-              <button
-                type="button"
-                onClick={() => remove(item)}
-                aria-label={`Удалить «${item}»`}
-                className="flex h-10 items-center rounded-pill"
-              >
-                <Pill>
-                  {item}
-                  <Icon name="close" size={13} className="text-ink-faint" />
-                </Pill>
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="pb-1 text-[14px] text-ink-faint">{emptyNote}</p>
-      )}
-
-      <div className="flex gap-2">
-        <TextInput
-          id={id}
-          value={value}
-          placeholder={placeholder}
-          maxLength={ITEM_MAX}
-          autoComplete="off"
-          disabled={full}
-          aria-invalid={error ? true : undefined}
-          onChange={(event) => {
-            setValue(event.target.value);
-            setError(null);
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== "Enter") return;
-            event.preventDefault();
-            add();
-          }}
-        />
-        <Button type="button" variant="quiet" onClick={add} disabled={full} className="shrink-0">
-          Добавить
-        </Button>
-      </div>
-
-      <p className="u-tnum text-right text-[12px] text-ink-faint">
-        {items.length}/{LIST_MAX}
-        {full ? " — удали что-нибудь, чтобы добавить новое" : ""}
-      </p>
-    </Field>
-  );
-}
-
-/**
- * Фото профиля сохраняется сразу после загрузки, отдельно от формы: ждать
- * «Сохранить» ради картинки, которая уже видна, было бы странно.
- */
-function AvatarPicker({ user }: { user: UserView }) {
-  const [avatarUrl, setAvatarUrl] = useState(user.avatar_url);
-  const [busy, setBusy] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  async function apply(next: string | null) {
-    const result = await updateAvatar(next);
-    if (!result.ok) {
-      notify(result.error);
-      return false;
-    }
-    setAvatarUrl(next);
-    return true;
-  }
-
-  async function handleFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    setBusy(true);
-    try {
-      const upload = await uploadAvatar(file, user.id);
-      if (!upload.ok) {
-        notify(upload.error);
-        return;
-      }
-      if (await apply(upload.value)) notify("Фото обновлено.", "info");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleRemove() {
-    setBusy(true);
-    try {
-      if (await apply(null)) notify("Фото убрано.", "info");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <Avatar user={{ ...user, avatar_url: avatarUrl }} size="lg" withBadge />
-
-      <div className="min-w-0">
-        <p className="text-[15px]">Фото профиля</p>
-        <p className="mt-1 text-[14px] leading-[1.4] text-ink-soft">
-          {avatarUrl
-            ? "Видно всем, кто видит твой профиль. Данные о месте съёмки из фото удаляются."
-            : "Пока вместо фото — инициалы ника. JPG, PNG, WebP или GIF; место съёмки из фото удаляется."}
-        </p>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
-          className="hidden"
-          onChange={handleFile}
-        />
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="quiet"
-            size="sm"
-            disabled={busy}
-            onClick={() => fileRef.current?.click()}
-          >
-            <Icon name="image" size={15} />
-            {busy ? "Загружаем…" : avatarUrl ? "Заменить фото" : "Загрузить фото"}
-          </Button>
-          {avatarUrl ? (
-            <Button type="button" variant="quiet" size="sm" disabled={busy} onClick={handleRemove}>
-              Убрать
-            </Button>
-          ) : null}
-        </div>
-      </div>
-    </>
   );
 }

@@ -4,9 +4,9 @@ import dynamic from "next/dynamic";
 import { Field, RadioRow, TextInput } from "@/components/ui/field";
 import { ChipButton } from "@/components/ui/pill";
 import { formatRadius } from "@/lib/format";
-import { AREA_RADIUS_M, type Place } from "@/lib/place";
+import { GEO_FIELD_IDS, type GeoDraft } from "@/lib/idea-draft";
+import { AREA_RADIUS_M, zoomForRadius, type Place } from "@/lib/place";
 import type { GeoMode, GeoRadius } from "@/lib/types";
-import type { LatLng } from "@/components/map/map-view";
 import { PlaceLine } from "@/components/map/place-line";
 
 // Leaflet живёт только в браузере; пока грузится — заливка того же размера.
@@ -15,77 +15,12 @@ const MapView = dynamic(() => import("@/components/map/map-view").then((m) => m.
   loading: () => <div className="h-56 rounded-field bg-sunken" aria-hidden />,
 });
 
-export { AREA_RADIUS_M };
-
-/**
- * How the author pins the place down. Three mutually exclusive modes, each
- * writing into the same draft, so the form hands over one value and gets one
- * value back.
- */
-export interface GeoDraft {
-  mode: GeoMode;
-  radius_m: GeoRadius;
-  /** Область: центр, выбранный на карте. */
-  point: LatLng | null;
-  /** Как найти друг друга на месте — словами. */
-  meeting_point: string;
-  city: string;
-}
-
-export const initialGeo: GeoDraft = {
-  mode: "radius",
-  radius_m: 2000,
-  point: null,
-  meeting_point: "",
-  city: "",
-};
-
-/** Focus targets, so the form can jump to whatever is missing. */
-export const GEO_FIELD_IDS = {
-  radius: "create-geo-radius",
-  meetingPoint: "create-geo-meeting-point",
-  city: "create-geo-city",
-} as const;
-
 const radii: readonly GeoRadius[] = [500, 1000, 2000, 5000, 10000];
 
 function toMode(raw: string): GeoMode {
   if (raw === "area") return "area";
   if (raw === "city") return "city";
   return "radius";
-}
-
-/** The id to move focus to when the place is incomplete. */
-export function geoFocusId(geo: GeoDraft): string {
-  if (geo.mode === "area") return GEO_FIELD_IDS.meetingPoint;
-  if (geo.mode === "city") return GEO_FIELD_IDS.city;
-  return GEO_FIELD_IDS.radius;
-}
-
-/** Null when the place is complete. Says what to do, not what went wrong. */
-export function geoError(geo: GeoDraft): string | null {
-  if (geo.mode === "area" && !geo.point) {
-    return "Сдвинь карту так, чтобы булавка стояла на месте встречи.";
-  }
-  if (geo.mode === "area" && !geo.meeting_point.trim()) {
-    return "Опиши словами, как найти друг друга на месте.";
-  }
-  if (geo.mode === "city" && !geo.city.trim()) {
-    return "Укажи город, в котором всё пройдёт.";
-  }
-  return null;
-}
-
-/** One line for a card or a summary: where this idea happens. */
-export function describeGeo(geo: GeoDraft, place: Place): string {
-  switch (geo.mode) {
-    case "radius":
-      return `В радиусе ${formatRadius(geo.radius_m)}: ${place.label.toLowerCase()}`;
-    case "area":
-      return geo.meeting_point.trim();
-    case "city":
-      return geo.city.trim();
-  }
 }
 
 export function GeoPicker({
@@ -261,13 +196,4 @@ export function GeoPicker({
       ) : null}
     </div>
   );
-}
-
-/** Масштаб, при котором круг радиуса помещается в карту. */
-function zoomForRadius(metres: number): number {
-  if (metres <= 500) return 15;
-  if (metres <= 1000) return 14;
-  if (metres <= 2000) return 13;
-  if (metres <= 5000) return 12;
-  return 11;
 }

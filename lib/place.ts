@@ -56,3 +56,12 @@ export const STORED_DIGITS = { radius: 2, area: 4 } as const;
 
 /** Размер «области» вокруг выбранной точки: место встречи где-то внутри. */
 export const AREA_RADIUS_M = 250;
+
+/** Масштаб карты, при котором круг такого радиуса в неё помещается. */
+export function zoomForRadius(metres: number): number {
+  if (metres <= 500) return 15;
+  if (metres <= 1000) return 14;
+  if (metres <= 2000) return 13;
+  if (metres <= 5000) return 12;
+  return 11;
+}

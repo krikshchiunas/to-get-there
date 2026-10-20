@@ -9,6 +9,19 @@
 import { dayKey, distanceMetres, isInFeed, minutesOfDay } from "./format";
 import type { PostView, SearchFilters, UserView } from "./types";
 
+type Point = { lat: number; lng: number };
+
+/**
+ * Центр круга, внутри которого ищем: «вокруг меня» — от точки отсчёта,
+ * «область на карте» — от выбранной точки. undefined — место не по кругу;
+ * null — круг есть, а центра нет, и тогда честно не находится ничего.
+ */
+export function circleCenter(filters: SearchFilters, origin: Point | null): Point | null | undefined {
+  if (filters.geo_mode === "radius") return origin;
+  if (filters.geo_mode === "area") return filters.geo_point;
+  return undefined;
+}
+
 /**
  * `origin` — откуда считать «радиус вокруг меня»: кампус или геолокация
  * (lib/use-place.ts). Без неё радиус не отбирает ничего — честнее, чем
@@ -59,9 +72,10 @@ export function filterPosts(
       if (post.geo_city.toLowerCase() !== filters.geo_city.trim().toLowerCase()) return false;
     }
 
-    if (filters.geo_mode === "radius" && filters.geo_radius_m) {
-      if (!origin || post.geo_lat == null || post.geo_lng == null) return false;
-      const metres = distanceMetres(origin, { lat: post.geo_lat, lng: post.geo_lng });
+    const center = circleCenter(filters, origin);
+    if (center !== undefined && filters.geo_radius_m) {
+      if (!center || post.geo_lat == null || post.geo_lng == null) return false;
+      const metres = distanceMetres(center, { lat: post.geo_lat, lng: post.geo_lng });
       if (metres > filters.geo_radius_m) return false;
     }
 
