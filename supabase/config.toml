@@ -86,6 +86,11 @@ double_confirm_changes = true
 enable_confirmations = true
 max_frequency = "60s"
 
+# Только локальная база: E2E со входом (e2e-live) шлёт несколько писем
+# подряд — подтверждения и восстановление пароля. На проде лимиты свои.
+[auth.rate_limit]
+email_sent = 100
+
 [auth.sms]
 enable_signup = false
 enable_confirmations = false

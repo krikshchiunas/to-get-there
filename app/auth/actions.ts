@@ -1,14 +1,16 @@
 "use server";
 
 /**
- * Вход, регистрация и выход.
+ * Вход, регистрация, сброс пароля и выход.
  *
  * Серверные действия, а не клиентские вызовы: пароль не проходит через
  * JavaScript браузера дальше формы, а сессия сразу ложится в httpOnly-cookie.
  */
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { checkNewPassword, MIN_PASSWORD, RECOVERY_COOKIE, recoveryMatches } from "@/lib/recovery";
 import { safeNext } from "@/lib/safe-next";
 import { siteUrl } from "@/lib/site-url";
 
@@ -17,8 +19,6 @@ export interface AuthState {
   /** Что ввёл человек — чтобы при ошибке не набирать почту заново. */
   email: string;
 }
-
-const MIN_PASSWORD = 8;
 
 function readEmail(form: FormData): string {
   return String(form.get("email") ?? "")
@@ -49,6 +49,7 @@ function explain(message: string): string {
   if (m.includes("error sending") || m.includes("sending confirmation")) {
     return "Не удалось отправить письмо подтверждения. Попробуй через несколько минут.";
   }
+  if (m.includes("should be different")) return "Новый пароль должен отличаться от прежнего.";
   if (m.includes("rate limit") || m.includes("too many")) {
     return "Слишком много попыток. Подожди минуту и попробуй снова.";
   }
@@ -93,6 +94,59 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
   if (data.session) redirect("/");
 
   redirect(`/auth/check-email?email=${encodeURIComponent(email)}`);
+}
+
+/**
+ * «Забыли пароль?» — письмо со ссылкой восстановления.
+ *
+ * Ответ одинаковый, есть аккаунт с такой почтой или нет: иначе форма
+ * отвечала бы на вопрос «зарегистрирован ли этот человек».
+ */
+export async function requestPasswordReset(_: AuthState, form: FormData): Promise<AuthState> {
+  const email = readEmail(form);
+  if (!email.includes("@")) return { error: "Введи адрес почты целиком.", email };
+
+  const origin = await siteUrl();
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?type=recovery`,
+  });
+  // Частота — единственная ошибка, о которой стоит сказать: остальные
+  // выдали бы, существует ли адрес.
+  if (error && /rate limit|too many|security purposes/i.test(error.message)) {
+    return { error: "Письмо уже отправлено. Подожди минуту и попробуй снова.", email };
+  }
+
+  redirect(`/auth/check-email?reason=reset&email=${encodeURIComponent(email)}`);
+}
+
+export interface PasswordState {
+  error: string | null;
+  done: boolean;
+}
+
+/** Новый пароль — только по свежей ссылке из письма (lib/recovery.ts). */
+export async function updatePassword(_: PasswordState, form: FormData): Promise<PasswordState> {
+  const password = String(form.get("password") ?? "");
+  const repeat = String(form.get("repeat") ?? "");
+
+  const problem = checkNewPassword(password, repeat);
+  if (problem) return { error: problem, done: false };
+
+  const store = await cookies();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!recoveryMatches(store.get(RECOVERY_COOKIE)?.value, user?.id)) {
+    return { error: "Ссылка устарела. Запроси новое письмо — это займёт минуту.", done: false };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: explain(error.message), done: false };
+
+  store.delete({ name: RECOVERY_COOKIE, path: "/auth" });
+  return { error: null, done: true };
 }
 
 export async function signOut(): Promise<void> {

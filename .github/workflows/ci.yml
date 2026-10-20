@@ -95,6 +95,53 @@ jobs:
           path: playwright-report
           retention-days: 7
 
+  # Со входом и без моков: локальная Supabase, письма в Mailpit, приложение
+  # собрано против неё. Регистрация, вход, выход, истёкшая сессия, сброс
+  # пароля, права, запись и realtime между двумя людьми (e2e-live).
+  e2e-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      - name: Start Supabase
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+
+      # Ключи локального стека — демонстрационные, одинаковые у всех; в
+      # окружение job, чтобы их увидели Next и тесты.
+      - name: Export local Supabase env
+        run: supabase status -o env 2>/dev/null | grep -E '^[A-Z_]+=' | sed -E 's/="(.*)"$/=\1/' >> "$GITHUB_ENV"
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E with sign-in
+        run: npm run test:e2e:live
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-live
+          path: playwright-report-live
+          retention-days: 7
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup
+
   # База с нуля: все миграции подряд на чистой локальной Supabase, сид и
   # тесты прав (supabase/tests). Ловит и сломанную миграцию, и дыру в RLS.
   database:

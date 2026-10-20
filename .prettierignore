@@ -1,5 +1,7 @@
 .next
 .next-e2e
+.next-live
+playwright-report-live
 node_modules
 coverage
 playwright-report

@@ -79,6 +79,14 @@ export function AuthForm({
         />
       </Field>
 
+      {isSignup ? null : (
+        <p className="-mt-2 text-right text-[14px]">
+          <Link href="/auth/forgot" className="text-signal underline underline-offset-2">
+            Забыли пароль?
+          </Link>
+        </p>
+      )}
+
       {state.error ? (
         <p id="auth-error" role="alert" className="text-[14px] leading-[1.4] text-heat">
           {state.error}

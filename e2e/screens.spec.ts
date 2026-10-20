@@ -32,6 +32,8 @@ const screens: { path: string; title: RegExp }[] = [
   { path: "/legal/community", title: /Правила сообщества/ },
   { path: "/auth/login", title: /Вход/ },
   { path: "/auth/signup", title: /Регистрация/ },
+  { path: "/auth/forgot", title: /Восстановление пароля/ },
+  { path: "/auth/reset", title: /Новый пароль/ },
 ];
 
 // axe проходит всё дерево: на длинной ленте это дольше стандартных 30 секунд.

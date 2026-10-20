@@ -7,7 +7,7 @@ export default defineConfig({
   },
   test: {
     include: ["**/*.test.ts"],
-    exclude: ["node_modules", ".next", ".next-e2e", "e2e"],
+    exclude: ["node_modules", ".next", ".next-e2e", ".next-live", "e2e", "e2e-live"],
     environment: "node",
     coverage: {
       provider: "v8",

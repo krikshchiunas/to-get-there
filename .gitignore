@@ -18,7 +18,9 @@ supabase/.env
 
 # E2E
 /.next-e2e/
+/.next-live/
 /playwright-report/
+/playwright-report-live/
 /test-results/
 
 # Сгенерирован Next под папку сборки — у каждого свой
