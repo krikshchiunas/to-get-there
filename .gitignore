@@ -23,3 +23,6 @@ supabase/.env
 
 # Сгенерирован Next под папку сборки — у каждого свой
 next-env.d.ts
+
+# Покрытие
+/coverage/

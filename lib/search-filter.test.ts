@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { filterPosts } from "./search-filter";
+import { filterPosts, filterUsers } from "./search-filter";
+import { users } from "./mock";
 import type { PostView, SearchFilters } from "./types";
 
 const NOW = new Date("2026-10-19T10:00:00Z");
@@ -60,5 +61,48 @@ describe("filterPosts — день по Берлину", () => {
     const on20 = { ...none, date_from: "2026-10-20", date_to: "2026-10-20" } as SearchFilters;
     expect(filterPosts([lateNight], on21, NOW, null)).toHaveLength(1);
     expect(filterPosts([lateNight], on20, NOW, null)).toHaveLength(0);
+  });
+});
+
+describe("filterPosts — слово, категория, время, город", () => {
+  const now = new Date("2026-10-24T10:00:00Z");
+  const base = post("a", { title: "Пиво у канала", geo_city: "Berlin", category_id: "party", date_start: "2026-10-24T18:00:00Z" });
+  const quiz = post("b", { title: "Паб-квиз", geo_city: "Leipzig", category_id: "games", date_start: "2026-10-25T08:00:00Z" });
+
+  it("ищет по названию без учёта регистра", () => {
+    const result = filterPosts([base, quiz], { ...none, query: "КВИЗ" }, now, null);
+    expect(result.map((post) => post.id)).toEqual(["b"]);
+  });
+
+  it("окно времени суток", () => {
+    const evening = { from_minutes: 18 * 60, to_minutes: 23 * 60 };
+    const result = filterPosts([base, quiz], { ...none, time_window: evening }, now, null);
+    expect(result.map((post) => post.id)).toEqual(["a"]);
+  });
+
+  it("город — без учёта регистра и пробелов", () => {
+    const result = filterPosts([base, quiz], { ...none, geo_mode: "city", geo_city: " leipzig " }, now, null);
+    expect(result.map((post) => post.id)).toEqual(["b"]);
+  });
+
+  it("категории", () => {
+    const result = filterPosts([base, quiz], { ...none, category_ids: [quiz.category_id] }, now, null);
+    expect(result.map((post) => post.id)).toEqual(["b"]);
+  });
+
+  it("результат — ближайшее первым", () => {
+    const result = filterPosts([quiz, base], none, now, null);
+    expect(result.map((post) => post.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("filterUsers", () => {
+  it("пустой запрос — никого; скрытых из поиска и себя — нет", () => {
+    const visible = { ...users[1], privacy_settings: { ...users[1].privacy_settings, visible_in_search: true } };
+    const hidden = { ...users[2], privacy_settings: { ...users[2].privacy_settings, visible_in_search: false } };
+    expect(filterUsers([visible, hidden], "  ", "me")).toEqual([]);
+    expect(filterUsers([visible, hidden], visible.nickname, "me")).toEqual([visible]);
+    expect(filterUsers([visible, hidden], hidden.nickname, "me")).toEqual([]);
+    expect(filterUsers([visible], visible.nickname, visible.id)).toEqual([]);
   });
 });

@@ -37,8 +37,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test
+      # Порог покрытия чистой логики — в vitest.config.ts (90 % строк).
+      - name: Unit tests with coverage
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build
