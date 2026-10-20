@@ -60,3 +60,30 @@ jobs:
       # линтере описано в docs/SECURITY.md и сюда не попадает.
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+  # База с нуля: все миграции подряд на чистой локальной Supabase, сид и
+  # тесты прав (supabase/tests). Ловит и сломанную миграцию, и дыру в RLS.
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Только то, без чего не живут схемы auth, storage и realtime: студия,
+      # картинки, функции и журналы тестам не нужны.
+      - name: Start Supabase
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,postgres-meta,supavisor
+
+      - name: Database tests (pgTAP)
+        run: supabase test db
+
+      - name: Schema lint
+        run: supabase db lint --level warning --fail-on error
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup

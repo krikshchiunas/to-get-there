@@ -28,7 +28,7 @@ port = 54322
 shadow_port = 54320
 # Postgres 15. The migrations use `security_invoker` views (0007), which is a
 # 15 feature — do not lower this.
-major_version = 15
+major_version = 17
 
 [db.pooler]
 enabled = false
