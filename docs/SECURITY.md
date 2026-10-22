@@ -37,9 +37,18 @@ Supabase с сессией пользователя, и политики RLS р�
 | Чужая личка в Realtime | `dm:<a>:<b>` — только эти двое и без блокировки | 0033 |
 | Мусор в аргументах server actions | `lib/validate.ts` | все `app/actions/*` |
 | Подделка вебхука | HMAC-SHA256, окно 5 минут, лимит тела | `app/api/webhooks/stripe` |
-| Открытый редирект после входа | `safeNext()` | `lib/safe-next.ts` |
-| Смена пароля с чужой открытой сессии | новый пароль — только по свежей ссылке из письма: httpOnly-метка на 15 минут, привязанная к аккаунту | `lib/recovery.ts`, `app/auth/reset` |
-| «Есть ли такой аккаунт?» через сброс пароля | ответ одинаковый для любой почты | `app/auth/actions.ts` |
+| Открытый редирект после входа | `safeNext()` на сервере, на странице входа и в ссылках из писем | `lib/safe-next.ts` |
+| Смена пароля с чужой открытой сессии | по ссылке из письма — httpOnly-метка на 15 минут, привязанная к аккаунту; изнутри — только с текущим паролем | `lib/recovery.ts`, `app/auth/reset`, `/settings/security` |
+| «Есть ли такой аккаунт?» | один ответ на вход, регистрацию, сброс и повторное письмо — в том числе на повтор в ту же минуту; ник не из почты | `app/auth/actions.ts`, 0043, `docs/AUTH.md` |
+| Токен после выхода или смены пароля | база признаёт только живую сессию из `auth.sessions` | `private.current_user_id()`, 0043 |
+| Аккаунт без профиля (петля редиректов) | профиль не удалить в обход аккаунта; восстановление `ensure_my_profile()` | 0043, `lib/data/session.ts` |
+| Регистрация в обход формы | кому можно — решает триггер на `auth.users` (`private.signup_allowed`) | 0043, 0044 |
+| Пароль короче правил через API Auth | минимальная длина в самом Auth | `supabase/config.toml`, панель |
+| Подбор пароля из украденной сессии | 5 проверок пароля за 15 минут на аккаунт | `claim_reauth_attempt()`, 0043 |
+| Один перебор блокирует вход всем (лимит Auth по IP сервера) | пересылка IP человека `Sb-Forwarded-For` | `lib/supabase/auth.ts`, «Сделать руками» |
+| Сессия по http | cookie сессии `Secure` в продакшене | `lib/supabase/cookie-options.ts` |
+| Почта в адресе, журналах и Referer | почта между формой и «Проверь почту» — в httpOnly-cookie | `lib/auth/pending-email.ts` |
+| Пароли и токены в журнале | в строке журнала только категория, код Auth и id запроса | `lib/auth/log.ts` |
 | Потеря сессии после ссылки из письма за прокси | редирект относительным путём — на тот же хост | `lib/relative-redirect.ts` |
 | Подмена Host в ссылках из писем | адрес из настроек | `lib/site-url.ts` |
 | XSS | CSP с nonce на каждый запрос, без `unsafe-inline` для скриптов | `lib/csp.ts`, `middleware.ts`, `app/layout.tsx` |
@@ -49,9 +58,12 @@ Supabase с сессией пользователя, и политики RLS р�
 
 ## Как это проверено
 
-- **72+ тестов прав в базе** (`supabase/tests/database`) от имени настоящих
-  пользователей: роль `authenticated` и JWT, как запрос из приложения. В CI
-  на чистой Supabase после наката всех миграций с нуля.
+- **149 тестов прав в базе** (`supabase/tests/database`) от имени настоящих
+  пользователей: роль `authenticated` и JWT с живой сессией, как запрос из
+  приложения. В CI на чистой Supabase после наката всех миграций с нуля.
+- **E2E мимо приложения** (`e2e-live/security.spec.ts`): настоящим токеном
+  вошедшего — в `/rest/v1` за чужой идеей, чужим профилем, «Личность
+  подтверждена» и вузом себе; старый токен после выхода на всех устройствах.
 - **Советник Supabase (security):** 0 замечаний. Было 25, одно уровня ERROR.
 - **`supabase db lint`:** без ошибок.
 - **CodeQL** (security-extended) на каждый push.
@@ -72,6 +84,22 @@ Supabase с сессией пользователя, и политики RLS р�
 только оно выйдет.
 
 ## Сделать руками
+
+Подробно о входе — `docs/AUTH.md`. Для продакшена обязательно:
+
+- **Supabase → Authentication → Rate Limits → IP Address Forwarding** —
+  включить, и в Vercel задать `SUPABASE_SECRET_KEY` (новый ключ
+  `sb_secret_…`) и `SUPABASE_AUTH_IP_FORWARDING=true`. Без этого лимиты
+  входа и регистрации Auth общие на всех пользователей.
+- **Supabase → Authentication → Providers → Email → Minimum password
+  length: 8** — как в форме и в `supabase/config.toml`.
+- **Supabase → Authentication → Email Templates → Confirm signup**: ссылку
+  заменить на
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup` —
+  подтверждение почты на любом устройстве.
+- **CAPTCHA** (Authentication → Attack Protection, Turnstile или hCaptcha) —
+  рекомендовано: закрывает перебор и перечисление аккаунтов на уровне
+  самого Auth. Требует виджета в формах и правки CSP.
 
 - **Supabase → Authentication → Providers → Email → Prevent use of leaked
   passwords** (платный тариф).

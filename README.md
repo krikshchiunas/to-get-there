@@ -37,6 +37,9 @@
   интересов и сообщений, поиск.
 - **Безопасность сообщества** — блокировка, жалобы на всё со снимком
   содержимого, ограничение частоты в базе, правила сообщества.
+- **Аккаунт** — почта и пароль с подтверждением почты (регистрация пока
+  открыта для любой почты, вуз подтверждает университетская), сброс и
+  смена пароля, выход на этом или на всех устройствах (`docs/AUTH.md`).
 - **Свои данные** — скачать всё одним JSON, удалить аккаунт; сроки хранения.
 - **Уведомления** — вступления, сообщения, подписчики, новые идеи,
   напоминания за час и 30 минут, перенос времени или места.
@@ -77,7 +80,7 @@ npm run dev
 | `npm test` | юнит-тесты (Vitest) |
 | `npm run test:e2e` | все экраны в браузере, axe (WCAG 2.2 AA), клавиатура, телефон (Playwright) |
 | `npm run test:db` | права и триггеры в базе (pgTAP), нужен `supabase start` |
-| `npm run test:e2e:live` | со входом на локальной Supabase: регистрация с письмом, вход, сброс пароля, права, realtime у двоих |
+| `npm run test:e2e:live` | со входом на локальной Supabase: регистрация с письмом, вход, выход везде, сброс и смена пароля, права через API, realtime у двоих |
 | `psql … -f supabase/perf/load.sql` | нагрузочный прогон: десятки тысяч строк, планы запросов, бюджет времени (`docs/PERFORMANCE.md`) |
 
 Локально E2E можно гонять установленным Chrome, без скачивания браузера:
@@ -99,6 +102,7 @@ CI (`.github/workflows`) на каждый push и pull request: линт, юн�
 | `NEXT_PUBLIC_USE_MOCKS` | везде | `true` — демо без базы |
 | `NEXT_PUBLIC_SITE_URL` | прод | адрес для ссылок в письмах (иначе — домен Vercel) |
 | `SUPABASE_SECRET_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | только сервер | проверка личности |
+| `SUPABASE_AUTH_IP_FORWARDING` + `SUPABASE_SECRET_KEY` | только сервер | лимиты входа по IP человека, а не сервера (`docs/AUTH.md`) |
 | `LEGAL_OPERATOR_*` | прод | Impressum (`docs/LEGAL.md`) |
 
 ## Структура
@@ -109,7 +113,7 @@ app/
     (feed)/               лента: ?tab=following | ?tab=university
     create/  post/[id]/  post/[id]/edit/
     u/[nickname]/  messages/  search/  notifications/  settings/
-  auth/                   вход, регистрация, подтверждение почты, сброс пароля
+  auth/                   вход, регистрация, подтверждение почты, сброс пароля (docs/AUTH.md)
   legal/                  Impressum, конфиденциальность, условия, правила
   actions/                server actions — вся запись
   api/                    health, выгрузка данных, вебхук Stripe
@@ -119,13 +123,14 @@ components/
 lib/
   data/                   чтение из Supabase (с RLS); index.ts — переключатель моков
   actions/actor.ts        кто действует, ошибки словами
+  auth/                   вход: проверка полей, ошибки Auth, журнал, повторный ввод пароля
   validate.ts             проверка аргументов server actions
   csp.ts                  Content-Security-Policy с nonce
   live.ts use-presence.ts realtime: сигналы, «печатает», присутствие
   types.ts format.ts …    домен и чистые правила (с юнит-тестами)
   mock/                   демо-данные
 supabase/
-  migrations/             0001…0042 — схема, RLS, триггеры, cron
+  migrations/             0001…0044 — схема, RLS, триггеры, cron
   tests/database/         pgTAP: права и триггеры
   perf/                   нагрузочный прогон: данные, запросы, бюджеты
   seed.sql  config.toml
@@ -142,6 +147,7 @@ docs/                     см. ниже
 | `docs/DATABASE.md` | таблицы, политики, функции, миграции |
 | `docs/PERFORMANCE.md` | нагрузочный прогон: что было медленно, что изменено, цифры до и после |
 | `docs/STAGING.md` | стейджинг, правила миграций, порядок выкатки, что делать при сбое |
+| `docs/AUTH.md` | вход: регистрация, подтверждение почты, сессии, сброс пароля, лимиты, будущая регистрация только для вузов |
 | `docs/SECURITY.md` | модель угроз, что чем защищено, что сделать руками |
 | `docs/MODERATION.md` | как разбирать жалобы (DSA) |
 | `docs/LEGAL.md` | Impressum, DSGVO, DSA — что сделано и что за оператором |

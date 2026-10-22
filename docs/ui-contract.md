@@ -175,7 +175,8 @@ Bluesky (линия Twitter) в октябре 2026. Выводы ниже — �
 | `/messages/[nickname]` | dm | One direct conversation. |
 | `/search` | search | Search and filters. |
 | `/notifications` | notifications | Notification list. |
-| `/settings` | settings | Hub, plus `profile`, `privacy`, `notifications`, `verification`. |
+| `/settings` | settings | Hub, plus `profile`, `privacy`, `notifications`, `verification`, `security`, `account`, `blocked`. |
+| `/auth/*` | auth | `login`, `signup`, `check-email`, `forgot`, `reset`, `reset/done`; aliases `/login`, `/signup`, `/register`, `/forgot-password`, `/reset-password` (`docs/AUTH.md`). |
 
 Links between screens use exactly these paths. The profile's «Написать»
 button goes to `/messages/<nickname>`; a feed card's chat button goes to
