@@ -172,7 +172,7 @@ export function ProfileForm({ user }: { user: UserView }) {
           <div className="rounded-field bg-sunken px-3.5 py-3">
             <p className="flex items-center gap-2 text-[15px]">
               <Icon name="shield" size={16} className="shrink-0 text-ink-soft" />
-              {user.university.name}
+              {user.university ? user.university.name : "Вуз не подтверждён"}
             </p>
             <p className="mt-1 text-[13px] leading-[1.4] text-ink-soft">
               Приходит из подтверждённой университетской почты, поэтому здесь не меняется. От него зависит

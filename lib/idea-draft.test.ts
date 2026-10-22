@@ -125,6 +125,18 @@ describe("место", () => {
     expect(geoInputOf(initialGeo, { ...campus, source: "device" }, university).geoAddress).toBeNull();
   });
 
+  it("без подтверждённого вуза: город по умолчанию и без подписи «у кампуса»", () => {
+    const center = { lat: 52.52, lng: 13.405, label: "Центр Берлина", source: "campus" as const };
+    expect(geoInputOf(initialGeo, center, null)).toMatchObject({
+      geoMode: "radius",
+      geoCity: "Берлин",
+      geoAddress: null,
+    });
+    expect(geoInputOf({ ...initialGeo, mode: "area", meeting_point: "У моста" }, center, null).geoCity).toBe(
+      "Берлин",
+    );
+  });
+
   it("область и город", () => {
     expect(
       geoInputOf(

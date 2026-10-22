@@ -29,7 +29,7 @@ interface AudienceOption<T extends string> {
 
 const FRIENDS_LINE = "Друзья — вы подписаны друг на друга.";
 
-function profileOptions(shortName: string): AudienceOption<ProfileAudience>[] {
+function profileOptions(shortName: string | null): AudienceOption<ProfileAudience>[] {
   return [
     {
       value: "everyone",
@@ -40,7 +40,11 @@ function profileOptions(shortName: string): AudienceOption<ProfileAudience>[] {
     {
       value: "university",
       label: "Мой университет",
-      description: `Все из ${shortName} — и только они.`,
+      // Без подтверждённого вуза «мой вуз» — пустое множество (как и в
+      // базе: NULL ни с чем не совпадает), остаются участники общих идей.
+      description: shortName
+        ? `Все из ${shortName} — и только они.`
+        : "Вуз не подтверждён — тогда профиль видят только участники твоих идей.",
       icon: "shield",
     },
     {
@@ -97,7 +101,7 @@ export function PrivacyForm({ user }: { user: UserView }) {
   const [confirmed, setConfirmed] = useState(false);
 
   const dirty = !same(draft, saved);
-  const shortName = user.university.short_name;
+  const shortName = user.university?.short_name ?? null;
   const audiences = profileOptions(shortName);
 
   function patch(change: Partial<PrivacySettings>) {
@@ -132,7 +136,7 @@ export function PrivacyForm({ user }: { user: UserView }) {
         <AudienceGroup
           name="privacy-profile"
           legend="Кто видит твой профиль"
-          hint={`Профиль — это описание, факультет, счётчики подписок и твои идеи. Вариант «Мой университет» означает всех, у кого в профиле ${shortName}.`}
+          hint={`Профиль — это описание, факультет, счётчики подписок и твои идеи. Вариант «Мой университет» означает всех, у кого в профиле ${shortName ?? "тот же подтверждённый вуз"}.`}
           options={audiences}
           value={draft.who_can_see_profile}
           onChange={(raw) => patch({ who_can_see_profile: toProfileAudience(raw) })}

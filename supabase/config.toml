@@ -73,10 +73,17 @@ additional_redirect_urls = ["http://127.0.0.1:3000"]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
-# Sign-up is open at the API level; the university-mail rule is enforced in
-# the database by supabase/later/auth_bridge.sql, which refuses an address
-# whose domain is not in public.universities.
+# Sign-up is open at the API level. Who may create an account is decided in
+# the database (private.registration_policy, 0043/0044): the trigger on
+# auth.users refuses an address the policy does not allow, so calling
+# /auth/v1/signup directly gets the same answer as the form.
 enable_signup = true
+# The same minimum the form explains (lib/auth/validation.ts). Without it the
+# Auth API accepted 6 characters from anyone calling it directly. Length
+# only, no character classes: NIST SP 800-63B. Production: Authentication →
+# Providers → Email (docs/AUTH.md).
+minimum_password_length = 8
+password_requirements = ""
 
 [auth.email]
 enable_signup = true

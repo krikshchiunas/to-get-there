@@ -111,13 +111,13 @@ describe("toCategory / toUserView / roleIn", () => {
     });
   });
 
-  it("без университета профиль не собрать — ошибка, а не пустой вуз", () => {
+  it("без подтверждённого вуза профиль есть, а вуза нет — не выдуманный и не ошибка", () => {
     const row = {
       id: "u",
       auth_user_id: null,
       nickname: "nick",
       avatar_url: null,
-      university_id: "x",
+      university_id: null,
       faculty: null,
       bio: null,
       is_verified: false,
@@ -125,7 +125,10 @@ describe("toCategory / toUserView / roleIn", () => {
       created_at: "2026-01-01T00:00:00Z",
       university: null,
     };
-    expect(() => toUserView(row, noSocialFacts)).toThrow(/университет/);
+    const view = toUserView(row, noSocialFacts);
+    expect(view.university).toBeNull();
+    expect(view.university_id).toBeNull();
+    expect(view.nickname).toBe("nick");
   });
 
   it("скрытые базой интересы и чужие настройки — пустые списки и значения по умолчанию", () => {

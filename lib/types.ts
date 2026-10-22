@@ -64,7 +64,11 @@ export interface User {
   id: UUID;
   nickname: string;
   avatar_url: string | null;
-  university_id: UUID;
+  /**
+   * Вуз, подтверждённый почтой (домен или список исключений). null — вуз не
+   * подтверждён: регистрация открыта для любой почты (0043–0044).
+   */
+  university_id: UUID | null;
   faculty: string | null;
   bio: string | null;
   interests: string[];
@@ -78,7 +82,7 @@ export interface User {
 
 /** The author block on a card: enough to render, nothing private. */
 export interface UserView extends User {
-  university: University;
+  university: University | null;
   follower_count: number;
   following_count: number;
   /** Relationship of the signed-in viewer to this user. */
@@ -86,6 +90,16 @@ export interface UserView extends User {
   follows_viewer: boolean;
   /** Зритель заблокировал этого человека (0029). Обратное зрителю не видно. */
   viewer_blocked: boolean;
+}
+
+/**
+ * Аккаунт — запись Supabase Auth, а не профиль: почту и её подтверждение
+ * видит только владелец, в public.users их нет.
+ */
+export interface AccountInfo {
+  email: string;
+  created_at: Timestamp;
+  email_confirmed_at: Timestamp | null;
 }
 
 /** Mutual follow. Drives the "friends" tier in privacy settings. */
@@ -121,7 +135,8 @@ export interface Post {
   /** Author closed the sign-up. The post leaves the feed, the chat stays. */
   is_closed: boolean;
   chat_access: ChatAccess;
-  university_id: UUID;
+  /** Вуз автора на момент создания; null, если у автора вуз не подтверждён. */
+  university_id: UUID | null;
   created_at: Timestamp;
 }
 
@@ -129,7 +144,7 @@ export type ChatRole = "author" | "moderator" | "participant" | "guest";
 
 export interface PostView extends Post {
   author: UserView;
-  university: University;
+  university: University | null;
   category: Category;
   participant_count: number;
   /** Role of the signed-in viewer in this idea. */
@@ -391,4 +406,6 @@ export type IconName =
   | "block"
   | "copy"
   | "download"
-  | "warning";
+  | "warning"
+  | "eye"
+  | "eye-off";

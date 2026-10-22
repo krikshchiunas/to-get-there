@@ -284,7 +284,7 @@ export function searchUsers(query: string): UserView[] {
   return users.filter((user) => {
     if (!user.privacy_settings.visible_in_search) return false;
     if (user.id === currentUser.id) return false;
-    return [user.nickname, user.faculty ?? "", user.university.short_name, ...user.interests]
+    return [user.nickname, user.faculty ?? "", user.university?.short_name ?? "", ...user.interests]
       .join(" ")
       .toLowerCase()
       .includes(needle);

@@ -34,7 +34,9 @@ export default async function SettingsPage() {
 
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-medium">{viewer.nickname}</span>
-            <span className="block truncate text-[14px] text-ink-soft">{viewer.university.name}</span>
+            <span className="block truncate text-[14px] text-ink-soft">
+              {viewer.university?.name ?? "Вуз не подтверждён"}
+            </span>
           </span>
 
           <Icon name="chevron" size={18} className="shrink-0 text-ink-faint" />
@@ -78,6 +80,12 @@ export default async function SettingsPage() {
 
         <Group title="Безопасность и данные">
           <SettingsLink
+            href="/settings/security"
+            icon="lock"
+            label="Вход и безопасность"
+            description="Почта для входа, смена пароля, выход на всех устройствах."
+          />
+          <SettingsLink
             href="/settings/blocked"
             icon="block"
             label="Заблокированные"
@@ -120,17 +128,28 @@ export default async function SettingsPage() {
 
         <Group
           title="Аккаунт"
-          description="Университет закреплён за аккаунтом по почте, с которой ты регистрировался: он решает, какую ленту «Университет» ты видишь."
+          description="Университет подтверждает почта, с которой ты регистрировался: он решает, какую ленту «Университет» ты видишь."
         >
           <div className="flex items-center gap-3 px-4 py-3.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-soft">
               <Icon name="book" size={18} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px]">{viewer.university.name}</span>
-              <span className="block text-[14px] text-ink-soft">
-                Почта на домене {viewer.university.domain}
-              </span>
+              {viewer.university ? (
+                <>
+                  <span className="block text-[15px]">{viewer.university.name}</span>
+                  <span className="block text-[14px] text-ink-soft">
+                    Почта на домене {viewer.university.domain}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="block text-[15px]">Вуз не подтверждён</span>
+                  <span className="block text-[14px] text-ink-soft">
+                    Аккаунт создан не с университетской почтой
+                  </span>
+                </>
+              )}
             </span>
           </div>
 

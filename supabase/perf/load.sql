@@ -85,6 +85,10 @@ insert into auth.users (id, instance_id, aud, role, email)
   values ('aaaaaaaa-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000',
           'authenticated', 'authenticated', 'load_1@perf.local');
 update public.users set auth_user_id = 'aaaaaaaa-0000-4000-8000-000000000001' where id = pg_temp.uid(1);
+-- Живая сессия: current_user_id() признаёт только её (0043), и её поиск
+-- входит в замер, как на проде.
+insert into auth.sessions (id, user_id, created_at, updated_at)
+  values ('aaaaaaaa-5e55-4000-8000-000000000001', 'aaaaaaaa-0000-4000-8000-000000000001', now(), now());
 
 -- Идеи: 80% впереди (в ленте), остальное прошло; 5% закрыто.
 insert into public.posts (id, author_id, university_id, category_id, title, description, date_start,
@@ -219,7 +223,7 @@ $$;
 grant execute on function perf.measure(text, numeric, text) to authenticated;
 
 select set_config('request.jwt.claims',
-  '{"sub":"aaaaaaaa-0000-4000-8000-000000000001","role":"authenticated","email":"load_1@perf.local"}', true);
+  '{"sub":"aaaaaaaa-0000-4000-8000-000000000001","role":"authenticated","email":"load_1@perf.local","session_id":"aaaaaaaa-5e55-4000-8000-000000000001"}', true);
 set local role authenticated;
 
 \o /dev/null

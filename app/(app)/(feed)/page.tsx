@@ -5,7 +5,7 @@ import { FeedHeader } from "@/components/feed/feed-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { dayKey, formatDayLabel } from "@/lib/format";
-import { FEED_MAX, FEED_PAGE, getFeed } from "@/lib/data";
+import { FEED_MAX, FEED_PAGE, getFeed, getViewer } from "@/lib/data";
 import type { FeedTab, PostView } from "@/lib/types";
 
 /** The feed depends on the clock, so it is rendered per request. */
@@ -55,7 +55,8 @@ export default async function FeedPage({
   const params = await searchParams;
   const tab = tabFrom(params.tab);
   const pages = pagesFrom(params.pages);
-  const { posts, hasMore } = await getFeed(tab, now, pages * FEED_PAGE);
+  // Зритель уже загружен макетом (React cache) — второго запроса нет.
+  const [{ posts, hasMore }, viewer] = await Promise.all([getFeed(tab, now, pages * FEED_PAGE), getViewer()]);
   const groups = groupByDay(posts);
   const canGrow = hasMore && (pages + 1) * FEED_PAGE <= FEED_MAX;
 
@@ -72,6 +73,17 @@ export default async function FeedPage({
             action={
               <ButtonLink href="/search" variant="quiet" size="md">
                 Найти людей
+              </ButtonLink>
+            }
+          />
+        ) : !viewer.university ? (
+          <EmptyState
+            icon="shield"
+            title="Лента вуза — для университетской почты"
+            body="Здесь идеи студентов одного вуза, а вуз подтверждает университетская почта. Твой аккаунт на другой почте — ищи идеи в поиске и подписывайся на людей."
+            action={
+              <ButtonLink href="/search" variant="quiet" size="md">
+                Найти идеи
               </ButtonLink>
             }
           />

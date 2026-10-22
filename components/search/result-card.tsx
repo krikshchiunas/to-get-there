@@ -41,10 +41,14 @@ export function ResultCard({ post, now }: { post: PostView; now: Date }) {
             {post.author.is_verified ? <Verified size={verifiedSize} className="shrink-0" /> : null}
           </Link>
 
-          <span aria-hidden className="text-[14px] text-ink-soft">
-            ·
-          </span>
-          <span className="truncate text-[14px] text-ink-soft">{post.author.university.short_name}</span>
+          {post.author.university ? (
+            <>
+              <span aria-hidden className="text-[14px] text-ink-soft">
+                ·
+              </span>
+              <span className="truncate text-[14px] text-ink-soft">{post.author.university.short_name}</span>
+            </>
+          ) : null}
 
           <time
             dateTime={post.date_start}

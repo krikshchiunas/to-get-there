@@ -25,7 +25,9 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
   return {
     title: user.nickname,
-    description: `Профиль ${user.nickname}, ${user.university.short_name}.`,
+    description: user.university
+      ? `Профиль ${user.nickname}, ${user.university.short_name}.`
+      : `Профиль ${user.nickname}.`,
   };
 }
 
@@ -43,7 +45,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     <>
       <PageHeader
         title={user.nickname}
-        subtitle={user.university.short_name}
+        subtitle={user.university?.short_name}
         action={
           isViewer ? (
             <Link
@@ -92,7 +94,9 @@ function RestrictedProfile({ user }: { user: UserView }) {
             <h2 className="min-w-0 truncate text-[20px] font-semibold">{user.nickname}</h2>
             {user.is_verified ? <Verified size={15} className="shrink-0" /> : null}
           </div>
-          <p className="mt-1 text-[15px] leading-[1.4] text-ink-soft">{user.university.name}</p>
+          {user.university ? (
+            <p className="mt-1 text-[15px] leading-[1.4] text-ink-soft">{user.university.name}</p>
+          ) : null}
         </div>
       </div>
 
@@ -111,7 +115,7 @@ function restrictionReason(user: UserView): string {
     case "friends":
       return `${user.nickname} открывает профиль только друзьям. Друзьями вы станете, когда подпишетесь друг на друга.`;
     case "university":
-      return `${user.nickname} открывает профиль только студентам ${user.university.short_name}. Ты учишься в другом вузе.`;
+      return `${user.nickname} открывает профиль только студентам ${user.university?.short_name ?? "своего вуза"}.`;
     case "everyone":
       return `${user.nickname} сейчас никому не показывает профиль.`;
   }

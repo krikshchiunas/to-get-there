@@ -46,6 +46,25 @@ describe("canSeeProfile / canSeeInterests", () => {
     expect(canSeeProfile(other, viewer)).toBe(false);
   });
 
+  // Как в базе: NULL = NULL — не «один вуз» (0043). Иначе двое без
+  // подтверждённого вуза видели бы профили друг друга «только для своих».
+  it("«мой вуз» без подтверждённого вуза — ни своим, ни чужим", () => {
+    const nobody = { ...viewer, university_id: null, university: null };
+    const hidden = person({
+      university_id: null,
+      university: null,
+      privacy: { who_can_see_profile: "university" },
+    });
+    expect(canSeeProfile(hidden, nobody)).toBe(false);
+    expect(canSeeProfile(hidden, viewer)).toBe(false);
+    expect(
+      canSeeInterests(
+        person({ university_id: viewer.university_id, privacy: { who_can_see_interests: "university" } }),
+        nobody,
+      ),
+    ).toBe(false);
+  });
+
   it("«друзья» — только при взаимной подписке", () => {
     const one = person({ viewer_follows: true, privacy: { who_can_see_interests: "friends" } });
     const both = person({

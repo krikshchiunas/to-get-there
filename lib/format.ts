@@ -7,7 +7,7 @@
  * avoids hydration drift.
  */
 
-import type { GeoRadius, Post, Timestamp } from "./types";
+import type { GeoRadius, Post, Timestamp, University } from "./types";
 
 export const HOUR_MS = 60 * 60 * 1000;
 export const DAY_MS = 24 * HOUR_MS;
@@ -42,6 +42,13 @@ const dayLongFmt = new Intl.DateTimeFormat(locale, {
 const monthDayFmt = new Intl.DateTimeFormat(locale, {
   day: "numeric",
   month: "long",
+  timeZone: tz,
+});
+
+const calendarFmt = new Intl.DateTimeFormat(locale, {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
   timeZone: tz,
 });
 
@@ -112,6 +119,11 @@ export function formatDayLong(value: Timestamp | Date): string {
 /** "24 октября, 20:00" */
 export function formatDateTime(value: Timestamp | Date): string {
   return `${monthDayFmt.format(toDate(value))}, ${formatTime(value)}`;
+}
+
+/** "22 октября 2026" — дата без времени и без «г.», например когда создан аккаунт. */
+export function formatCalendarDate(value: Timestamp | Date): string {
+  return calendarFmt.format(toDate(value)).replace(/\s*г\.$/, "");
 }
 
 /** Value for an <input type="datetime-local">, in Berlin wall-clock time. */
@@ -267,6 +279,17 @@ export function shortPlace(address: string | null, city: string): string {
   const source = address ?? city;
   const head = source.split(",")[0].trim();
   return head.length > 1 ? head : source;
+}
+
+/**
+ * «TU Berlin · Информатика»: вуз и факультет — то, что из них есть. Вуз
+ * бывает не подтверждён (0043), тогда строка — только факультет или пусто.
+ */
+export function affiliationOf(
+  user: { university: Pick<University, "name" | "short_name"> | null; faculty: string | null },
+  form: "name" | "short_name" = "short_name",
+): string {
+  return [user.university?.[form], user.faculty].filter(Boolean).join(" · ");
 }
 
 export function initialsOf(nickname: string): string {

@@ -24,6 +24,7 @@ import { Seats } from "@/components/ui/seats";
 import { TimeFromNow } from "@/components/ui/time-from-now";
 import { Verified } from "@/components/ui/verified";
 import {
+  affiliationOf,
   feedExitReason,
   formatDayLong,
   formatParticipants,
@@ -302,9 +303,7 @@ export function IdeaDetail({
                 {post.author.is_verified ? <Verified size={14} className="shrink-0" /> : null}
               </Link>
               <p className="mt-0.5 text-[14px] leading-[1.4] text-ink-soft">
-                {post.author.faculty
-                  ? `${post.author.university.name} · ${post.author.faculty}`
-                  : post.author.university.name}
+                {affiliationOf(post.author, "name")}
               </p>
             </div>
           </div>

@@ -196,6 +196,18 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M12 10v4.4M12 17.2v.1" />
     </>
   ),
+  eye: (
+    <>
+      <path d="M2.8 12S6.1 5.8 12 5.8 21.2 12 21.2 12 17.9 18.2 12 18.2 2.8 12 2.8 12z" />
+      <circle cx="12" cy="12" r="2.8" />
+    </>
+  ),
+  "eye-off": (
+    <>
+      <path d="M9.9 6.1A9.6 9.6 0 0 1 12 5.8c5.9 0 9.2 6.2 9.2 6.2a16 16 0 0 1-2.4 3.2M6.6 7.7A15.6 15.6 0 0 0 2.8 12s3.3 6.2 9.2 6.2a9.3 9.3 0 0 0 4.4-1.1" />
+      <path d="M10 10.1a2.8 2.8 0 0 0 3.9 3.9M4 4l16 16" />
+    </>
+  ),
 };
 
 export interface IconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {

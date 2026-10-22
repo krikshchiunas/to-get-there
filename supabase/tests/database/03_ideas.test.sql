@@ -14,6 +14,7 @@ create or replace function tests.login_as(member uuid) returns void
 language plpgsql as $$
 declare
   account uuid;
+  session uuid := gen_random_uuid();
 begin
   select u.auth_user_id into account from public.users u where u.id = member;
   if account is null then
@@ -25,8 +26,12 @@ begin
     update public.users set auth_user_id = account where id = member;
     set local session_replication_role = origin;
   end if;
+  -- Живая сессия, как у токена от Supabase Auth: без неё current_user_id()
+  -- считает зрителя вышедшим (0043).
+  insert into auth.sessions (id, user_id, created_at, updated_at) values (session, account, now(), now());
   perform set_config('request.jwt.claims',
-    json_build_object('sub', account, 'role', 'authenticated', 'email', account::text || '@tests.local')::text, true);
+    json_build_object('sub', account, 'role', 'authenticated', 'email', account::text || '@tests.local',
+                      'session_id', session)::text, true);
   execute 'set local role authenticated';
 end;
 $$;

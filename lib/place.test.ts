@@ -11,6 +11,13 @@ describe("campusPlace", () => {
     const place = campusPlace({ short_name: "X", campus_lat: null, campus_lng: null });
     expect(isValidCoord(place.lat, place.lng)).toBe(true);
   });
+
+  it("без подтверждённого вуза — центр Берлина, без выдуманного кампуса", () => {
+    const place = campusPlace(null);
+    expect(place.label).toBe("Центр Берлина");
+    expect(place.source).toBe("campus");
+    expect(isValidCoord(place.lat, place.lng)).toBe(true);
+  });
 });
 
 describe("roundCoord", () => {

@@ -325,7 +325,7 @@ export type Database = {
           is_closed: boolean
           max_participants: number | null
           title: string
-          university_id: string
+          university_id: string | null
         }
         Insert: {
           author_id: string
@@ -344,7 +344,7 @@ export type Database = {
           is_closed?: boolean
           max_participants?: number | null
           title: string
-          university_id: string
+          university_id?: string | null
         }
         Update: {
           author_id?: string
@@ -363,7 +363,7 @@ export type Database = {
           is_closed?: boolean
           max_participants?: number | null
           title?: string
-          university_id?: string
+          university_id?: string | null
         }
         Relationships: [
           {
@@ -560,7 +560,7 @@ export type Database = {
           is_verified: boolean
           nickname: string
           privacy_settings: Json
-          university_id: string
+          university_id: string | null
         }
         Insert: {
           auth_user_id?: string | null
@@ -572,7 +572,7 @@ export type Database = {
           is_verified?: boolean
           nickname: string
           privacy_settings?: Json
-          university_id: string
+          university_id?: string | null
         }
         Update: {
           auth_user_id?: string | null
@@ -584,7 +584,7 @@ export type Database = {
           is_verified?: boolean
           nickname?: string
           privacy_settings?: Json
-          university_id?: string
+          university_id?: string | null
         }
         Relationships: [
           {
@@ -740,7 +740,9 @@ export type Database = {
         Returns: undefined
       }
       cast_vote: { Args: { option_index: number; poll: string }; Returns: undefined }
+      claim_reauth_attempt: { Args: never; Returns: undefined }
       delete_my_account: { Args: never; Returns: undefined }
+      ensure_my_profile: { Args: never; Returns: string }
       export_my_data: { Args: never; Returns: Json }
       get_follow_counts: {
         Args: { user_ids: string[] }
@@ -761,6 +763,7 @@ export type Database = {
         Returns: Database["public"]["Tables"]["users"]["Row"][]
         SetofOptions: { from: "*"; to: "users"; isOneToOne: false; isSetofReturn: true }
       }
+      signup_allowed: { Args: { email: string }; Returns: boolean }
       unread_direct_total: { Args: never; Returns: number }
     }
     Enums: {

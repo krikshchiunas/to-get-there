@@ -53,7 +53,9 @@ export function BlockedList({ users: initial }: { users: UserView[] }) {
             >
               {user.nickname}
             </Link>
-            <p className="truncate text-[14px] text-ink-soft">{user.university.short_name}</p>
+            {user.university ? (
+              <p className="truncate text-[14px] text-ink-soft">{user.university.short_name}</p>
+            ) : null}
           </div>
           <span className="relative z-10 shrink-0">
             <Button type="button" variant="quiet" size="sm" onClick={() => unblock(user)}>

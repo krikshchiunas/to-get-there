@@ -48,7 +48,7 @@ export function PostCard({ post, now }: { post: PostView; now: Date }) {
           </Link>
 
           <span className="min-w-0 flex-1 truncate text-[15px] text-ink-soft">
-            {post.author.university.short_name}
+            {post.author.university?.short_name}
           </span>
 
           <time

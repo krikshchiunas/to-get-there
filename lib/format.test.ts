@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { berlinLocalToIso, formatPresent, formatTime, formatTyping, isInFeed, pluralRu } from "./format";
+import {
+  affiliationOf,
+  berlinLocalToIso,
+  formatCalendarDate,
+  formatPresent,
+  formatTime,
+  formatTyping,
+  isInFeed,
+  pluralRu,
+} from "./format";
 
 describe("berlinLocalToIso — время из формы в абсолютное", () => {
   it("летом (CEST, +02:00) 19:30 по Берлину — это 17:30 UTC", () => {
@@ -77,5 +86,27 @@ describe("formatPresent", () => {
     expect(formatPresent(1)).toBe("Сейчас в чате ещё 1 человек");
     expect(formatPresent(3)).toBe("Сейчас в чате ещё 3 человека");
     expect(formatPresent(5)).toBe("Сейчас в чате ещё 5 человек");
+  });
+});
+
+describe("affiliationOf — вуз и факультет, что из них есть", () => {
+  const tu = { name: "Технический университет Берлина", short_name: "TU Berlin" };
+
+  it("вуз и факультет", () => {
+    expect(affiliationOf({ university: tu, faculty: "Информатика" })).toBe("TU Berlin · Информатика");
+    expect(affiliationOf({ university: tu, faculty: null }, "name")).toBe("Технический университет Берлина");
+  });
+
+  it("без подтверждённого вуза — только факультет или пусто, без «null»", () => {
+    expect(affiliationOf({ university: null, faculty: "Право" })).toBe("Право");
+    expect(affiliationOf({ university: null, faculty: null })).toBe("");
+  });
+});
+
+describe("formatCalendarDate", () => {
+  it("число, месяц и год — без «г.», по Берлину", () => {
+    expect(formatCalendarDate("2026-10-22T10:00:00Z")).toBe("22 октября 2026");
+    // 23:30 UTC 31 декабря — в Берлине уже новый год.
+    expect(formatCalendarDate("2026-12-31T23:30:00Z")).toBe("1 января 2027");
   });
 });

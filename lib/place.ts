@@ -18,7 +18,19 @@ export interface Place {
 /** Если у университета нет координат — центр его города не угадать; Берлин. */
 const FALLBACK = { lat: 52.52, lng: 13.405 } as const;
 
-export function campusPlace(university: Pick<University, "short_name" | "campus_lat" | "campus_lng">): Place {
+/** Город по умолчанию для того, у кого вуз не подтверждён (0043). */
+export const FALLBACK_CITY = "Берлин";
+
+/**
+ * Точка отсчёта по умолчанию. Без подтверждённого вуза кампуса нет — тогда
+ * центр Берлина, а точнее — геолокация по кнопке.
+ */
+export function campusPlace(
+  university: Pick<University, "short_name" | "campus_lat" | "campus_lng"> | null,
+): Place {
+  if (!university) {
+    return { lat: FALLBACK.lat, lng: FALLBACK.lng, label: "Центр Берлина", source: "campus" };
+  }
   const known = university.campus_lat != null && university.campus_lng != null;
   return {
     lat: known ? university.campus_lat! : FALLBACK.lat,

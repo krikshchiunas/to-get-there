@@ -19,7 +19,9 @@ function audienceAllows(audience: ProfileAudience, user: UserView, viewer: UserV
     case "everyone":
       return true;
     case "university":
-      return user.university_id === viewer.university_id;
+      // Как в базе: NULL = NULL — не «один вуз». Двое без вуза друг другу
+      // «студенты моего вуза» не становятся.
+      return user.university_id !== null && user.university_id === viewer.university_id;
     case "friends":
       return isFriend(user);
   }

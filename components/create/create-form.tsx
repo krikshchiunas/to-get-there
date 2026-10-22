@@ -67,7 +67,11 @@ export function CreateForm({
   const [description, setDescription] = useState(editing?.description ?? "");
   const [categoryId, setCategoryId] = useState<string | null>(editing?.category_id ?? null);
   const [startsAt, setStartsAt] = useState(editing ? toDatetimeLocal(editing.date_start) : defaultStart);
-  const [geo, setGeo] = useState<GeoDraft>(() => (editing ? geoFromPost(editing) : initialGeo));
+  // Без подтверждённого вуза нет кампуса, от которого считать радиус, —
+  // начинаем с города.
+  const [geo, setGeo] = useState<GeoDraft>(() =>
+    editing ? geoFromPost(editing) : viewer.university ? initialGeo : { ...initialGeo, mode: "city" },
+  );
   const [maxParticipants, setMaxParticipants] = useState(editing?.max_participants?.toString() ?? "");
   const [chatAccess, setChatAccess] = useState<ChatAccess>(editing?.chat_access ?? "everyone");
   const [errors, setErrors] = useState<IdeaErrors>({});
@@ -272,11 +276,17 @@ export function CreateForm({
           <div className="rounded-field bg-sunken px-3.5 py-3">
             <p className="flex items-center gap-2 text-[15px]">
               <Icon name="shield" size={16} className="shrink-0 text-ink-soft" />
-              {viewer.university.name}
+              {viewer.university ? viewer.university.name : "Вуз не подтверждён"}
             </p>
             <p className="mt-1 text-[12px] text-ink-soft">
-              Берётся из профиля, здесь не меняется. Идея попадёт в ленту «Университет» у{" "}
-              {viewer.university.short_name}.
+              {viewer.university ? (
+                <>
+                  Берётся из профиля, здесь не меняется. Идея попадёт в ленту «Университет» у{" "}
+                  {viewer.university.short_name}.
+                </>
+              ) : (
+                "Вуз подтверждает университетская почта. Идею увидят в поиске и твои подписчики."
+              )}
             </p>
           </div>
         </Field>

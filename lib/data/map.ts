@@ -201,12 +201,11 @@ export const noSocialFacts: SocialFacts = {
 };
 
 export function toUserView(row: UserRecord, facts: SocialFacts): UserView {
-  if (!row.university) {
-    throw new Error(`У пользователя ${row.nickname} не загружен университет`);
-  }
   return {
     ...toUser(row),
-    university: toUniversity(row.university),
+    // Вуз есть только у тех, чья почта его подтвердила (0043): у остальных
+    // university_id = null, и join честно отдаёт null.
+    university: row.university ? toUniversity(row.university) : null,
     ...facts,
   };
 }
