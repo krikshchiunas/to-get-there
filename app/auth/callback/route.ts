@@ -13,7 +13,12 @@
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { RECOVERY_COOKIE, recoveryCookieOptions, RESET_PATH } from "@/lib/recovery";
+import {
+  RECOVERY_COOKIE,
+  recoveryCookieOptions,
+  recoveryRequestedRecently,
+  RESET_PATH,
+} from "@/lib/recovery";
 import { relativeRedirect } from "@/lib/relative-redirect";
 
 export async function GET(request: NextRequest) {
@@ -25,7 +30,9 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      if (recovery && data.user) {
+      // `type=recovery` — из адреса; метку ставим, только если Supabase сам
+      // недавно отправлял этому аккаунту письмо сброса.
+      if (recovery && data.user && recoveryRequestedRecently(data.user.recovery_sent_at)) {
         (await cookies()).set(
           RECOVERY_COOKIE,
           data.user.id,

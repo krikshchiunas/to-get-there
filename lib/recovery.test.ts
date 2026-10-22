@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { checkNewPassword, recoveryCookieOptions, recoveryMatches, RECOVERY_TTL_SECONDS } from "./recovery";
+import {
+  checkNewPassword,
+  recoveryCookieOptions,
+  recoveryMatches,
+  recoveryRequestedRecently,
+  RECOVERY_TTL_SECONDS,
+} from "./recovery";
 
 describe("recoveryMatches — метка восстановления", () => {
   it("подходит только тому же аккаунту", () => {
@@ -43,5 +49,26 @@ describe("checkNewPassword", () => {
 
   it("годный пароль", () => {
     expect(checkNewPassword("correct horse battery", "correct horse battery")).toBeNull();
+  });
+});
+
+describe("recoveryRequestedRecently — письмо сброса правда уходило", () => {
+  const now = Date.parse("2026-10-22T12:00:00Z");
+
+  it("в пределах часа — да", () => {
+    expect(recoveryRequestedRecently("2026-10-22T11:30:00Z", now)).toBe(true);
+    expect(recoveryRequestedRecently("2026-10-22T11:00:00Z", now)).toBe(true);
+  });
+
+  it("старше часа, не было вовсе или мусор — нет", () => {
+    expect(recoveryRequestedRecently("2026-10-22T10:59:00Z", now)).toBe(false);
+    expect(recoveryRequestedRecently(undefined, now)).toBe(false);
+    expect(recoveryRequestedRecently(null, now)).toBe(false);
+    expect(recoveryRequestedRecently("вчера", now)).toBe(false);
+  });
+
+  it("из будущего — нет (минута на расхождение часов допустима)", () => {
+    expect(recoveryRequestedRecently("2026-10-22T12:00:30Z", now)).toBe(true);
+    expect(recoveryRequestedRecently("2026-10-22T13:00:00Z", now)).toBe(false);
   });
 });
