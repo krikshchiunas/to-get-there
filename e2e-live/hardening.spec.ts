@@ -132,6 +132,10 @@ test("подтверждение на другом устройстве — по
   const phone = await newDevice(browser);
   const other = await phone.newPage();
   await other.goto(`/auth/confirm?token_hash=${token}&type=email`);
+  // Открытие ссылки ничего не меняет — так её не сожжёт почтовый сканер.
+  await expect(other).toHaveTitle(/Ссылка из письма/);
+  await noAxeViolations(other);
+  await other.getByRole("button", { name: "Подтвердить почту и войти" }).click();
   await expect(other).toHaveTitle(/Идеи/);
   await phone.close();
 });
@@ -263,6 +267,7 @@ test("сброс у вошедшего: новый пароль выкидыва
 
 test("поддельная ссылка и чужой тип ссылки не открывают форму нового пароля", async ({ page }) => {
   await page.goto("/auth/confirm?token_hash=not-a-real-token&type=recovery");
+  await page.getByRole("button", { name: "Задать новый пароль" }).click();
   await expect(page).toHaveURL(/\/auth\/forgot\?error=link$/);
   await expect(page.getByRole("status")).toContainText("устарела или уже использована");
   await noAxeViolations(page);
@@ -275,6 +280,7 @@ test("поддельная ссылка и чужой тип ссылки не �
   const since = await submitSignUp(page, person);
   const token = new URL(await linkFromMail(person.email, since)).searchParams.get("token");
   await page.goto(`/auth/confirm?token_hash=${token}&type=recovery`);
+  await page.getByRole("button", { name: "Задать новый пароль" }).click();
   await expect(page).toHaveURL(/\/auth\/forgot\?error=link$/);
   await page.goto("/auth/reset");
   await expect(page.getByRole("heading", { name: "Ссылка устарела" })).toBeVisible();

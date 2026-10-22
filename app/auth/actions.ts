@@ -36,7 +36,15 @@ import { logAuthEvent, type AuthOperation } from "@/lib/auth/log";
 import { PENDING_EMAIL_COOKIE, pendingEmailCookieOptions } from "@/lib/auth/pending-email";
 import { checkAuthRateLimit, type LimitedOperation } from "@/lib/auth/rate-limit";
 import { clientAddress, requestIdOf } from "@/lib/auth/request";
-import { RECOVERY_COOKIE, recoveryMatches, RESET_DONE_PATH } from "@/lib/recovery";
+import { emailLinkType, plausibleTokenHash } from "@/lib/auth/email-link";
+import {
+  RECOVERY_COOKIE,
+  recoveryCookieOptions,
+  recoveryMatches,
+  recoveryRequestedRecently,
+  RESET_DONE_PATH,
+  RESET_PATH,
+} from "@/lib/recovery";
 import { safeNext } from "@/lib/safe-next";
 import { siteUrl } from "@/lib/site-url";
 
@@ -242,6 +250,44 @@ export async function resendConfirmation(_: AuthState, form: FormData): Promise<
 
   await rememberPendingEmail(email);
   return { error: null, field: null, email, sent: true };
+}
+
+/* ── ссылка из письма на любом устройстве ──────────────────────────── */
+
+/**
+ * /auth/confirm: ссылка с token_hash открывает страницу с кнопкой, а вход
+ * происходит здесь — по нажатию. Почтовые сканеры (Microsoft 365 Safe
+ * Links и подобные) сами открывают ссылки из писем; будь вход на GET,
+ * одноразовый токен сгорал бы раньше, чем человек его нажмёт. И чужую
+ * ссылку нельзя «скормить» молча: без нажатия сессия не меняется.
+ *
+ * Метка восстановления — только если Supabase сам недавно отправлял этому
+ * аккаунту письмо сброса (тип ссылки из адреса ничего не решает).
+ */
+export async function confirmEmailLink(form: FormData): Promise<void> {
+  const type = emailLinkType(form.get("type"));
+  const tokenHash = form.get("token_hash");
+  const failure = type === "recovery" ? "/auth/forgot?error=link" : "/auth/login?error=link";
+  const ctx = await requestContext("/auth/confirm");
+
+  if (!plausibleTokenHash(tokenHash)) {
+    log(ctx, "email_link", "failure", "link_invalid");
+    redirect(failure);
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+  if (error || !data.user) {
+    log(ctx, "email_link", "failure", error ? classifyAuthError(error) : "link_invalid");
+    redirect(failure);
+  }
+  log(ctx, "email_link", "ok");
+
+  if (type === "recovery" && recoveryRequestedRecently(data.user.recovery_sent_at)) {
+    (await cookies()).set(RECOVERY_COOKIE, data.user.id, recoveryCookieOptions(secureCookies));
+    redirect(RESET_PATH);
+  }
+  redirect("/");
 }
 
 /* ── новый пароль ──────────────────────────────────────────────────── */

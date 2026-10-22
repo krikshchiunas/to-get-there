@@ -35,6 +35,9 @@ const screens: { path: string; title: RegExp }[] = [
   { path: "/auth/forgot", title: /Восстановление пароля/ },
   { path: "/auth/reset", title: /Новый пароль/ },
   { path: "/auth/reset/done", title: /Пароль обновлён/ },
+  { path: "/auth/confirm", title: /Ссылка из письма/ },
+  { path: "/auth/confirm?token_hash=pkce_0123456789abcdef&type=recovery", title: /Ссылка из письма/ },
+  { path: "/auth/check-email", title: /Проверь почту/ },
 ];
 
 // axe проходит всё дерево: на длинной ленте это дольше стандартных 30 секунд.

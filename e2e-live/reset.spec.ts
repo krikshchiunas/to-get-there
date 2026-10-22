@@ -54,6 +54,8 @@ test("сброс с другого устройства: ссылка token_hash
   const phone = await newDevice(browser);
   const other = await phone.newPage();
   await other.goto(`/auth/confirm?token_hash=${tokenHash}&type=recovery`);
+  // Вход по ссылке — только по кнопке: GET ничего не меняет (почтовые сканеры).
+  await other.getByRole("button", { name: "Задать новый пароль" }).click();
   const fresh = `${person.password}-phone`;
   await setNewPassword(other, fresh);
   await phone.close();
