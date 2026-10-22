@@ -1,39 +1,21 @@
-import { expect, test, type Page } from "@playwright/test";
-import { alertIn, createConfirmedPerson, linkFromMail, signIn, signOut, type Person } from "./helpers";
+import { expect } from "@playwright/test";
+import {
+  alertIn,
+  createConfirmedPerson,
+  linkFromMail,
+  loginFails,
+  newDevice,
+  requestReset,
+  setNewPassword,
+  signIn,
+  signOut,
+  test,
+} from "./helpers";
 
 /**
  * Сброс пароля: письмо, ссылка, новый пароль. И то, чего быть не должно:
  * формы нового пароля без ссылки и входа со старым паролем после сброса.
  */
-
-async function requestReset(page: Page, person: Person): Promise<number> {
-  await page.goto("/auth/login");
-  await page.getByRole("link", { name: "Забыли пароль?" }).click();
-  await expect(page).toHaveURL(/\/auth\/forgot$/);
-  await page.getByLabel("Почта").fill(person.email);
-  const since = Date.now();
-  await page.getByRole("button", { name: "Прислать ссылку" }).click();
-  await expect(page).toHaveURL(/\/auth\/check-email\?reason=reset/);
-  return since;
-}
-
-async function setNewPassword(page: Page, password: string): Promise<void> {
-  await expect(page).toHaveURL(/\/auth\/reset$/);
-  await expect(page.getByRole("heading", { name: "Новый пароль" })).toBeVisible();
-  await page.getByLabel("Новый пароль").fill(password);
-  await page.getByLabel("Ещё раз").fill(password);
-  await page.getByRole("button", { name: "Сохранить пароль" }).click();
-  await expect(page).toHaveURL(/\/auth\/reset\/done$/);
-  await expect(page.getByRole("heading", { name: "Пароль обновлён" })).toBeVisible();
-}
-
-async function loginFails(page: Page, person: Person): Promise<void> {
-  await page.goto("/auth/login");
-  await page.getByLabel("Почта").fill(person.email);
-  await page.getByLabel("Пароль").fill(person.password);
-  await page.getByRole("button", { name: "Войти" }).click();
-  await expect(alertIn(page)).toHaveText("Неверная почта или пароль.");
-}
 
 test("сброс в том же браузере: ссылка из письма, новый пароль, старый больше не подходит", async ({
   page,
@@ -69,7 +51,7 @@ test("сброс с другого устройства: ссылка token_hash
   const tokenHash = verify.searchParams.get("token");
   expect(tokenHash, "token в ссылке письма").toBeTruthy();
 
-  const phone = await browser.newContext();
+  const phone = await newDevice(browser);
   const other = await phone.newPage();
   await other.goto(`/auth/confirm?token_hash=${tokenHash}&type=recovery`);
   const fresh = `${person.password}-phone`;
@@ -104,7 +86,7 @@ test("использованная ссылка второй раз не сра�
 
 test("на неизвестную почту ответ тот же — форма не выдаёт, кто зарегистрирован", async ({ page }) => {
   await page.goto("/auth/forgot");
-  await page.getByLabel("Почта").fill(`e2e.nobody.${Date.now()}@tu-berlin.de`);
+  await page.getByLabel("Почта", { exact: true }).fill(`e2e.nobody.${Date.now()}@tu-berlin.de`);
   await page.getByRole("button", { name: "Прислать ссылку" }).click();
   await expect(page).toHaveURL(/\/auth\/check-email\?reason=reset/);
   await expect(page.getByText("Если есть аккаунт с почтой")).toBeVisible();

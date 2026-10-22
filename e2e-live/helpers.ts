@@ -1,29 +1,73 @@
-import { randomBytes, randomUUID } from "node:crypto";
-import { expect, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { execFileSync } from "node:child_process";
+import { randomBytes, randomInt, randomUUID } from "node:crypto";
+import {
+  expect,
+  test as base,
+  type Browser,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 
 /**
  * Общее для E2E со входом: люди, письма и сессия.
  *
- * Пароли генерируются на каждый прогон и нигде не печатаются; почта — на
- * домене вуза из сида (tu-berlin.de), иначе регистрацию не пропустит
- * триггер 0013. Письма никуда не уходят: локальная Supabase складывает их
- * в Mailpit.
+ * Пароли генерируются на каждый прогон и нигде не печатаются. Почта — на
+ * домене вуза из сида (tu-berlin.de), чтобы профиль получил вуз; любая
+ * другая тоже годится — регистрация открыта (0043). Письма никуда не
+ * уходят: локальная Supabase складывает их в Mailpit.
  */
 
 export const API_URL = process.env.API_URL ?? "http://127.0.0.1:54321";
 const SERVICE_KEY = process.env.SERVICE_ROLE_KEY ?? process.env.SECRET_KEY ?? "";
+const ANON_KEY = process.env.ANON_KEY ?? process.env.PUBLISHABLE_KEY ?? "";
 const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
+const DB_URL = process.env.DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+
+/**
+ * Свой «адрес клиента» на каждый тест: лимиты попыток считают и по адресу
+ * (0043), и тесты не должны делить один бакет. Приложение берёт адрес из
+ * x-real-ip, когда нет заголовка Vercel (lib/auth/request.ts).
+ */
+export function fakeAddress(): string {
+  return `198.51.${randomInt(0, 255)}.${randomInt(1, 254)}`;
+}
+
+export const test = base.extend({
+  extraHTTPHeaders: async ({}, provide) => {
+    await provide({ "x-real-ip": fakeAddress() });
+  },
+});
+
+/** Второй браузер («другое устройство») — со своим адресом. */
+export function newDevice(browser: Browser, options: Parameters<Browser["newContext"]>[0] = {}) {
+  return browser.newContext({
+    locale: "ru-RU",
+    timezoneId: "Europe/Berlin",
+    ...options,
+    extraHTTPHeaders: { "x-real-ip": fakeAddress(), ...options.extraHTTPHeaders },
+  });
+}
 
 export interface Person {
   email: string;
   password: string;
 }
 
+/** Ссылки из всех писем на адрес, новые первыми (Mailpit). */
+export async function mailIds(email: string): Promise<string[]> {
+  const query = encodeURIComponent(`to:"${email}"`);
+  const list = (await (await fetch(`${MAILPIT_URL}/api/v1/search?query=${query}`)).json()) as {
+    messages?: Array<{ ID: string }>;
+  };
+  return (list.messages ?? []).map((message) => message.ID);
+}
+
 /** Новый адрес и пароль. `tag` попадает в ник — по нему легче читать отчёт. */
-export function newPerson(tag: string): Person {
+export function newPerson(tag: string, domain = "tu-berlin.de"): Person {
   const stamp = randomUUID().replace(/-/g, "").slice(0, 8);
   return {
-    email: `e2e.${tag}.${stamp}@tu-berlin.de`,
+    email: `e2e.${tag}.${stamp}@${domain}`,
     password: `${randomBytes(12).toString("base64url")}-Aa1`,
   };
 }
@@ -65,7 +109,7 @@ interface MailSummary {
  * Ссылка из последнего письма на адрес, пришедшего после `since`.
  * Ждёт до 20 секунд: GoTrue отправляет письмо не мгновенно.
  */
-export async function linkFromMail(email: string, since: number): Promise<string> {
+export async function linkFromMail(email: string, since: number, known: string[] = []): Promise<string> {
   const query = encodeURIComponent(`to:"${email}"`);
   const deadline = Date.now() + 20_000;
 
@@ -73,7 +117,10 @@ export async function linkFromMail(email: string, since: number): Promise<string
     const list = (await (await fetch(`${MAILPIT_URL}/api/v1/search?query=${query}`)).json()) as {
       messages?: MailSummary[];
     };
-    const fresh = (list.messages ?? []).find((message) => Date.parse(message.Created) >= since - 2_000);
+    // `known` — письма, уже бывшие до действия: следующее письмо — не они.
+    const fresh = (list.messages ?? []).find(
+      (message) => !known.includes(message.ID) && Date.parse(message.Created) >= since - 2_000,
+    );
     if (fresh) {
       const message = (await (await fetch(`${MAILPIT_URL}/api/v1/message/${fresh.ID}`)).json()) as {
         HTML?: string;
@@ -96,13 +143,69 @@ export function alertIn(page: Page): Locator {
   return page.locator('[role="alert"]:not(#__next-route-announcer__)');
 }
 
+/** Поля формы входа — по точным подписям: у кнопки «Показать пароль» тоже есть слово «пароль». */
+export async function fillLogin(page: Page, person: Person): Promise<void> {
+  await page.getByLabel("Почта", { exact: true }).fill(person.email);
+  await page.getByLabel("Пароль", { exact: true }).fill(person.password);
+}
+
 /** Вход через форму — так же, как входит человек. */
 export async function signIn(page: Page, person: Person, next?: string): Promise<void> {
   await page.goto(next ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login");
-  await page.getByLabel("Почта").fill(person.email);
-  await page.getByLabel("Пароль").fill(person.password);
+  await fillLogin(page, person);
   await page.getByRole("button", { name: "Войти" }).click();
   await expect(page).not.toHaveURL(/\/auth\/login/);
+}
+
+/** Регистрация через форму; повтор пароля — тот же, если не задан. */
+export async function submitSignUp(page: Page, person: Person, repeat = person.password): Promise<number> {
+  await page.goto("/auth/signup");
+  await page.getByLabel("Почта", { exact: true }).fill(person.email);
+  await page.getByLabel("Пароль", { exact: true }).fill(person.password);
+  await page.getByLabel("Пароль ещё раз", { exact: true }).fill(repeat);
+  const since = Date.now();
+  await page.getByRole("button", { name: "Создать аккаунт" }).click();
+  return since;
+}
+
+/** Токен доступа пользователя — тот же, что у приложения, без браузера. */
+export async function accessTokenOf(person: Person): Promise<{ token: string; authId: string }> {
+  const response = await fetch(`${API_URL}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { apikey: ANON_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ email: person.email, password: person.password }),
+  });
+  if (!response.ok) throw new Error(`Вход для токена не удался: ${response.status}`);
+  const body = (await response.json()) as { access_token: string; user: { id: string } };
+  return { token: body.access_token, authId: body.user.id };
+}
+
+/** Запрос к PostgREST от имени пользователя (token) или анонима (без него). */
+export async function rest(
+  path: string,
+  init: { method?: string; token?: string; body?: unknown; prefer?: string } = {},
+): Promise<{ status: number; body: unknown }> {
+  const headers: Record<string, string> = { apikey: ANON_KEY, "Content-Type": "application/json" };
+  if (init.token) headers.Authorization = `Bearer ${init.token}`;
+  if (init.prefer) headers.Prefer = init.prefer;
+  const response = await fetch(`${API_URL}/rest/v1/${path}`, {
+    method: init.method ?? "GET",
+    headers,
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+  const text = await response.text();
+  return { status: response.status, body: text ? JSON.parse(text) : null };
+}
+
+/**
+ * SQL в локальной базе — только чтобы создать состояние, до которого
+ * интерфейсом не дойти (ссылка, которой два часа; пропавший профиль).
+ * Значения — через переменные psql, а не склейкой строки.
+ */
+export function sql(statement: string, variables: Record<string, string> = {}): string {
+  const args = [DB_URL, "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1"];
+  for (const [name, value] of Object.entries(variables)) args.push("-v", `${name}=${value}`);
+  return execFileSync("psql", args, { input: statement, encoding: "utf8" }).trim();
 }
 
 /** Выход через «Настройки» — кнопка, которой пользуется человек. */
@@ -157,4 +260,35 @@ export async function expireSession(context: BrowserContext): Promise<void> {
       expires: base.expires,
     })),
   );
+}
+
+/** «Забыли пароль?» со страницы входа; возвращает время до отправки — для поиска письма. */
+export async function requestReset(page: Page, person: Person): Promise<number> {
+  await page.goto("/auth/login");
+  await page.getByRole("link", { name: "Забыли пароль?" }).click();
+  await expect(page).toHaveURL(/\/auth\/forgot$/);
+  await page.getByLabel("Почта", { exact: true }).fill(person.email);
+  const since = Date.now();
+  await page.getByRole("button", { name: "Прислать ссылку" }).click();
+  await expect(page).toHaveURL(/\/auth\/check-email\?reason=reset/);
+  return since;
+}
+
+/** Форма нового пароля после ссылки из письма — до страницы «Пароль обновлён». */
+export async function setNewPassword(page: Page, password: string): Promise<void> {
+  await expect(page).toHaveURL(/\/auth\/reset$/);
+  await expect(page.getByRole("heading", { name: "Новый пароль" })).toBeVisible();
+  await page.getByLabel("Новый пароль").fill(password);
+  await page.getByLabel("Ещё раз").fill(password);
+  await page.getByRole("button", { name: "Сохранить пароль" }).click();
+  await expect(page).toHaveURL(/\/auth\/reset\/done$/);
+  await expect(page.getByRole("heading", { name: "Пароль обновлён" })).toBeVisible();
+}
+
+/** Вход с этим паролем не проходит — «Неверная почта или пароль». */
+export async function loginFails(page: Page, person: Person): Promise<void> {
+  await page.goto("/auth/login");
+  await fillLogin(page, person);
+  await page.getByRole("button", { name: "Войти" }).click();
+  await expect(alertIn(page)).toHaveText("Неверная почта или пароль.");
 }

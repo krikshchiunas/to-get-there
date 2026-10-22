@@ -55,6 +55,8 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_URL: API_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY,
       NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}`,
+      // Лимиты попыток входа (0043) считает база от имени сервера.
+      SUPABASE_SECRET_KEY: process.env.SERVICE_ROLE_KEY ?? process.env.SECRET_KEY ?? "",
       NEXT_DIST_DIR: ".next-live",
       NEXT_TELEMETRY_DISABLED: "1",
     },

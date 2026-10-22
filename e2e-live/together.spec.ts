@@ -1,5 +1,5 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
-import { createConfirmedPerson, nicknameOf, signIn, type Person } from "./helpers";
+import { expect, type Browser, type Page } from "@playwright/test";
+import { createConfirmedPerson, newDevice, nicknameOf, signIn, test, type Person } from "./helpers";
 
 /**
  * Двое в одном вузе: автор заводит идею, второй находит её, вступает и
@@ -8,7 +8,7 @@ import { createConfirmedPerson, nicknameOf, signIn, type Person } from "./helper
  */
 
 async function personIn(browser: Browser, person: Person): Promise<Page> {
-  const context = await browser.newContext({ locale: "ru-RU", timezoneId: "Europe/Berlin" });
+  const context = await newDevice(browser);
   const page = await context.newPage();
   await signIn(page, person);
   return page;

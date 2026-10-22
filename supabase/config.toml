@@ -84,12 +84,19 @@ double_confirm_changes = true
 # A university address has to be confirmed — it is the only identity check
 # that happens before the Верификация screen.
 enable_confirmations = true
-max_frequency = "60s"
+# Только локальная база: e2e-live повторно отправляет письма через
+# секунду. На проде — значение по умолчанию (60 с).
+max_frequency = "1s"
 
-# Только локальная база: E2E со входом (e2e-live) шлёт несколько писем
-# подряд — подтверждения и восстановление пароля. На проде лимиты свои.
+# Только локальная база. GoTrue считает лимиты по IP, а все запросы e2e-live
+# приходят к нему с одного адреса — сервера Next. Свои лимиты попыток
+# приложение считает в Postgres по адресу клиента и почте (0043); их
+# e2e-live и проверяет. На проде лимиты GoTrue — свои, в панели.
 [auth.rate_limit]
-email_sent = 100
+email_sent = 1000
+sign_in_sign_ups = 1000
+token_verifications = 1000
+token_refresh = 1000
 
 [auth.sms]
 enable_signup = false

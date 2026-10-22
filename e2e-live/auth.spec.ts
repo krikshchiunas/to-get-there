@@ -1,13 +1,16 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
 import {
   alertIn,
   createConfirmedPerson,
   expireSession,
+  fillLogin,
   linkFromMail,
   newPerson,
   nicknameOf,
   signIn,
   signOut,
+  submitSignUp,
+  test,
 } from "./helpers";
 
 /**
@@ -15,14 +18,9 @@ import {
  * экраны, неверный пароль, возврат туда, откуда увели, и истёкшая сессия.
  */
 
-test("регистрация по университетской почте: письмо, ссылка — и человек внутри", async ({ page }) => {
+test("регистрация по почте вуза: письмо, ссылка — и человек внутри, с вузом в профиле", async ({ page }) => {
   const person = newPerson("signup");
-
-  await page.goto("/auth/signup");
-  await page.getByLabel("Университетская почта").fill(person.email);
-  await page.getByLabel("Пароль").fill(person.password);
-  const since = Date.now();
-  await page.getByRole("button", { name: "Создать аккаунт" }).click();
+  const since = await submitSignUp(page, person);
 
   await expect(page).toHaveURL(/\/auth\/check-email/);
   await expect(page.getByRole("heading", { name: "Проверь почту" })).toBeVisible();
@@ -31,19 +29,26 @@ test("регистрация по университетской почте: п�
   await expect(page).toHaveURL(/localhost:3000\/$/);
   await expect(page).toHaveTitle(/Идеи/);
 
-  // Профиль создал мост 0013: ник из адреса, университет по домену.
+  // Профиль создал мост регистрации (0013/0043): ник из адреса, вуз по домену.
   await page.goto("/settings/profile");
   await expect(page.getByLabel("Ник")).toHaveValue(nicknameOf(person));
   await expect(page.getByText("Технический университет Берлина").first()).toBeVisible();
 });
 
-test("чужой домен регистрацию не проходит", async ({ page }) => {
-  await page.goto("/auth/signup");
-  await page.getByLabel("Университетская почта").fill(`e2e.${Date.now()}@gmail.com`);
-  await page.getByLabel("Пароль").fill("long-enough-password");
-  await page.getByRole("button", { name: "Создать аккаунт" }).click();
-  await expect(alertIn(page)).toContainText(/не относится ни к одному университету|не принимается/);
-  await expect(page).toHaveURL(/\/auth\/signup/);
+test("регистрация открыта любой почте: профиль без вуза и лента «Все»", async ({ page }) => {
+  const person = newPerson("open", "gmail.com");
+  const since = await submitSignUp(page, person);
+  await expect(page).toHaveURL(/\/auth\/check-email$/);
+  // Адреса нет в строке запроса — он в httpOnly cookie (lib/auth/pending-email.ts).
+  await expect(page.getByText(person.email)).toBeVisible();
+
+  await page.goto(await linkFromMail(person.email, since));
+  await expect(page).toHaveTitle(/Идеи/);
+  await expect(page.getByRole("link", { name: "Все" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Университет" })).toHaveCount(0);
+
+  await page.goto("/settings/profile");
+  await expect(page.getByText("Без вуза").first()).toBeVisible();
 });
 
 test("без входа экраны закрыты, после входа — возврат на тот же экран", async ({ page }) => {
@@ -52,8 +57,7 @@ test("без входа экраны закрыты, после входа — �
   await page.goto("/messages");
   await expect(page).toHaveURL(/\/auth\/login\?next=%2Fmessages/);
 
-  await page.getByLabel("Почта").fill(person.email);
-  await page.getByLabel("Пароль").fill(person.password);
+  await fillLogin(page, person);
   await page.getByRole("button", { name: "Войти" }).click();
   await expect(page).toHaveURL(/\/messages$/);
 });
@@ -62,12 +66,13 @@ test("неверный пароль — понятная ошибка, почт�
   const person = await createConfirmedPerson("wrong");
 
   await page.goto("/auth/login");
-  await page.getByLabel("Почта").fill(person.email);
-  await page.getByLabel("Пароль").fill(`${person.password}-nope`);
+  await fillLogin(page, { ...person, password: `${person.password}-nope` });
   await page.getByRole("button", { name: "Войти" }).click();
 
   await expect(alertIn(page)).toHaveText("Неверная почта или пароль.");
-  await expect(page.getByLabel("Почта")).toHaveValue(person.email);
+  await expect(page.getByLabel("Почта", { exact: true })).toHaveValue(person.email);
+  // Фокус — в поле, где ошибку исправлять (lib/auth/credentials.ts → field).
+  await expect(page.getByLabel("Пароль", { exact: true })).toBeFocused();
   await expect(page).toHaveURL(/\/auth\/login/);
 });
 
@@ -96,8 +101,7 @@ test("истёкшая сессия, которую не продлить, ве�
   await expect(page).toHaveURL(/\/auth\/login\?next=%2Fsettings/);
 
   // И войти снова можно с тем же паролем.
-  await page.getByLabel("Почта").fill(person.email);
-  await page.getByLabel("Пароль").fill(person.password);
+  await fillLogin(page, person);
   await page.getByRole("button", { name: "Войти" }).click();
   await expect(page).toHaveURL(/\/settings$/);
 });
