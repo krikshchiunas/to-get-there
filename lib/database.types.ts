@@ -325,7 +325,7 @@ export type Database = {
           is_closed: boolean
           max_participants: number | null
           title: string
-          university_id: string
+          university_id: string | null
         }
         Insert: {
           author_id: string
@@ -344,7 +344,7 @@ export type Database = {
           is_closed?: boolean
           max_participants?: number | null
           title: string
-          university_id: string
+          university_id?: string | null
         }
         Update: {
           author_id?: string
@@ -363,7 +363,7 @@ export type Database = {
           is_closed?: boolean
           max_participants?: number | null
           title?: string
-          university_id?: string
+          university_id?: string | null
         }
         Relationships: [
           {
@@ -560,7 +560,7 @@ export type Database = {
           is_verified: boolean
           nickname: string
           privacy_settings: Json
-          university_id: string
+          university_id: string | null
         }
         Insert: {
           auth_user_id?: string | null
@@ -572,7 +572,7 @@ export type Database = {
           is_verified?: boolean
           nickname: string
           privacy_settings?: Json
-          university_id: string
+          university_id?: string | null
         }
         Update: {
           auth_user_id?: string | null
@@ -584,7 +584,7 @@ export type Database = {
           is_verified?: boolean
           nickname?: string
           privacy_settings?: Json
-          university_id?: string
+          university_id?: string | null
         }
         Relationships: [
           {
@@ -741,6 +741,11 @@ export type Database = {
       }
       cast_vote: { Args: { option_index: number; poll: string }; Returns: undefined }
       delete_my_account: { Args: never; Returns: undefined }
+      auth_attempt: {
+        Args: { email_key?: string | null; ip_key: string | null; operation: string }
+        Returns: number
+      }
+      ensure_my_profile: { Args: never; Returns: string }
       export_my_data: { Args: never; Returns: Json }
       get_follow_counts: {
         Args: { user_ids: string[] }
