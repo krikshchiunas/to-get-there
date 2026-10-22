@@ -39,6 +39,12 @@ Supabase с сессией пользователя, и политики RLS р�
 | Подделка вебхука | HMAC-SHA256, окно 5 минут, лимит тела | `app/api/webhooks/stripe` |
 | Открытый редирект после входа | `safeNext()` | `lib/safe-next.ts` |
 | Смена пароля с чужой открытой сессии | новый пароль — только по свежей ссылке из письма: httpOnly-метка на 15 минут, привязанная к аккаунту | `lib/recovery.ts`, `app/auth/reset` |
+| Перебор паролей и спам письмами | лимиты попыток в Postgres по HMAC адреса и почты, только service_role | 0043, `lib/auth/rate-limit.ts` |
+| Вор остался внутри после сброса пароля | после смены пароля остальные сессии отзываются | `app/auth/actions.ts` |
+| Украденные cookie после выхода | выход отзывает сессию в Supabase | `app/auth/actions.ts`, e2e-live |
+| Вход без профиля — цикл редиректов | профиль удаляется только с аккаунтом; самовосстановление | 0043, `lib/auth/profile.ts` |
+| Сообщения Supabase и почта в журнале | своя модель ошибок; журнал из разрешённых полей | `lib/auth/errors.ts`, `lib/auth/log.ts` |
+| Почта в строке запроса и журналах хостинга | адрес для «Проверь почту» — в httpOnly cookie | `lib/auth/pending-email.ts` |
 | «Есть ли такой аккаунт?» через сброс пароля | ответ одинаковый для любой почты | `app/auth/actions.ts` |
 | Потеря сессии после ссылки из письма за прокси | редирект относительным путём — на тот же хост | `lib/relative-redirect.ts` |
 | Подмена Host в ссылках из писем | адрес из настроек | `lib/site-url.ts` |
@@ -79,6 +85,10 @@ Supabase с сессией пользователя, и политики RLS р�
   `https://to-get-there-mu.vercel.app`; Redirect URLs —
   `https://to-get-there-mu.vercel.app/**` и `http://localhost:3000/**`
   (сброс пароля возвращает на `/auth/callback?type=recovery`).
+- **Supabase → Authentication → Email Templates → Confirm signup**: ссылку
+  `{{ .ConfirmationURL }}` заменить на
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email` —
+  подтверждение почты с другого устройства (`docs/AUTH.md`).
 - **Supabase → Authentication → Email Templates → Reset Password**: ссылку
   `{{ .ConfirmationURL }}` заменить на
   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`.
@@ -92,9 +102,10 @@ Supabase с сессией пользователя, и политики RLS р�
   от 0009 — можно удалить кнопкой.
 - **GitHub → Settings → Branches**: защитить `main` — merge только через PR
   с зелёными проверками `check`, `audit`, `e2e`, `database`, `CodeQL`.
-- **Vercel → Environment Variables**: `SUPABASE_SECRET_KEY`,
-  `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (только для проверки
-  личности, без префикса `NEXT_PUBLIC_`); `LEGAL_OPERATOR_*` для Impressum.
+- **Vercel → Environment Variables**: `SUPABASE_SECRET_KEY` — лимиты попыток
+  входа (без него они не работают, `docs/AUTH.md`) и проверка личности;
+  `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — проверка личности; все без
+  префикса `NEXT_PUBLIC_`; `LEGAL_OPERATOR_*` для Impressum.
 
 ## Сообщить об уязвимости
 
