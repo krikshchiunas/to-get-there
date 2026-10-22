@@ -4,29 +4,37 @@ import { useState, useTransition } from "react";
 import { deleteAccount } from "@/app/actions/account";
 import { ConfirmSheet } from "@/components/ui/action-sheet";
 import { Button } from "@/components/ui/button";
+import { PasswordInput } from "@/components/auth/password-input";
 import { Field, TextInput } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 
 /**
  * Свои данные (DSGVO ст. 15, 17, 20): скачать копию и удалить аккаунт.
  *
- * Удаление — через лист с набранным ником. Как у GitHub: подтверждение
- * руками, а не одной кнопкой, потому что вернуть ничего не получится.
+ * Удаление — через лист с набранным ником и паролем. Как у GitHub:
+ * подтверждение руками, а не одной кнопкой, потому что вернуть ничего не
+ * получится; пароль — потому что открытая сессия ещё не значит, что за
+ * экраном владелец.
  */
 export function AccountData({ nickname, demo }: { nickname: string; demo: boolean }) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const matches = typed.trim().toLowerCase() === nickname;
+  const ready = matches && password.length > 0;
 
   function remove() {
     setError(null);
     startTransition(async () => {
       // При успехе действие перенаправляет на вход и сюда не возвращается.
-      const result = await deleteAccount(typed);
-      if (result && !result.ok) setError(result.error);
+      const result = await deleteAccount(typed, password);
+      if (result && !result.ok) {
+        setError(result.error);
+        setPassword("");
+      }
     });
   }
 
@@ -72,18 +80,19 @@ export function AccountData({ nickname, demo }: { nickname: string; demo: boolea
         onClose={() => {
           setOpen(false);
           setTyped("");
+          setPassword("");
           setError(null);
         }}
         title="Удалить аккаунт навсегда?"
         confirmLabel="Удалить аккаунт"
         onConfirm={() => {
-          if (matches) remove();
+          if (ready) remove();
         }}
         pending={pending}
-        confirmDisabled={!matches}
+        confirmDisabled={!ready}
       >
-        <p>Это нельзя отменить. Чтобы подтвердить, набери свой ник: {nickname}</p>
-        <Field label="Ник" htmlFor="delete-confirm" required error={error ?? undefined}>
+        <p>Это нельзя отменить. Чтобы подтвердить, набери свой ник: {nickname} — и пароль.</p>
+        <Field label="Ник" htmlFor="delete-confirm" required>
           <TextInput
             id="delete-confirm"
             value={typed}
@@ -92,6 +101,16 @@ export function AccountData({ nickname, demo }: { nickname: string; demo: boolea
             autoCapitalize="none"
             spellCheck={false}
             placeholder={nickname}
+          />
+        </Field>
+        <Field label="Пароль" htmlFor="delete-password" required error={error ?? undefined}>
+          <PasswordInput
+            id="delete-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            autoComplete="current-password"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? "delete-password-error" : undefined}
           />
         </Field>
       </ConfirmSheet>

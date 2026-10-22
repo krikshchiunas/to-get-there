@@ -6,7 +6,10 @@
  */
 
 import { redirect } from "next/navigation";
-import { fail, getActor, noActor, type ActionResult } from "@/lib/actions/actor";
+import { AUTH_MESSAGES } from "@/lib/auth/errors";
+import { confirmIdentity } from "@/lib/auth/reauth";
+import { reportAuthEvent } from "@/lib/auth/report";
+import { fail, getActor, noActor, notSignedIn, type ActionResult } from "@/lib/actions/actor";
 import { AVATAR_BUCKET, CHAT_MEDIA_BUCKET } from "@/lib/media";
 import { text } from "@/lib/validate";
 
@@ -16,17 +19,17 @@ const REMOVE_BATCH = 1000;
 /**
  * Удаляет аккаунт и всё, что с ним связано.
  *
- * Порядок важен. Сначала файлы: SQL их удалить не может, а после удаления
- * строки пользователя политики Storage уже не признают в нём владельца.
- * Потом delete_my_account() — каскады уносят профиль, идеи, сообщения,
- * подписки. Последним — выход, чтобы в браузере не осталось сессии.
- *
- * Подтверждение — ник, набранный руками: случайным нажатием аккаунт не
- * удалить.
+ * Порядок важен. Сначала подтверждение: ник, набранный руками (случайным
+ * нажатием аккаунт не удалить), и пароль (открытой чужой сессией — тоже).
+ * Потом файлы: SQL их удалить не может, а после удаления строки
+ * пользователя политики Storage уже не признают в нём владельца. Потом
+ * delete_my_account() — каскады уносят профиль, идеи, сообщения, подписки.
+ * Последним — выход, чтобы в браузере не осталось сессии.
  */
-export async function deleteAccount(confirmation: string): Promise<ActionResult> {
+export async function deleteAccount(confirmation: string, password: string): Promise<ActionResult> {
   const actor = await getActor();
   if (!actor) return noActor();
+  if (!actor.email) return notSignedIn;
 
   const { data: me } = await actor.supabase
     .from("users")
@@ -38,6 +41,19 @@ export async function deleteAccount(confirmation: string): Promise<ActionResult>
     return { ok: false, error: "Ник не совпал. Набери его точно так, как в профиле." };
   }
 
+  const verdict = await confirmIdentity(
+    actor.supabase,
+    actor.email,
+    typeof password === "string" ? password : "",
+    "/settings/account",
+  );
+  if (verdict !== "ok") {
+    return {
+      ok: false,
+      error: verdict === "invalid_credentials" ? "Пароль не подходит." : AUTH_MESSAGES[verdict],
+    };
+  }
+
   const paths = await collectFiles(actor);
   for (const [bucket, list] of paths) {
     for (let start = 0; start < list.length; start += REMOVE_BATCH) {
@@ -47,6 +63,7 @@ export async function deleteAccount(confirmation: string): Promise<ActionResult>
 
   const { error } = await actor.supabase.rpc("delete_my_account");
   if (error) return fail(error);
+  await reportAuthEvent("account_delete", "/settings/account");
 
   await actor.supabase.auth.signOut();
   redirect("/auth/login?deleted=1");

@@ -23,6 +23,9 @@ describe("safeNext — путь после входа", () => {
     ["https://evil.com", "абсолютный адрес"],
     ["evil.com", "путь без слэша"],
     ["javascript:alert(1)", "схема javascript"],
+    ["https://evil.example", "чужой сайт из адреса входа"],
+    ["https://evil.example/messages", "чужой сайт с правдоподобным путём"],
+    ["//evil.example/%2F..", "протокол-относительный с закодированным путём"],
   ])("отклоняет %s (%s)", (input) => {
     expect(safeNext(input)).toBe("/");
   });

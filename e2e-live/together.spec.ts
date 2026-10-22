@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { createConfirmedPerson, nicknameOf, signIn, type Person } from "./helpers";
+import { createConfirmedPerson, signIn, type Person } from "./helpers";
 
 /**
  * Двое в одном вузе: автор заводит идею, второй находит её, вступает и
@@ -71,7 +71,7 @@ test("идея на двоих: вступление, чат в реальном
 
   // Уведомление о новом участнике дошло — триггер читает user_settings (0040).
   await author.goto("/notifications");
-  await expect(author.getByText(nicknameOf(guestPerson)).first()).toBeVisible();
+  await expect(author.getByText(guestPerson.nickname!).first()).toBeVisible();
 
   // Права: чужую идею правкой не открыть.
   const edit = await guest.goto(`/post/${postId}/edit`);
@@ -100,7 +100,7 @@ test("интересы только для друзей: незнакомец н
   ]);
   const owner = await personIn(browser, ownerPerson);
   const stranger = await personIn(browser, strangerPerson);
-  const ownerNick = nicknameOf(ownerPerson);
+  const ownerNick = ownerPerson.nickname!;
   const interest = `Скалолазание${Date.now().toString(36).slice(-4)}`;
 
   await owner.goto("/settings/profile");

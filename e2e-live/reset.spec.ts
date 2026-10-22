@@ -1,5 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { alertIn, createConfirmedPerson, linkFromMail, signIn, signOut, type Person } from "./helpers";
+import {
+  alertIn,
+  createConfirmedPerson,
+  linkFromMail,
+  passwordField,
+  signIn,
+  signOut,
+  type Person,
+} from "./helpers";
 
 /**
  * Сброс пароля: письмо, ссылка, новый пароль. И то, чего быть не должно:
@@ -20,7 +28,7 @@ async function requestReset(page: Page, person: Person): Promise<number> {
 async function setNewPassword(page: Page, password: string): Promise<void> {
   await expect(page).toHaveURL(/\/auth\/reset$/);
   await expect(page.getByRole("heading", { name: "Новый пароль" })).toBeVisible();
-  await page.getByLabel("Новый пароль").fill(password);
+  await passwordField(page, "Новый пароль").fill(password);
   await page.getByLabel("Ещё раз").fill(password);
   await page.getByRole("button", { name: "Сохранить пароль" }).click();
   await expect(page).toHaveURL(/\/auth\/reset\/done$/);
@@ -30,7 +38,7 @@ async function setNewPassword(page: Page, password: string): Promise<void> {
 async function loginFails(page: Page, person: Person): Promise<void> {
   await page.goto("/auth/login");
   await page.getByLabel("Почта").fill(person.email);
-  await page.getByLabel("Пароль").fill(person.password);
+  await passwordField(page).fill(person.password);
   await page.getByRole("button", { name: "Войти" }).click();
   await expect(alertIn(page)).toHaveText("Неверная почта или пароль.");
 }
@@ -46,10 +54,13 @@ test("сброс в том же браузере: ссылка из письма
 
   // Несовпадающий повтор — ошибка на месте, а не «готово».
   await expect(page).toHaveURL(/\/auth\/reset$/);
-  await page.getByLabel("Новый пароль").fill(fresh);
+  // Форма говорит, какой аккаунт меняет, и подсказывает его менеджеру паролей.
+  await expect(page.getByText(person.email)).toBeVisible();
+  await expect(page.locator('input[autocomplete="username"]')).toHaveValue(person.email);
+  await passwordField(page, "Новый пароль").fill(fresh);
   await page.getByLabel("Ещё раз").fill(`${fresh}!`);
   await page.getByRole("button", { name: "Сохранить пароль" }).click();
-  await expect(alertIn(page)).toHaveText("Пароли не совпадают.");
+  await expect(page.locator("#repeat-error")).toHaveText("Пароли не совпадают.");
 
   await setNewPassword(page, fresh);
   await page.getByRole("link", { name: "В приложение" }).click();
@@ -86,7 +97,7 @@ test("форма нового пароля не открывается без с
 
   await page.goto("/auth/reset");
   await expect(page.getByRole("heading", { name: "Ссылка устарела" })).toBeVisible();
-  await expect(page.getByLabel("Новый пароль")).toHaveCount(0);
+  await expect(passwordField(page, "Новый пароль")).toHaveCount(0);
 });
 
 test("использованная ссылка второй раз не срабатывает", async ({ page }) => {
@@ -108,4 +119,30 @@ test("на неизвестную почту ответ тот же — форм
   await page.getByRole("button", { name: "Прислать ссылку" }).click();
   await expect(page).toHaveURL(/\/auth\/check-email\?reason=reset/);
   await expect(page.getByText("Если есть аккаунт с почтой")).toBeVisible();
+});
+
+test("повторный запрос сброса в ту же минуту — тот же ответ, есть аккаунт или нет", async ({ page }) => {
+  // Раньше второй запрос на существующую почту отвечал «письмо уже
+  // отправлено», а на несуществующую — «проверь почту»: по разнице было
+  // видно, кто зарегистрирован.
+  const person = await createConfirmedPerson("twice");
+  await requestReset(page, person);
+  await requestReset(page, person);
+  await expect(page.getByText("Если есть аккаунт с почтой")).toBeVisible();
+  expect(page.url()).not.toContain(encodeURIComponent(person.email));
+});
+
+test("смена пароля по ссылке выкидывает другие устройства", async ({ page, browser }) => {
+  const person = await createConfirmedPerson("kick");
+  const laptop = await browser.newContext();
+  const other = await laptop.newPage();
+  await signIn(other, person);
+
+  const since = await requestReset(page, person);
+  await page.goto(await linkFromMail(person.email, since));
+  await setNewPassword(page, `${person.password}-kick`);
+
+  await other.goto("/settings");
+  await expect(other).toHaveURL(/\/auth\/login/);
+  await laptop.close();
 });

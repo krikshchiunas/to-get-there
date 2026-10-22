@@ -4,10 +4,11 @@ import { expect, type BrowserContext, type Locator, type Page } from "@playwrigh
 /**
  * Общее для E2E со входом: люди, письма и сессия.
  *
- * Пароли генерируются на каждый прогон и нигде не печатаются; почта — на
- * домене вуза из сида (tu-berlin.de), иначе регистрацию не пропустит
- * триггер 0013. Письма никуда не уходят: локальная Supabase складывает их
- * в Mailpit.
+ * Пароли генерируются на каждый прогон и нигде не печатаются. Почта по
+ * умолчанию — на домене вуза из сида (tu-berlin.de): так у человека есть
+ * вуз и лента «Университет». Регистрация открыта для любой почты (0044) —
+ * это проверяют отдельные тесты с domain. Письма никуда не уходят: локальная
+ * Supabase складывает их в Mailpit.
  */
 
 export const API_URL = process.env.API_URL ?? "http://127.0.0.1:54321";
@@ -17,20 +18,32 @@ const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
 export interface Person {
   email: string;
   password: string;
+  /** Есть у созданных через createConfirmedPerson: ник случайный (0043), его не вывести из почты. */
+  nickname?: string;
+  /** auth.users.id */
+  id?: string;
 }
 
-/** Новый адрес и пароль. `tag` попадает в ник — по нему легче читать отчёт. */
-export function newPerson(tag: string): Person {
+/** Новый адрес и пароль. `tag` попадает в адрес — по нему легче читать отчёт. */
+export function newPerson(tag: string, domain = "tu-berlin.de"): Person {
   const stamp = randomUUID().replace(/-/g, "").slice(0, 8);
   return {
-    email: `e2e.${tag}.${stamp}@tu-berlin.de`,
+    email: `e2e.${tag}.${stamp}@${domain}`,
     password: `${randomBytes(12).toString("base64url")}-Aa1`,
   };
 }
 
-/** Ник, который мост 0013 выводит из адреса: локальная часть, не длиннее 19. */
-export function nicknameOf(person: Person): string {
-  return person.email.split("@")[0].slice(0, 19);
+/** Строки public.users от имени service role — чтобы проверить, что записала база. */
+export async function profileOf(
+  authUserId: string,
+): Promise<{ id: string; nickname: string; university_id: string | null }> {
+  const response = await fetch(
+    `${API_URL}/rest/v1/users?auth_user_id=eq.${authUserId}&select=id,nickname,university_id`,
+    { headers: adminHeaders() },
+  );
+  const [row] = (await response.json()) as { id: string; nickname: string; university_id: string | null }[];
+  if (!row) throw new Error(`У аккаунта ${authUserId} нет профиля`);
+  return row;
 }
 
 function adminHeaders(): Record<string, string> {
@@ -42,8 +55,8 @@ function adminHeaders(): Record<string, string> {
 }
 
 /** Аккаунт с подтверждённой почтой — для тестов, где регистрация не предмет проверки. */
-export async function createConfirmedPerson(tag: string): Promise<Person> {
-  const person = newPerson(tag);
+export async function createConfirmedPerson(tag: string, domain?: string): Promise<Person> {
+  const person = newPerson(tag, domain);
   const response = await fetch(`${API_URL}/auth/v1/admin/users`, {
     method: "POST",
     headers: adminHeaders(),
@@ -52,7 +65,9 @@ export async function createConfirmedPerson(tag: string): Promise<Person> {
   if (!response.ok) {
     throw new Error(`Не удалось создать тестовый аккаунт: ${response.status} ${await response.text()}`);
   }
-  return person;
+  const { id } = (await response.json()) as { id: string };
+  const profile = await profileOf(id);
+  return { ...person, id, nickname: profile.nickname };
 }
 
 interface MailSummary {
@@ -96,11 +111,16 @@ export function alertIn(page: Page): Locator {
   return page.locator('[role="alert"]:not(#__next-route-announcer__)');
 }
 
+/** Поле пароля по подписи — exact: рядом кнопка «Показать пароль». */
+export function passwordField(page: Page, label = "Пароль"): Locator {
+  return page.getByLabel(label, { exact: true });
+}
+
 /** Вход через форму — так же, как входит человек. */
 export async function signIn(page: Page, person: Person, next?: string): Promise<void> {
   await page.goto(next ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login");
   await page.getByLabel("Почта").fill(person.email);
-  await page.getByLabel("Пароль").fill(person.password);
+  await passwordField(page).fill(person.password);
   await page.getByRole("button", { name: "Войти" }).click();
   await expect(page).not.toHaveURL(/\/auth\/login/);
 }
@@ -114,19 +134,49 @@ export async function signOut(page: Page): Promise<void> {
 
 const AUTH_COOKIE = /^sb-.+-auth-token(\.\d+)?$/;
 
+/** Сессия из cookie браузера — так, как её видит браузерный клиент Supabase. */
+async function sessionOf(context: BrowserContext) {
+  const cookies = (await context.cookies()).filter((cookie) => AUTH_COOKIE.test(cookie.name));
+  expect(cookies.length, "cookie сессии Supabase").toBeGreaterThan(0);
+  const ordered = [...cookies].sort((a, b) => a.name.localeCompare(b.name, "en", { numeric: true }));
+  const raw = ordered.map((cookie) => cookie.value).join("");
+  const json = raw.startsWith("base64-") ? Buffer.from(raw.slice(7), "base64url").toString("utf8") : raw;
+  return { session: JSON.parse(json) as Record<string, unknown>, cookies: ordered };
+}
+
+/**
+ * Access-токен вошедшего — чтобы ходить в API Supabase мимо приложения,
+ * как это сделал бы человек из DevTools. Так проверяется, что права держит
+ * база, а не экран.
+ */
+export async function accessTokenOf(context: BrowserContext): Promise<string> {
+  const { session } = await sessionOf(context);
+  return String(session.access_token);
+}
+
+const ANON_KEY = process.env.ANON_KEY ?? process.env.PUBLISHABLE_KEY ?? "";
+
+/** Запрос к /rest/v1 с чужим для приложения, но настоящим токеном пользователя. */
+export async function restAs(token: string, path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${API_URL}/rest/v1/${path}`, {
+    ...init,
+    headers: {
+      apikey: ANON_KEY,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...(init.headers ?? {}),
+    },
+  });
+}
+
 /**
  * Сессия, которую уже не продлить: срок вышел, refresh-токен отозван.
  * Так выглядит браузер, вернувшийся через неделю после выхода с другого
  * устройства.
  */
 export async function expireSession(context: BrowserContext): Promise<void> {
-  const cookies = (await context.cookies()).filter((cookie) => AUTH_COOKIE.test(cookie.name));
-  expect(cookies.length, "cookie сессии Supabase").toBeGreaterThan(0);
-
-  const ordered = [...cookies].sort((a, b) => a.name.localeCompare(b.name, "en", { numeric: true }));
-  const raw = ordered.map((cookie) => cookie.value).join("");
-  const json = raw.startsWith("base64-") ? Buffer.from(raw.slice(7), "base64url").toString("utf8") : raw;
-  const session = JSON.parse(json) as Record<string, unknown>;
+  const { session, cookies: ordered } = await sessionOf(context);
 
   session.expires_at = Math.floor(Date.now() / 1000) - 3600;
   session.refresh_token = "revoked-by-e2e";

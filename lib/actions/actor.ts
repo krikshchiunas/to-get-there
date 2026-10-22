@@ -6,6 +6,7 @@
  * Здесь — только то, что нужно, чтобы ответить человеку понятно.
  */
 
+import { profileIdOf } from "@/lib/data/session";
 import { createClient } from "@/lib/supabase/server";
 
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
@@ -24,10 +25,10 @@ export async function getActor() {
 
   // Своя строка users видна по RLS — то же сопоставление, что делает
   // private.current_user_id() в политиках (auth_user_id = auth.uid()).
-  const { data: me } = await supabase.from("users").select("id").eq("auth_user_id", user.id).maybeSingle();
-  if (!me) return null;
+  const viewerId = await profileIdOf(supabase, user.id);
+  if (!viewerId) return null;
 
-  return { supabase, viewerId: me.id, authUserId: user.id };
+  return { supabase, viewerId, authUserId: user.id, email: user.email ?? null };
 }
 
 export const notSignedIn: ActionResult = {

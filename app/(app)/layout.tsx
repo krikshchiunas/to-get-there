@@ -1,3 +1,4 @@
+import { SessionSync } from "@/components/auth/session-sync";
 import { Nav } from "@/components/nav/bottom-nav";
 import { ToastHost } from "@/components/ui/toast";
 import { LiveRefresh } from "@/lib/live";
@@ -39,6 +40,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <ToastHost />
       {/* Личка и уведомления: бейджи и списки обновляются сами. */}
       <LiveRefresh topic={`user:${viewer.id}`} />
+      {/* Выход в другой вкладке — эта тоже уходит на вход. */}
+      <SessionSync />
     </div>
   );
 }

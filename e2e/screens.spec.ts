@@ -25,6 +25,7 @@ const screens: { path: string; title: RegExp }[] = [
   { path: "/settings/verification", title: /Верификация/ },
   { path: "/settings/blocked", title: /Заблокированные/ },
   { path: "/settings/account", title: /Данные и аккаунт/ },
+  { path: "/settings/security", title: /Вход и безопасность/ },
   { path: "/legal", title: /Документы/ },
   { path: "/legal/impressum", title: /Impressum/ },
   { path: "/legal/privacy", title: /Конфиденциальность/ },
@@ -33,6 +34,9 @@ const screens: { path: string; title: RegExp }[] = [
   { path: "/auth/login", title: /Вход/ },
   { path: "/auth/signup", title: /Регистрация/ },
   { path: "/auth/forgot", title: /Восстановление пароля/ },
+  { path: "/auth/check-email", title: /Проверь почту/ },
+  { path: "/auth/check-email?reason=reset", title: /Проверь почту/ },
+  { path: "/auth/login?expired=1&next=%2Fmessages", title: /Вход/ },
   { path: "/auth/reset", title: /Новый пароль/ },
   { path: "/auth/reset/done", title: /Пароль обновлён/ },
 ];

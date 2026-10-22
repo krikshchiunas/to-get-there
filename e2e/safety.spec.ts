@@ -13,7 +13,7 @@ test("в чужом профиле есть «Заблокировать» с о
   await expect(confirm).toBeHidden();
 });
 
-test("удаление аккаунта требует набрать ник", async ({ page }) => {
+test("удаление аккаунта требует набрать ник и пароль", async ({ page }) => {
   await page.goto("/settings/account");
   await page.getByRole("button", { name: "Удалить аккаунт" }).click();
 
@@ -23,6 +23,9 @@ test("удаление аккаунта требует набрать ник", a
   await confirm.getByLabel("Ник").fill("не тот ник");
   await expect(remove).toBeDisabled();
   await confirm.getByLabel("Ник").fill("mara_t");
+  // Ник верный, но без пароля открытая сессия аккаунт не удалит.
+  await expect(remove).toBeDisabled();
+  await confirm.getByLabel("Пароль", { exact: true }).fill("любой пароль");
   await expect(remove).toBeEnabled();
 });
 
@@ -37,7 +40,8 @@ test("ссылка «Перейти к содержанию» — первая �
 
 test("регистрация показывает условия и возраст", async ({ page }) => {
   await page.goto("/auth/signup");
-  await expect(page.getByText(/тебе есть 16/)).toBeVisible();
+  await expect(page.getByText(/Мне есть 16/)).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: /Мне есть 16/ })).not.toBeChecked();
   await expect(page.getByRole("link", { name: "условия", exact: true })).toHaveAttribute(
     "href",
     "/legal/terms",

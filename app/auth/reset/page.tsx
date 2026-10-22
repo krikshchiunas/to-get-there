@@ -15,12 +15,14 @@ export default async function ResetPage() {
   const store = await cookies();
   const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
   let allowed = false;
+  let email: string | null = null;
   if (!usingMocks) {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
     allowed = recoveryMatches(store.get(RECOVERY_COOKIE)?.value, user?.id);
+    email = user?.email ?? null;
   }
 
   if (!allowed) {
@@ -45,9 +47,15 @@ export default async function ResetPage() {
     <>
       <h1 className="mb-1.5 text-[24px] font-semibold">Новый пароль</h1>
       <p className="mb-8 text-[15px] leading-[1.4] text-ink-soft">
-        Придумай пароль, которого нет на других сайтах.
+        {email ? (
+          <>
+            Для аккаунта <span className="break-all text-ink">{email}</span>.{" "}
+          </>
+        ) : null}
+        Придумай пароль, которого нет на других сайтах. После сохранения на других устройствах нужно будет
+        войти заново.
       </p>
-      <NewPasswordForm />
+      <NewPasswordForm email={email} />
     </>
   );
 }

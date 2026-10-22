@@ -13,12 +13,41 @@
 
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
+import type { AccountInfo } from "@/lib/types";
+import { reportAuthEvent, reportAuthFailure } from "@/lib/auth/report";
 import { createClient } from "@/lib/supabase/server";
 
 /** mara_t — тот же, кого lib/mock/users.ts зовёт `currentUser`. */
 export const DEV_VIEWER_ID = "33333333-3333-3333-3333-000000000001";
 
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
+
+/**
+ * users.id для аккаунта из сессии.
+ *
+ * Профиль создаёт триггер регистрации в той же транзакции, что и аккаунт
+ * (0013, 0043), а удалить его в обход аккаунта нельзя — так что «аккаунт без
+ * профиля» почти невозможен. Если он всё же случился (аккаунт старше моста,
+ * ручная правка базы), профиль восстанавливается по тем же правилам, что при
+ * регистрации, вместо того чтобы экран упал.
+ */
+export async function profileIdOf(
+  supabase: SupabaseClient<Database>,
+  authUserId: string,
+): Promise<string | null> {
+  const { data } = await supabase.from("users").select("id").eq("auth_user_id", authUserId).maybeSingle();
+  if (data) return data.id;
+
+  const { data: repaired, error } = await supabase.rpc("ensure_my_profile");
+  if (error || !repaired) {
+    await reportAuthFailure("profile_repair", "session", "server");
+    return null;
+  }
+  await reportAuthEvent("profile_repair", "session");
+  return repaired;
+}
 
 /**
  * Идентификатор зрителя в public.users или null без входа.
@@ -35,17 +64,31 @@ export const getViewerId = cache(async (): Promise<string | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase.from("users").select("id").eq("auth_user_id", user.id).maybeSingle();
-  return data?.id ?? null;
+  return profileIdOf(supabase, user.id);
 });
+
+/** Почта и даты аккаунта — для «Вход и безопасность». Из Auth, не из профиля. */
+export async function loadAccount(): Promise<AccountInfo> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) redirect("/auth/login?error=session");
+  return {
+    email: user.email,
+    created_at: user.created_at,
+    email_confirmed_at: user.email_confirmed_at ?? null,
+  };
+}
 
 /**
  * Зритель для запросов, которым без него нечего показывать. Middleware уже
  * не пускает на такие экраны без входа; редирект здесь — страховка на случай,
- * если сессия истекла между проверкой и запросом.
+ * если сессия истекла между проверкой и запросом. `error=session` не даёт
+ * middleware вернуть вошедшего обратно сюда же — иначе петля.
  */
 export async function requireViewerId(): Promise<string> {
   const id = await getViewerId();
-  if (!id) redirect("/auth/login");
+  if (!id) redirect("/auth/login?error=session");
   return id;
 }

@@ -1,49 +1,87 @@
 "use client";
 
 import { useActionState } from "react";
+import { updatePassword } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
-import { Field, TextInput } from "@/components/ui/field";
-import { updatePassword, type PasswordState } from "@/app/auth/actions";
-import { MIN_PASSWORD } from "@/lib/recovery";
+import { describedBy, Field } from "@/components/ui/field";
+import { initialFormState, type FormState } from "@/lib/auth/form-state";
+import {
+  PASSWORD_HINT,
+  passwordProblem,
+  validateNewPassword,
+  type NewPasswordField,
+} from "@/lib/auth/validation";
+import { FormError } from "./form-message";
+import { PasswordInput } from "./password-input";
+import { useFormErrors } from "./use-form-errors";
 
-/** Новый пароль дважды. После успеха действие ведёт на /auth/reset/done. */
-export function NewPasswordForm() {
-  const [state, submit, pending] = useActionState<PasswordState, FormData>(updatePassword, { error: null });
+const ORDER: readonly NewPasswordField[] = ["password", "repeat"];
 
-  const describedBy = state.error ? "password-error" : undefined;
+/**
+ * Новый пароль дважды. После успеха действие ведёт на /auth/reset/done.
+ *
+ * Скрытое поле с почтой — для менеджеров паролей: по нему они понимают, у
+ * какой записи обновить пароль (так советуют Chrome и Apple для форм
+ * сброса). Атрибут hidden (display:none), а не type=hidden: поля type=hidden
+ * менеджеры не читают.
+ */
+export function NewPasswordForm({ email }: { email: string | null }) {
+  const [state, submit, pending] = useActionState(
+    updatePassword,
+    initialFormState as FormState<NewPasswordField>,
+  );
+  const { errorOf, clear, check, guard, alertRef } = useFormErrors(state, ORDER);
+  const errors = { password: errorOf("password"), repeat: errorOf("repeat") };
 
   return (
-    <form action={submit} className="space-y-5" noValidate>
-      <Field label="Новый пароль" htmlFor="password" required hint={`Не короче ${MIN_PASSWORD} символов.`}>
-        <TextInput
+    <form
+      action={submit}
+      noValidate
+      className="space-y-5"
+      onSubmit={(event) => {
+        const data = new FormData(event.currentTarget);
+        guard(
+          event,
+          validateNewPassword(String(data.get("password") ?? ""), String(data.get("repeat") ?? "")),
+        );
+      }}
+    >
+      {email ? (
+        <input type="email" name="username" autoComplete="username" value={email} readOnly hidden />
+      ) : null}
+
+      <Field label="Новый пароль" htmlFor="password" required hint={PASSWORD_HINT} error={errors.password}>
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="new-password"
-          minLength={MIN_PASSWORD}
           required
-          aria-invalid={state.error ? true : undefined}
-          aria-describedby={describedBy}
+          aria-invalid={errors.password ? true : undefined}
+          aria-describedby={describedBy("password", { hint: true, error: errors.password })}
+          onChange={() => clear("password")}
+          onBlur={(event) => {
+            const value = event.currentTarget.value;
+            if (value) check(event, "password", passwordProblem(value));
+          }}
         />
       </Field>
 
-      <Field label="Ещё раз" htmlFor="repeat" required>
-        <TextInput
+      <Field label="Ещё раз" htmlFor="repeat" required error={errors.repeat}>
+        <PasswordInput
           id="repeat"
           name="repeat"
-          type="password"
           autoComplete="new-password"
-          minLength={MIN_PASSWORD}
           required
-          aria-invalid={state.error ? true : undefined}
-          aria-describedby={describedBy}
+          aria-invalid={errors.repeat ? true : undefined}
+          aria-describedby={describedBy("repeat", { error: errors.repeat })}
+          onChange={() => clear("repeat")}
         />
       </Field>
 
-      {state.error ? (
-        <p id="password-error" role="alert" className="text-[14px] leading-[1.4] text-heat">
-          {state.error}
-        </p>
+      {state.formError ? (
+        <FormError id="password-error" ref={alertRef}>
+          {state.formError}
+        </FormError>
       ) : null}
 
       <Button type="submit" size="lg" full disabled={pending}>

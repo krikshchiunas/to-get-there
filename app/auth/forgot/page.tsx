@@ -12,7 +12,9 @@ export default async function ForgotPage({
   const notice =
     params.error === "link"
       ? "Ссылка из письма устарела или уже использована. Запроси новую — она придёт за минуту."
-      : null;
+      : params.error === "browser"
+        ? "Ссылку открыли не в том браузере, где запрашивали сброс. Запроси письмо ещё раз и открой ссылку на этом устройстве."
+        : null;
 
   return (
     <>

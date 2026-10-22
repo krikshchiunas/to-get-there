@@ -2,29 +2,38 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { requestPasswordReset } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
-import { Field, TextInput } from "@/components/ui/field";
-import { requestPasswordReset, type AuthState } from "@/app/auth/actions";
+import { describedBy, Field, TextInput } from "@/components/ui/field";
+import { initialFormState, type FormState } from "@/lib/auth/form-state";
+import { emailProblem, normalizeEmail } from "@/lib/auth/validation";
+import { FormError, FormNotice } from "./form-message";
+import { useFormErrors } from "./use-form-errors";
+
+const ORDER = ["email"] as const;
 
 /** Почта для письма со ссылкой восстановления. */
 export function ForgotForm({ notice }: { notice?: string | null }) {
-  const [state, submit, pending] = useActionState<AuthState, FormData>(requestPasswordReset, {
-    error: null,
-    email: "",
-  });
+  const [state, submit, pending] = useActionState(
+    requestPasswordReset,
+    initialFormState as FormState<"email">,
+  );
+  const { errorOf, clear, check, guard, alertRef } = useFormErrors(state, ORDER);
+  const error = errorOf("email");
 
   return (
-    <form action={submit} className="space-y-5" noValidate>
-      {notice && !state.error ? (
-        <p
-          role="status"
-          className="rounded-field bg-sunken px-4 py-3 text-[14px] leading-[1.4] text-ink-soft"
-        >
-          {notice}
-        </p>
-      ) : null}
+    <form
+      action={submit}
+      noValidate
+      className="space-y-5"
+      onSubmit={(event) => {
+        const problem = emailProblem(normalizeEmail(new FormData(event.currentTarget).get("email")));
+        guard(event, problem ? { email: problem } : {});
+      }}
+    >
+      {notice && state.status === "idle" ? <FormNotice>{notice}</FormNotice> : null}
 
-      <Field label="Почта" htmlFor="email" required>
+      <Field label="Почта" htmlFor="email" required error={error}>
         <TextInput
           id="email"
           name="email"
@@ -34,17 +43,21 @@ export function ForgotForm({ notice }: { notice?: string | null }) {
           autoCapitalize="none"
           spellCheck={false}
           defaultValue={state.email}
-          placeholder="имя@tu-berlin.de"
           required
-          aria-invalid={state.error ? true : undefined}
-          aria-describedby={state.error ? "forgot-error" : undefined}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy("email", { error })}
+          onChange={() => clear("email")}
+          onBlur={(event) => {
+            const value = normalizeEmail(event.currentTarget.value);
+            if (value) check(event, "email", emailProblem(value));
+          }}
         />
       </Field>
 
-      {state.error ? (
-        <p id="forgot-error" role="alert" className="text-[14px] leading-[1.4] text-heat">
-          {state.error}
-        </p>
+      {state.formError ? (
+        <FormError id="forgot-error" ref={alertRef}>
+          {state.formError}
+        </FormError>
       ) : null}
 
       <Button type="submit" size="lg" full disabled={pending}>

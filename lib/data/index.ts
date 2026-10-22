@@ -14,6 +14,7 @@
  */
 
 import type {
+  AccountInfo,
   Category,
   ChatRole,
   ConversationView,
@@ -40,6 +41,7 @@ import * as dbSearch from "./search";
 import * as dbReference from "./reference";
 import * as dbVerification from "./verification";
 import { loadViewer } from "./social";
+import { loadAccount } from "./session";
 
 /** Источник данных. Снять флаг — значит перевести экраны на базу. */
 export const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
@@ -54,6 +56,16 @@ export { canEnterChat, chatAccessReason, canMessage, canSeeProfile, canSeeIntere
 /** Кто смотрит. На этапе 6 заменяется чтением сессии. */
 export async function getViewer(): Promise<UserView> {
   return usingMocks ? mock.currentUser : loadViewer();
+}
+
+/** Аккаунт зрителя: почта и даты. В моках — демо-почта mara_t. */
+export async function getAccount(): Promise<AccountInfo> {
+  if (!usingMocks) return loadAccount();
+  return {
+    email: "mara.t@tu-berlin.de",
+    created_at: mock.currentUser.created_at,
+    email_confirmed_at: mock.currentUser.created_at,
+  };
 }
 
 /* ── справочники ────────────────────────────────────────────────── */

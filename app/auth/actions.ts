@@ -1,142 +1,232 @@
 "use server";
 
 /**
- * Вход, регистрация, сброс пароля и выход.
+ * Вход, регистрация, письма, пароль и выход.
  *
  * Серверные действия, а не клиентские вызовы: пароль не проходит через
- * JavaScript браузера дальше формы, а сессия сразу ложится в httpOnly-cookie.
+ * JavaScript браузера дальше формы, сессия сразу ложится в cookie, а
+ * проверку полей нельзя обойти — форма проверяет то же самое только ради
+ * подсказок (lib/auth/validation.ts).
+ *
+ * Чего ответы не выдают: есть ли аккаунт с этой почтой. Регистрация на
+ * занятый адрес, сброс пароля и повторное письмо отвечают так же, как на
+ * свободный (docs/AUTH.md, «Перечисление аккаунтов»).
  */
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { AUTH_MESSAGES, type AuthFailure } from "@/lib/auth/errors";
+import { fieldFailure, formFailure, formSuccess, type FormState } from "@/lib/auth/form-state";
+import { PENDING_EMAIL_COOKIE, pendingEmailCookieOptions, readPendingEmail } from "@/lib/auth/pending-email";
+import { reportAuthEvent, reportAuthFailure } from "@/lib/auth/report";
+import { isSessionCookie } from "@/lib/auth/session-cookies";
 import {
-  checkNewPassword,
-  MIN_PASSWORD,
-  RECOVERY_COOKIE,
-  recoveryMatches,
-  RESET_DONE_PATH,
-} from "@/lib/recovery";
+  hasErrors,
+  normalizeEmail,
+  readPassword,
+  validateLogin,
+  validateNewPassword,
+  validatePasswordChange,
+  validateSignup,
+  emailProblem,
+  type ChangePasswordField,
+  type LoginField,
+  type NewPasswordField,
+  type SignupField,
+} from "@/lib/auth/validation";
+import { LEGAL_REVISION } from "@/lib/legal";
+import { RECOVERY_COOKIE, recoveryMatches, RESET_DONE_PATH } from "@/lib/recovery";
 import { safeNext } from "@/lib/safe-next";
 import { siteUrl } from "@/lib/site-url";
+import { confirmIdentity } from "@/lib/auth/reauth";
+import { createAuthGateway } from "@/lib/supabase/auth";
+import { createClient } from "@/lib/supabase/server";
 
-export interface AuthState {
-  error: string | null;
-  /** Что ввёл человек — чтобы при ошибке не набирать почту заново. */
-  email: string;
+const secureCookies = process.env.NODE_ENV === "production";
+
+async function rememberPendingEmail(email: string): Promise<void> {
+  (await cookies()).set(PENDING_EMAIL_COOKIE, email, pendingEmailCookieOptions(secureCookies));
 }
 
-function readEmail(form: FormData): string {
-  return String(form.get("email") ?? "")
-    .trim()
-    .toLowerCase();
+/** Куда вести из письма: наш адрес (не Host запроса) и, если есть, экран, ради которого входили. */
+async function callbackUrl(next: string, type?: "recovery"): Promise<string> {
+  const url = new URL("/auth/callback", await siteUrl());
+  if (type) url.searchParams.set("type", type);
+  if (next !== "/") url.searchParams.set("next", next);
+  return url.toString();
 }
 
-/** Сообщения Supabase — на русский и словами пользователя. */
-function explain(message: string): string {
-  const m = message.toLowerCase();
-  if (m.includes("invalid login credentials")) return "Неверная почта или пароль.";
-  if (m.includes("email not confirmed")) {
-    return "Почта ещё не подтверждена. Открой письмо от To Get There и перейди по ссылке.";
+/* ── вход ──────────────────────────────────────────────────────────── */
+
+export async function signIn(_: FormState<LoginField>, form: FormData): Promise<FormState<LoginField>> {
+  const email = normalizeEmail(form.get("email"));
+  const password = readPassword(form.get("password"));
+  const next = safeNext(form.get("next"));
+
+  const problems = validateLogin({ email, password });
+  if (hasErrors(problems)) return fieldFailure(email, problems);
+
+  const auth = await createAuthGateway();
+  const { error } = await auth.signInWithPassword({ email, password });
+  if (error) {
+    const kind = await reportAuthFailure("sign_in", "/auth/login", error);
+    if (kind === "email_not_confirmed") {
+      // Пароль верный — человек доказал, что аккаунт его; можно предложить письмо.
+      await rememberPendingEmail(email);
+      return formFailure(email, AUTH_MESSAGES.email_not_confirmed, { unconfirmed: true });
+    }
+    return formFailure(email, signInMessage(kind));
   }
-  if (m.includes("already registered") || m.includes("already been registered")) {
-    return "С этой почтой уже есть аккаунт. Войди или восстанови пароль.";
-  }
-  // Триггер регистрации отказывает чужому домену, а Supabase отдаёт это
-  // наружу как общую ошибку базы. Подменяем на то, что произошло на деле.
-  if (m.includes("database error saving new user")) {
-    return "Этот адрес не относится ни к одному университету из списка. Используй университетскую почту.";
-  }
-  // Supabase сам проверяет, что на адрес можно доставить письмо, и
-  // отклоняет недоставляемые домены раньше нашего триггера.
-  if (m.includes("is invalid") || m.includes("email_address_invalid")) {
-    return "Этот адрес почты не принимается. Проверь, что он написан без ошибок.";
-  }
-  if (m.includes("error sending") || m.includes("sending confirmation")) {
-    return "Не удалось отправить письмо подтверждения. Попробуй через несколько минут.";
-  }
-  if (m.includes("should be different")) return "Новый пароль должен отличаться от прежнего.";
-  if (m.includes("rate limit") || m.includes("too many")) {
-    return "Слишком много попыток. Подожди минуту и попробуй снова.";
-  }
-  if (m.includes("password")) return `Пароль должен быть не короче ${MIN_PASSWORD} символов.`;
-  return "Не получилось. Проверь данные и попробуй ещё раз.";
+
+  redirect(next);
 }
 
-export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
-  const email = readEmail(form);
-  const password = String(form.get("password") ?? "");
+function signInMessage(kind: AuthFailure): string {
+  switch (kind) {
+    case "invalid_credentials":
+    case "rate_limited":
+      return AUTH_MESSAGES[kind];
+    case "invalid_email":
+      return AUTH_MESSAGES.invalid_credentials;
+    default:
+      return AUTH_MESSAGES.server;
+  }
+}
 
-  if (!email || !password) return { error: "Введи почту и пароль.", email };
+/* ── регистрация ───────────────────────────────────────────────────── */
 
+export async function signUp(_: FormState<SignupField>, form: FormData): Promise<FormState<SignupField>> {
+  const email = normalizeEmail(form.get("email"));
+  const password = readPassword(form.get("password"));
+  const repeat = readPassword(form.get("repeat"));
+  const terms = form.get("terms") === "on";
+  const next = safeNext(form.get("next"));
+
+  const problems = validateSignup({ email, password, repeat, terms });
+  if (hasErrors(problems)) return fieldFailure(email, problems);
+
+  // Подсказка до похода в Auth: на отказ триггера он отвечает общей ошибкой
+  // базы. Отказывает всё равно база (0043), поэтому при сбое проверки —
+  // идём дальше, а не закрываем регистрацию.
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: explain(error.message), email };
-
-  redirect(safeNext(form.get("next")));
-}
-
-export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
-  const email = readEmail(form);
-  const password = String(form.get("password") ?? "");
-
-  if (!email.includes("@")) return { error: "Введи адрес почты целиком.", email };
-  if (password.length < MIN_PASSWORD) {
-    return { error: `Пароль должен быть не короче ${MIN_PASSWORD} символов.`, email };
+  const { data: allowed, error: eligibilityError } = await supabase.rpc("signup_allowed", { email });
+  if (eligibilityError) await reportAuthFailure("sign_up", "/auth/signup", "server");
+  else if (allowed === false) {
+    return fieldFailure(email, {
+      email: "Сейчас аккаунт можно создать только с почтой университета из списка — например, @tu-berlin.de.",
+    });
   }
 
-  // Куда вести после клика в письме — адрес из настроек (lib/site-url.ts).
-  const origin = await siteUrl();
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
+  const auth = await createAuthGateway();
+  const { data, error } = await auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${origin}/auth/callback` },
+    options: {
+      emailRedirectTo: await callbackUrl(next),
+      // Какую редакцию условий человек принял. Сам флажок проверен выше.
+      data: { terms_revision: LEGAL_REVISION, terms_accepted_at: new Date().toISOString() },
+    },
   });
-  if (error) return { error: explain(error.message), email };
 
-  // Подтверждение почты выключено — сессия уже есть, можно сразу внутрь.
-  if (data.session) redirect("/");
-
-  redirect(`/auth/check-email?email=${encodeURIComponent(email)}`);
-}
-
-/**
- * «Забыли пароль?» — письмо со ссылкой восстановления.
- *
- * Ответ одинаковый, есть аккаунт с такой почтой или нет: иначе форма
- * отвечала бы на вопрос «зарегистрирован ли этот человек».
- */
-export async function requestPasswordReset(_: AuthState, form: FormData): Promise<AuthState> {
-  const email = readEmail(form);
-  if (!email.includes("@")) return { error: "Введи адрес почты целиком.", email };
-
-  const origin = await siteUrl();
-  const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/auth/callback?type=recovery`,
-  });
-  // Частота — единственная ошибка, о которой стоит сказать: остальные
-  // выдали бы, существует ли адрес.
-  if (error && /rate limit|too many|security purposes/i.test(error.message)) {
-    return { error: "Письмо уже отправлено. Подожди минуту и попробуй снова.", email };
+  if (error) {
+    const kind = await reportAuthFailure("sign_up", "/auth/signup", error);
+    switch (kind) {
+      // Занятый адрес и «письмо уже ушло» — тот же ответ, что и свободному
+      // адресу: «проверь почту». Иначе форма выдавала бы, кто здесь есть.
+      case "user_exists":
+      case "email_frequency":
+        break;
+      case "weak_password":
+      case "leaked_password":
+        return fieldFailure(email, { password: AUTH_MESSAGES[kind] });
+      case "invalid_email":
+        return fieldFailure(email, { email: AUTH_MESSAGES.invalid_email });
+      case "rate_limited":
+      case "email_quota":
+      case "email_send_failed":
+      case "signup_disabled":
+        return formFailure(email, AUTH_MESSAGES[kind]);
+      default:
+        return formFailure(email, AUTH_MESSAGES.server);
+    }
   }
 
-  redirect(`/auth/check-email?reason=reset&email=${encodeURIComponent(email)}`);
+  // Подтверждение почты выключено (бывает локально) — сессия уже есть.
+  if (data?.session) redirect(next);
+
+  await rememberPendingEmail(email);
+  redirect("/auth/check-email");
 }
 
-export interface PasswordState {
-  error: string | null;
+/* ── письмо подтверждения ещё раз ──────────────────────────────────── */
+
+export async function resendConfirmation(_: FormState<"email">, form: FormData): Promise<FormState<"email">> {
+  const store = await cookies();
+  const typed = normalizeEmail(form.get("email"));
+  const email = typed || readPendingEmail(store.get(PENDING_EMAIL_COOKIE)?.value) || "";
+
+  const problem = emailProblem(email);
+  if (problem) return fieldFailure(typed, { email: problem });
+
+  const auth = await createAuthGateway();
+  const { error } = await auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: await callbackUrl(safeNext(form.get("next"))) },
+  });
+
+  if (error) {
+    const kind = await reportAuthFailure("resend_confirmation", "/auth/check-email", error);
+    // Лимит на адрес и «аккаунта нет» выглядят одинаково — как успех.
+    if (kind === "rate_limited" || kind === "email_quota") return formFailure(typed, AUTH_MESSAGES[kind]);
+    if (kind !== "email_frequency" && kind !== "user_exists") return formFailure(typed, AUTH_MESSAGES.server);
+  }
+
+  if (typed) await rememberPendingEmail(typed);
+  return formSuccess(
+    "Если этот адрес ждёт подтверждения, новое письмо уже в пути. Ссылка из прежнего письма больше не действует.",
+    typed,
+  );
 }
 
-/** Новый пароль — только по свежей ссылке из письма (lib/recovery.ts). */
-export async function updatePassword(_: PasswordState, form: FormData): Promise<PasswordState> {
-  const password = String(form.get("password") ?? "");
-  const repeat = String(form.get("repeat") ?? "");
+/* ── «Забыли пароль?» ──────────────────────────────────────────────── */
 
-  const problem = checkNewPassword(password, repeat);
-  if (problem) return { error: problem };
+export async function requestPasswordReset(
+  _: FormState<"email">,
+  form: FormData,
+): Promise<FormState<"email">> {
+  const email = normalizeEmail(form.get("email"));
+  const problem = emailProblem(email);
+  if (problem) return fieldFailure(email, { email: problem });
+
+  const auth = await createAuthGateway();
+  const { error } = await auth.resetPasswordForEmail(email, {
+    redirectTo: await callbackUrl("/", "recovery"),
+  });
+
+  if (error) {
+    const kind = await reportAuthFailure("recovery_request", "/auth/forgot", error);
+    // Об отказе говорим, только если он не зависит от того, есть ли аккаунт:
+    // лимит запросов с этого IP и общий лимит писем. «Письмо этому адресу
+    // уже уходило» и сбой отправки бывают только у существующего аккаунта.
+    if (kind === "rate_limited" || kind === "email_quota") return formFailure(email, AUTH_MESSAGES[kind]);
+  }
+
+  await rememberPendingEmail(email);
+  redirect("/auth/check-email?reason=reset");
+}
+
+/* ── новый пароль по ссылке из письма ──────────────────────────────── */
+
+export async function updatePassword(
+  _: FormState<NewPasswordField>,
+  form: FormData,
+): Promise<FormState<NewPasswordField>> {
+  const password = readPassword(form.get("password"));
+  const repeat = readPassword(form.get("repeat"));
+
+  const problems = validateNewPassword(password, repeat);
+  if (hasErrors(problems)) return fieldFailure("", problems);
 
   const store = await cookies();
   const supabase = await createClient();
@@ -144,18 +234,91 @@ export async function updatePassword(_: PasswordState, form: FormData): Promise<
     data: { user },
   } = await supabase.auth.getUser();
   if (!recoveryMatches(store.get(RECOVERY_COOKIE)?.value, user?.id)) {
-    return { error: "Ссылка устарела. Запроси новое письмо — это займёт минуту." };
+    return formFailure("", "Ссылка устарела. Запроси новое письмо — это займёт минуту.");
   }
 
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: explain(error.message) };
+  if (error) {
+    const kind = await reportAuthFailure("password_update", "/auth/reset", error);
+    if (kind === "same_password" || kind === "weak_password" || kind === "leaked_password") {
+      return fieldFailure("", { password: AUTH_MESSAGES[kind] });
+    }
+    return formFailure("", kind === "session_missing" ? AUTH_MESSAGES.link_invalid : AUTH_MESSAGES.server);
+  }
 
+  // Supabase Auth при смене пароля отзывает все остальные сессии, а 0043
+  // делает это мгновенным и для базы.
   store.delete({ name: RECOVERY_COOKIE, path: "/auth" });
+  store.delete({ name: PENDING_EMAIL_COOKIE, path: "/auth" });
   redirect(RESET_DONE_PATH);
 }
 
+/* ── смена пароля изнутри ──────────────────────────────────────────── */
+
+export async function changePassword(
+  _: FormState<ChangePasswordField>,
+  form: FormData,
+): Promise<FormState<ChangePasswordField>> {
+  const current = readPassword(form.get("current"));
+  const password = readPassword(form.get("password"));
+  const repeat = readPassword(form.get("repeat"));
+
+  const problems = validatePasswordChange({ current, password, repeat });
+  if (hasErrors(problems)) return fieldFailure("", problems);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return formFailure("", AUTH_MESSAGES.session_missing);
+
+  const verdict = await confirmIdentity(supabase, user.email, current, "/settings/security");
+  if (verdict !== "ok") {
+    return verdict === "invalid_credentials"
+      ? fieldFailure("", { current: "Текущий пароль не подходит." })
+      : formFailure("", AUTH_MESSAGES[verdict]);
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    const kind = await reportAuthFailure("password_change", "/settings/security", error);
+    if (kind === "same_password" || kind === "weak_password" || kind === "leaked_password") {
+      return fieldFailure("", { password: AUTH_MESSAGES[kind] });
+    }
+    return formFailure("", kind === "session_missing" ? AUTH_MESSAGES.session_missing : AUTH_MESSAGES.server);
+  }
+
+  return formSuccess("Пароль изменён. На других устройствах нужно будет войти заново.");
+}
+
+/* ── выход ─────────────────────────────────────────────────────────── */
+
+/** Выход на этом устройстве. Остальные устройства остаются в аккаунте. */
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/auth/login");
+  const { error } = await supabase.auth.signOut({ scope: "local" });
+  if (error) {
+    await reportAuthFailure("sign_out", "/settings", error);
+    // Auth не ответил — supabase-js оставил бы сессию в cookie. Выход на
+    // этом устройстве обязан сработать всё равно.
+    const store = await cookies();
+    for (const { name } of store.getAll()) if (isSessionCookie(name)) store.delete(name);
+  }
+  redirect("/auth/login?signed_out=1");
+}
+
+/**
+ * Выход на всех устройствах: Auth отзывает все сессии аккаунта, а база
+ * перестаёт признавать их токены сразу (0043), не дожидаясь их срока.
+ */
+export async function signOutEverywhere(): Promise<FormState> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut({ scope: "global" });
+  if (error) {
+    await reportAuthFailure("sign_out", "/settings/security", error);
+    // Здесь нельзя делать вид, что получилось: другие устройства остались бы внутри.
+    return formFailure("", "Не получилось выйти на всех устройствах. Попробуй ещё раз.");
+  }
+  await reportAuthEvent("sign_out", "/settings/security");
+  redirect("/auth/login?signed_out=all");
 }

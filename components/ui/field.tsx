@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { ComponentPropsWithRef, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import type { IconName } from "@/lib/types";
 import { Icon } from "./icon";
 
@@ -7,6 +7,17 @@ import { Icon } from "./icon";
 const control =
   "w-full rounded-field bg-sunken px-3.5 py-3 text-[15px] " +
   "outline-none transition-shadow focus:ring-2 focus:ring-signal/35 disabled:opacity-50";
+
+/**
+ * id подсказки и ошибки поля — чтобы связать их с самим полем через
+ * aria-describedby: читалка экрана прочитает их вместе с названием поля.
+ */
+export function describedBy(htmlFor: string, parts: { hint?: unknown; error?: unknown }): string | undefined {
+  const ids = [parts.hint ? `${htmlFor}-hint` : null, parts.error ? `${htmlFor}-error` : null].filter(
+    Boolean,
+  );
+  return ids.length > 0 ? ids.join(" ") : undefined;
+}
 
 /** Label, hint and error around any control. Errors say how to fix it. */
 export function Field({
@@ -30,10 +41,18 @@ export function Field({
         {label}
         {required ? null : <span className="ml-1.5 font-normal text-ink-faint">необязательно</span>}
       </label>
-      {hint ? <p className="text-[12px] text-ink-faint">{hint}</p> : null}
+      {hint ? (
+        <p id={htmlFor ? `${htmlFor}-hint` : undefined} className="text-[12px] text-ink-faint">
+          {hint}
+        </p>
+      ) : null}
       {children}
       {error ? (
-        <p className="flex items-center gap-1.5 text-[12px] text-heat" role="alert">
+        <p
+          id={htmlFor ? `${htmlFor}-error` : undefined}
+          className="flex items-center gap-1.5 text-[12px] text-heat"
+          role="alert"
+        >
           <Icon name="close" size={12} />
           {error}
         </p>
@@ -42,7 +61,8 @@ export function Field({
   );
 }
 
-export function TextInput({ className = "", ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+// React 19: ref — обычный проп, поэтому его можно передать полю напрямую.
+export function TextInput({ className = "", ...rest }: ComponentPropsWithRef<"input">) {
   return <input className={`${control} ${className}`} {...rest} />;
 }
 

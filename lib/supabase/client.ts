@@ -21,6 +21,7 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "@/lib/database.types";
+import { sessionCookieOptions } from "./cookie-options";
 
 // Read as static members: Next.js only inlines NEXT_PUBLIC_* when the
 // property is accessed literally, never through a computed key.
@@ -41,5 +42,5 @@ export function createClient() {
     );
   }
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, { cookieOptions: sessionCookieOptions });
 }

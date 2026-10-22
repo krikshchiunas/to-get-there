@@ -33,6 +33,18 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // Привычные адреса входа ведут на настоящие экраны в /auth. Временные
+  // (307), а не постоянные: браузер не запомнит их навсегда, если адреса
+  // когда-нибудь поменяются. Query (?next=…) Next переносит сам.
+  async redirects() {
+    return [
+      { source: "/login", destination: "/auth/login", permanent: false },
+      { source: "/signup", destination: "/auth/signup", permanent: false },
+      { source: "/register", destination: "/auth/signup", permanent: false },
+      { source: "/forgot-password", destination: "/auth/forgot", permanent: false },
+      { source: "/reset-password", destination: "/auth/reset", permanent: false },
+    ];
+  },
   images: {
     remotePatterns: [
       // Mock avatars during UI development.
