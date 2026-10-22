@@ -9,6 +9,7 @@
 import {
   isFriend,
   type Category,
+  type ChatPreview,
   type ConversationView,
   type DirectMessage,
   type FeedTab,
@@ -138,17 +139,25 @@ export function getRole(postId: string, userId: string) {
 /** The chat list: idea chats the viewer belongs to, latest activity first. */
 export function getMyIdeaChats(): Array<{
   post: PostView;
-  last_message: MessageView | undefined;
+  last_message: ChatPreview | undefined;
   participant_count: number;
 }> {
   return postIdsForViewer(currentUser.id)
     .map((postId) => {
       const post = postById.get(postId);
       if (!post) return null;
-      const messages = messagesOf(postId);
+      const last = messagesOf(postId).at(-1);
       return {
         post,
-        last_message: messages[messages.length - 1],
+        last_message: last
+          ? {
+              author_id: last.author_id,
+              author_nickname: last.author.nickname,
+              content: last.content,
+              media_url: last.media_url,
+              created_at: last.created_at,
+            }
+          : undefined,
         participant_count: participantsOf(postId).length,
       };
     })

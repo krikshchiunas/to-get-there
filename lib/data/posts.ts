@@ -4,6 +4,7 @@ import { CHAT_MEDIA_BUCKET } from "@/lib/media";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/database.types";
 import type {
+  ChatPreview,
   ChatRole,
   MessageView,
   ModeratorPermissions,
@@ -262,34 +263,63 @@ export async function getRole(postId: string, userId: string): Promise<ChatRole>
   return (await loadChatRoles(postId)).roleOf(userId);
 }
 
-/** Список чатов идей: где зритель состоит, последняя активность сверху. */
+/** Последняя строка чата, как её отдаёт вложенный ресурс в getMyIdeaChats. */
+interface LastMessageRow {
+  author_id: string;
+  content: string;
+  media_url: string | null;
+  created_at: string;
+  author: { nickname: string } | null;
+}
+
+/**
+ * Список чатов идей: где зритель состоит, последняя активность сверху.
+ *
+ * Один запрос: идеи, где зритель в чате (автора туда сажает триггер), и по
+ * одному последнему сообщению на каждую — лимит вложенного ресурса
+ * PostgREST считается на каждую идею, а не на весь ответ. Историю чатов
+ * список не грузит: раньше здесь на каждую идею поднимались до
+ * CHAT_HISTORY_LIMIT сообщений с авторами, цитатами и ссылками на фото
+ * ради одной строки превью.
+ */
 export async function getMyIdeaChats(): Promise<
-  Array<{ post: PostView; last_message: MessageView | undefined; participant_count: number }>
+  Array<{ post: PostView; last_message: ChatPreview | undefined; participant_count: number }>
 > {
   const supabase = await createClient();
   const viewerId = await requireViewerId();
 
-  const { data: memberships } = await supabase
-    .from("post_participants")
-    .select("post_id")
-    .eq("user_id", viewerId);
+  const { data } = await supabase
+    .from("posts")
+    .select(
+      `${POST_SELECT},me:post_participants!inner(user_id),` +
+        "messages(author_id,content,media_url,created_at,author:users(nickname))",
+    )
+    .eq("me.user_id", viewerId)
+    .order("created_at", { referencedTable: "messages", ascending: false })
+    .limit(1, { referencedTable: "messages" });
 
-  const postIds = (memberships ?? []).map((row) => row.post_id);
-  if (postIds.length === 0) return [];
+  const rows = (data ?? []) as unknown as Array<PostRow & { messages: LastMessageRow[] | null }>;
+  if (rows.length === 0) return [];
 
-  const { data } = await supabase.from("posts").select(POST_SELECT).in("id", postIds);
-  const posts = await toPostViews((data ?? []) as unknown as PostRow[]);
+  const lastByPost = new Map(rows.map((row) => [row.id, row.messages?.[0]]));
+  const posts = await toPostViews(rows);
 
-  const entries = await Promise.all(
-    posts.map(async (post) => {
-      const messages = await getMessages(post.id);
-      return {
-        post,
-        last_message: messages[messages.length - 1],
-        participant_count: post.participant_count,
-      };
-    }),
-  );
+  const entries = posts.map((post) => {
+    const last = lastByPost.get(post.id);
+    return {
+      post,
+      last_message: last
+        ? {
+            author_id: last.author_id,
+            author_nickname: last.author?.nickname ?? null,
+            content: last.content,
+            media_url: last.media_url,
+            created_at: last.created_at,
+          }
+        : undefined,
+      participant_count: post.participant_count,
+    };
+  });
 
   return entries.sort((a, b) => {
     const left = a.last_message?.created_at ?? a.post.created_at;

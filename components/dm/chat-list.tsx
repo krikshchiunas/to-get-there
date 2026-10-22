@@ -73,12 +73,13 @@ function IdeaChatRow({ entry, viewerId, now }: { entry: IdeaChatEntry; viewerId:
 
   // Цвет на времени только когда событие совсем близко — больше нигде.
   const timeTone = pressing ? "text-heat" : "text-ink";
+  // Профиль автора может быть зрителю не виден — тогда строка без имени.
   const speaker =
     last_message === undefined
       ? null
       : last_message.author_id === viewerId
         ? "Ты"
-        : last_message.author.nickname;
+        : last_message.author_nickname;
 
   return (
     <li className="u-feed-divider">
@@ -88,9 +89,9 @@ function IdeaChatRow({ entry, viewerId, now }: { entry: IdeaChatEntry; viewerId:
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[16px] font-medium">{post.title}</span>
 
-          {speaker && last_message ? (
+          {last_message ? (
             <span className="mt-0.5 block truncate text-[15px] leading-[1.4] text-ink-soft">
-              {speaker}:{" "}
+              {speaker ? `${speaker}: ` : null}
               {last_message.media_url ? (
                 <Icon name="image" size={14} className="mx-0.5 inline align-[-2px]" />
               ) : null}

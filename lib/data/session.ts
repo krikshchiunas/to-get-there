@@ -23,6 +23,15 @@ export const DEV_VIEWER_ID = "33333333-3333-3333-3333-000000000001";
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
 /**
+ * auth.users.id вошедшего или null — раз на запрос. Подпись токена
+ * проверяется на месте (lib/auth/identity.ts), без сети.
+ */
+export const getAuthUserId = cache(async (): Promise<string | null> => {
+  if (usingMocks) return null;
+  return verifiedAuthUserId(await createClient());
+});
+
+/**
  * Идентификатор зрителя в public.users или null без входа.
  *
  * Вход проверяется по подписи токена (lib/auth/identity.ts), а не
@@ -36,11 +45,10 @@ const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 export const getViewerId = cache(async (): Promise<string | null> => {
   if (usingMocks) return DEV_VIEWER_ID;
 
-  const supabase = await createClient();
-  const authUserId = await verifiedAuthUserId(supabase);
+  const authUserId = await getAuthUserId();
   if (!authUserId) return null;
 
-  const id = await profileIdFor(supabase, authUserId);
+  const id = await profileIdFor(await createClient(), authUserId);
   if (!id) throw new Error("Профиль аккаунта не найден и не восстановился.");
   return id;
 });

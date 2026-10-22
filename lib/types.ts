@@ -184,6 +184,16 @@ export interface Message {
   created_at: Timestamp;
 }
 
+/** Последнее сообщение чата в списке чатов — ровно то, что там видно. */
+export interface ChatPreview {
+  author_id: UUID;
+  /** null — профиль автора зрителю не виден. */
+  author_nickname: string | null;
+  content: string;
+  media_url: string | null;
+  created_at: Timestamp;
+}
+
 /** Цитата над ответом: кому и что, одной строкой. */
 export interface ReplyPreview {
   id: UUID;

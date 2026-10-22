@@ -11,7 +11,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { UserView } from "@/lib/types";
-import { requireViewerId } from "./session";
+import { getAuthUserId, requireViewerId } from "./session";
 import { noSocialFacts, toUserView, VIEWER_FIELDS, type SocialFacts, type UserRecord } from "./map";
 
 export interface ViewerEdges {
@@ -67,11 +67,25 @@ export const loadViewerMemberships = cache(async (): Promise<ViewerMemberships> 
 /** Профиль самого зрителя. Нужен ленте, чтобы знать его университет. */
 export const loadViewer = cache(async (): Promise<UserView> => {
   const supabase = await createClient();
-  const viewerId = await requireViewerId();
+  const authUserId = await getAuthUserId();
+  const byAccount = (id: string) =>
+    supabase.from("users").select(VIEWER_FIELDS).eq("auth_user_id", id).maybeSingle();
 
-  const { data, error } = await supabase.from("users").select(VIEWER_FIELDS).eq("id", viewerId).single();
+  // Своя строка ищется по аккаунту — тем же путём, что и id зрителя
+  // (lib/auth/profile.ts), — и одновременно с ним, а не после: каждый
+  // экран, которому нужен зритель, ждёт на один круг до базы меньше.
+  const [own, viewerId] = await Promise.all([
+    authUserId ? byAccount(authUserId) : Promise.resolve(null),
+    requireViewerId(),
+  ]);
+  // Профиль только что восстановлен (ensure_my_profile) — читаем по id.
+  const fallback = own?.data
+    ? null
+    : await supabase.from("users").select(VIEWER_FIELDS).eq("id", viewerId).maybeSingle();
+  const data = own?.data ?? fallback?.data;
 
-  if (error || !data) {
+  if (!data) {
+    const error = fallback?.error ?? own?.error;
     throw new Error(`Не удалось загрузить профиль зрителя: ${error?.message ?? "строка не найдена"}`);
   }
 
@@ -91,14 +105,20 @@ export async function loadFollowCounts(userIds: string[]): Promise<FollowCounts>
   if (unique.length === 0) return result;
 
   const supabase = await createClient();
-  const edges = await loadViewerEdges();
 
   // Считает база (get_follow_counts, 0041): строки подписок в приложение
   // не едут, и у популярного автора счётчик не упирается в 1 000 строк
-  // ответа PostgREST. За вызов — не больше 200 человек.
+  // ответа PostgREST. За вызов — не больше 200 человек. Связи зрителя и
+  // счётчики друг от друга не зависят — запросы идут одновременно.
+  const batches: string[][] = [];
+  for (let start = 0; start < unique.length; start += 200) batches.push(unique.slice(start, start + 200));
+  const [edges, answers] = await Promise.all([
+    loadViewerEdges(),
+    Promise.all(batches.map((ids) => supabase.rpc("get_follow_counts", { user_ids: ids }))),
+  ]);
+
   const counts = new Map<string, { followers: number; following: number }>();
-  for (let start = 0; start < unique.length; start += 200) {
-    const { data } = await supabase.rpc("get_follow_counts", { user_ids: unique.slice(start, start + 200) });
+  for (const { data } of answers) {
     for (const row of data ?? []) {
       counts.set(row.user_id, { followers: Number(row.followers), following: Number(row.following) });
     }
