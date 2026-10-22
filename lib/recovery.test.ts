@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  checkNewPassword,
   recoveryCookieOptions,
   recoveryMatches,
   recoveryRequestedRecently,
@@ -30,25 +29,6 @@ describe("recoveryCookieOptions", () => {
 
   it("secure зависит от протокола — локально по http cookie тоже ставится", () => {
     expect(recoveryCookieOptions(false).secure).toBe(false);
-  });
-});
-
-describe("checkNewPassword", () => {
-  it("короткий пароль", () => {
-    expect(checkNewPassword("1234567", "1234567")).toMatch(/не короче 8/);
-  });
-
-  it("длиннее 72 байт — bcrypt молча обрезал бы его", () => {
-    const long = "я".repeat(37); // 74 байта
-    expect(checkNewPassword(long, long)).toMatch(/72/);
-  });
-
-  it("повтор не совпал", () => {
-    expect(checkNewPassword("длинный-пароль", "длинный-пароль!")).toBe("Пароли не совпадают.");
-  });
-
-  it("годный пароль", () => {
-    expect(checkNewPassword("correct horse battery", "correct horse battery")).toBeNull();
   });
 });
 

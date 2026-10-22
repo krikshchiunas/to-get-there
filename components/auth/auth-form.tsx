@@ -1,17 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { MIN_AGE } from "@/lib/legal";
 import { Field, TextInput } from "@/components/ui/field";
+import {
+  checkSignIn,
+  checkSignUp,
+  MIN_PASSWORD,
+  normalizeEmail,
+  type CredentialField,
+} from "@/lib/auth/credentials";
+import { MIN_AGE } from "@/lib/legal";
 import type { AuthState } from "@/app/auth/actions";
+import { PasswordInput } from "./password-input";
 
 type Action = (state: AuthState, form: FormData) => Promise<AuthState>;
 
+const ERROR_ID = "auth-error";
+
 /**
- * Одна форма на вход и регистрацию: поля одинаковые, отличаются действие,
- * подпись кнопки и подсказка под паролем.
+ * Вход и регистрация — одна форма: поля почти одинаковые.
+ *
+ * Проверка — дважды. В браузере — те же правила, что на сервере
+ * (lib/auth/credentials.ts): ошибка видна сразу, без запроса. На сервере —
+ * потому что браузеру верить нельзя. После ошибки фокус уходит в поле, к
+ * которому она относится, а сам текст — в role="alert", связанный с полем
+ * через aria-describedby. Пока запрос идёт, кнопка выключена: дважды
+ * форма не уйдёт.
+ *
+ * autoComplete: «username» у почты и «current-password» / «new-password» у
+ * пароля — так менеджеры паролей (iCloud, 1Password, Bitwarden, Chrome)
+ * узнают форму входа и предлагают сохранить и сгенерировать пароль.
  */
 export function AuthForm({
   mode,
@@ -26,14 +46,62 @@ export function AuthForm({
   /** Сообщение сверху, например «ссылка из письма устарела». */
   notice?: string | null;
 }) {
-  const [state, submit, pending] = useActionState(action, { error: null, email: "" });
+  const [state, submit, pending] = useActionState(action, { error: null, field: null, email: "" });
+  const [local, setLocal] = useState<{ error: string; field: CredentialField | null } | null>(null);
   const isSignup = mode === "signup";
 
+  const refs = {
+    email: useRef<HTMLInputElement>(null),
+    password: useRef<HTMLInputElement>(null),
+    repeat: useRef<HTMLInputElement>(null),
+  };
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  const shown = local ?? (state.error ? { error: state.error, field: state.field } : null);
+
+  function focusProblem(field: CredentialField | null) {
+    const target = field ? refs[field].current : errorRef.current;
+    target?.focus();
+  }
+
+  // Ответ сервера с ошибкой — фокус туда, где её исправлять.
+  useEffect(() => {
+    if (state.error) focusProblem(state.field);
+    // refs стабильны; реагируем только на новый ответ сервера.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const data = new FormData(event.currentTarget);
+    const email = normalizeEmail(data.get("email"));
+    const password = String(data.get("password") ?? "");
+    const problem = isSignup
+      ? checkSignUp(email, password, String(data.get("repeat") ?? ""))
+      : checkSignIn(email, password);
+
+    if (problem) {
+      event.preventDefault();
+      setLocal({ error: problem.message, field: problem.field });
+      focusProblem(problem.field);
+      return;
+    }
+    setLocal(null);
+  }
+
+  /** Связь поля с ошибкой: только у того поля, к которому она относится. */
+  function errorProps(field: CredentialField) {
+    const mine = shown !== null && shown.field === field;
+    return {
+      "aria-invalid": mine ? true : undefined,
+      "aria-describedby": mine ? ERROR_ID : undefined,
+    } as const;
+  }
+
   return (
-    <form action={submit} className="space-y-5" noValidate>
+    <form action={submit} onSubmit={handleSubmit} className="space-y-5" noValidate>
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
-      {notice && !state.error ? (
+      {notice && !shown ? (
         <p
           role="status"
           className="rounded-field bg-sunken px-4 py-3 text-[14px] leading-[1.4] text-ink-soft"
@@ -43,43 +111,61 @@ export function AuthForm({
       ) : null}
 
       <Field
-        label={isSignup ? "Университетская почта" : "Почта"}
+        label="Почта"
         htmlFor="email"
         required
-        hint={
-          isSignup ? "Регистрация открыта для адресов вузов из списка — например, @tu-berlin.de." : undefined
-        }
+        hint={isSignup ? "Если почта — на домене вуза из списка, вуз сам появится в профиле." : undefined}
       >
         <TextInput
+          ref={refs.email}
           id="email"
           name="email"
           type="email"
           inputMode="email"
-          autoComplete="email"
+          autoComplete="username"
           autoCapitalize="none"
           spellCheck={false}
           defaultValue={state.email}
-          placeholder="имя@tu-berlin.de"
+          placeholder="имя@почта.de"
           required
-          aria-invalid={state.error ? true : undefined}
-          aria-describedby={state.error ? "auth-error" : undefined}
+          {...errorProps("email")}
         />
       </Field>
 
-      <Field label="Пароль" htmlFor="password" required hint={isSignup ? "Не короче 8 символов." : undefined}>
-        <TextInput
+      <Field
+        label="Пароль"
+        htmlFor="password"
+        required
+        hint={
+          isSignup
+            ? `Не короче ${MIN_PASSWORD} символов. Проще всего — пусть его придумает менеджер паролей.`
+            : undefined
+        }
+      >
+        <PasswordInput
+          ref={refs.password}
           id="password"
           name="password"
-          type="password"
           autoComplete={isSignup ? "new-password" : "current-password"}
-          minLength={isSignup ? 8 : undefined}
+          minLength={isSignup ? MIN_PASSWORD : undefined}
           required
-          aria-invalid={state.error ? true : undefined}
-          aria-describedby={state.error ? "auth-error" : undefined}
+          {...errorProps("password")}
         />
       </Field>
 
-      {isSignup ? null : (
+      {isSignup ? (
+        <Field label="Пароль ещё раз" htmlFor="repeat" required>
+          <PasswordInput
+            ref={refs.repeat}
+            id="repeat"
+            name="repeat"
+            autoComplete="new-password"
+            minLength={MIN_PASSWORD}
+            required
+            {...errorProps("repeat")}
+          />
+        </Field>
+      ) : (
         <p className="-mt-2 text-right text-[14px]">
           <Link href="/auth/forgot" className="text-signal underline underline-offset-2">
             Забыли пароль?
@@ -87,9 +173,23 @@ export function AuthForm({
         </p>
       )}
 
-      {state.error ? (
-        <p id="auth-error" role="alert" className="text-[14px] leading-[1.4] text-heat">
-          {state.error}
+      {shown ? (
+        <p
+          ref={errorRef}
+          id={ERROR_ID}
+          role="alert"
+          tabIndex={-1}
+          className="text-[14px] leading-[1.4] text-heat outline-none"
+        >
+          {shown.error}
+          {!local && state.unconfirmed ? (
+            <>
+              {" "}
+              <Link href="/auth/check-email" className="text-signal underline underline-offset-2">
+                Отправить письмо ещё раз
+              </Link>
+            </>
+          ) : null}
         </p>
       ) : null}
 
@@ -111,7 +211,7 @@ export function AuthForm({
         </p>
       ) : null}
 
-      <Button type="submit" size="lg" full disabled={pending}>
+      <Button type="submit" size="lg" full disabled={pending} aria-busy={pending || undefined}>
         {pending ? (isSignup ? "Создаём аккаунт…" : "Входим…") : isSignup ? "Создать аккаунт" : "Войти"}
       </Button>
 

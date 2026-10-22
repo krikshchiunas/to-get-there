@@ -7,6 +7,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { profileIdFor } from "@/lib/auth/profile";
 
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
@@ -24,10 +25,10 @@ export async function getActor() {
 
   // Своя строка users видна по RLS — то же сопоставление, что делает
   // private.current_user_id() в политиках (auth_user_id = auth.uid()).
-  const { data: me } = await supabase.from("users").select("id").eq("auth_user_id", user.id).maybeSingle();
-  if (!me) return null;
+  const viewerId = await profileIdFor(supabase, user.id);
+  if (!viewerId) return null;
 
-  return { supabase, viewerId: me.id, authUserId: user.id };
+  return { supabase, viewerId, authUserId: user.id };
 }
 
 export const notSignedIn: ActionResult = {

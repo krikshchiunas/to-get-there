@@ -14,6 +14,7 @@
 import { cookies } from "next/headers";
 import { createServerClient, type CookieMethodsServer } from "@supabase/ssr";
 import type { Database } from "@/lib/database.types";
+import { sessionCookieOptions } from "./cookies";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -56,5 +57,8 @@ export async function createClient() {
     },
   };
 
-  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, { cookies: cookieMethods });
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: cookieMethods,
+    cookieOptions: sessionCookieOptions,
+  });
 }

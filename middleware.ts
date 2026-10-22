@@ -18,6 +18,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { contentSecurityPolicy, createNonce } from "@/lib/csp";
 import { isPublicPath } from "@/lib/public-paths";
+import { sessionCookieOptions } from "@/lib/supabase/cookies";
 
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
 
@@ -62,6 +63,7 @@ export async function middleware(request: NextRequest) {
           }
         },
       },
+      cookieOptions: sessionCookieOptions,
     },
   );
 

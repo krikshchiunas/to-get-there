@@ -23,6 +23,9 @@ import {
   RESET_PATH,
 } from "@/lib/recovery";
 import { relativeRedirect } from "@/lib/relative-redirect";
+import { classifyAuthError } from "@/lib/auth/errors";
+import { logAuthEvent } from "@/lib/auth/log";
+import { requestIdOf } from "@/lib/auth/request";
 
 function otpTypeOf(raw: string | null): EmailOtpType {
   if (raw === "recovery") return "recovery";
@@ -36,6 +39,13 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: params.get("token_hash") ?? "" });
+  logAuthEvent({
+    op: "email_link",
+    outcome: error || !data.user ? "failure" : "ok",
+    category: error ? classifyAuthError(error) : data.user ? undefined : "link_invalid",
+    route: "/auth/confirm",
+    requestId: requestIdOf(request.headers),
+  });
 
   if (error || !data.user) {
     return relativeRedirect(type === "recovery" ? "/auth/forgot?error=link" : "/auth/login?error=link");

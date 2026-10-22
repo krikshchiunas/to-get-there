@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { ComponentProps, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import type { IconName } from "@/lib/types";
 import { Icon } from "./icon";
 
@@ -42,7 +42,8 @@ export function Field({
   );
 }
 
-export function TextInput({ className = "", ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+/** Поле ввода. `ref` проходит насквозь (React 19) — формы входа переводят фокус на поле с ошибкой. */
+export function TextInput({ className = "", ...rest }: ComponentProps<"input">) {
   return <input className={`${control} ${className}`} {...rest} />;
 }
 

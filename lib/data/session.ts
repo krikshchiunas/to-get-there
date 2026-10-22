@@ -14,6 +14,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { profileIdFor } from "@/lib/auth/profile";
 
 /** mara_t — тот же, кого lib/mock/users.ts зовёт `currentUser`. */
 export const DEV_VIEWER_ID = "33333333-3333-3333-3333-000000000001";
@@ -25,6 +26,10 @@ const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
  *
  * `getUser()`, а не `getSession()`: первый проверяет токен на сервере
  * Supabase, второй доверяет cookie, которую можно подделать.
+ *
+ * Вход есть, а профиль не нашёлся и не восстановился (lib/auth/profile.ts) —
+ * это сбой, а не «не вошёл»: ошибка, а не редирект на вход. Иначе
+ * middleware вернул бы вошедшего с /auth/login обратно, и так по кругу.
  */
 export const getViewerId = cache(async (): Promise<string | null> => {
   if (usingMocks) return DEV_VIEWER_ID;
@@ -35,8 +40,9 @@ export const getViewerId = cache(async (): Promise<string | null> => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase.from("users").select("id").eq("auth_user_id", user.id).maybeSingle();
-  return data?.id ?? null;
+  const id = await profileIdFor(supabase, user.id);
+  if (!id) throw new Error("Профиль аккаунта не найден и не восстановился.");
+  return id;
 });
 
 /**

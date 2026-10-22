@@ -20,15 +20,23 @@ import {
   RESET_PATH,
 } from "@/lib/recovery";
 import { relativeRedirect } from "@/lib/relative-redirect";
+import { classifyAuthError } from "@/lib/auth/errors";
+import { logAuthEvent } from "@/lib/auth/log";
+import { requestIdOf } from "@/lib/auth/request";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get("code");
   const recovery = searchParams.get("type") === "recovery";
 
+  const requestId = requestIdOf(request.headers);
+  const log = (outcome: "ok" | "failure", category?: ReturnType<typeof classifyAuthError>) =>
+    logAuthEvent({ op: "email_link", outcome, category, route: "/auth/callback", requestId });
+
   if (code) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    log(error ? "failure" : "ok", error ? classifyAuthError(error) : undefined);
     if (!error) {
       // `type=recovery` — из адреса; метку ставим, только если Supabase сам
       // недавно отправлял этому аккаунту письмо сброса.
@@ -44,6 +52,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  if (!code) log("failure", "link_invalid");
   // Ссылка устарела или уже использована — объясняем там, где её можно запросить снова.
   return relativeRedirect(recovery ? "/auth/forgot?error=link" : "/auth/login?error=link");
 }
