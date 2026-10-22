@@ -90,6 +90,7 @@ test("письмо подтверждения ещё раз: новое пись
   await linkFromMail(person.email, since);
   const known = await mailIds(person.email);
 
+  await page.waitForTimeout(1_500); // GoTrue: не чаще раза в секунду (config.toml, max_frequency)
   const again = Date.now();
   await page.getByRole("button", { name: "Отправить ещё раз" }).click();
   await expect(page.getByText("письмо отправлено ещё раз")).toBeVisible();

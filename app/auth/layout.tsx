@@ -1,3 +1,4 @@
+import { StripErrorFragment } from "@/components/auth/strip-error-fragment";
 import { LegalFooter } from "@/components/legal/legal-footer";
 
 /** Экраны входа: одна узкая колонка, без навигации — заходить ещё некуда. */
@@ -7,6 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <p className="mb-10 text-[18px] leading-tight font-semibold">To Get There</p>
       <div className="flex-1">{children}</div>
       <LegalFooter />
+      <StripErrorFragment />
     </main>
   );
 }
