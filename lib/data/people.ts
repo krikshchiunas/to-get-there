@@ -1,5 +1,6 @@
 /** Профили, подписки и идеи конкретного человека. */
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { isInFeed } from "@/lib/format";
 import type { PostView, UserView } from "@/lib/types";
@@ -79,7 +80,8 @@ export async function getFriends(viewerId: string): Promise<UserView[]> {
   return following.filter((user) => followerIds.has(user.id));
 }
 
-async function postsByAuthor(authorId: string): Promise<PostView[]> {
+/** Активные и прошедшие идеи профиля — один запрос на страницу, а не два. */
+const postsByAuthor = cache(async (authorId: string): Promise<PostView[]> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("posts")
@@ -88,7 +90,7 @@ async function postsByAuthor(authorId: string): Promise<PostView[]> {
     .order("date_start", { ascending: true });
   if (error) throw new Error(`Идеи автора не загрузились: ${error.message}`);
   return toPostViews((data ?? []) as unknown as PostRow[]);
-}
+});
 
 export async function getActivePostsByAuthor(authorId: string, now: Date): Promise<PostView[]> {
   return (await postsByAuthor(authorId)).filter((post) => isInFeed(post, now));

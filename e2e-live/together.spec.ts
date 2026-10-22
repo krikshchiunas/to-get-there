@@ -73,6 +73,15 @@ test("идея на двоих: вступление, чат в реальном
   await author.goto("/notifications");
   await expect(author.getByText(nicknameOf(guestPerson)).first()).toBeVisible();
 
+  // Список чатов: идея и её последнее сообщение у обоих — из одного запроса
+  // с лимитом вложенного ресурса (getMyIdeaChats), а не из истории чата.
+  await guest.goto("/messages");
+  await expect(guest.getByRole("link", { name: title })).toContainText(
+    `${nicknameOf(authorPerson)}: ${reply}`,
+  );
+  await author.goto("/messages");
+  await expect(author.getByRole("link", { name: title })).toContainText(`Ты: ${reply}`);
+
   // Права: чужую идею правкой не открыть.
   const edit = await guest.goto(`/post/${postId}/edit`);
   expect(edit?.status()).toBe(404);
