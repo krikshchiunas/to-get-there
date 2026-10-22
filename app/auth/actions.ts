@@ -25,7 +25,13 @@ import {
   normalizeEmail,
   type CredentialField,
 } from "@/lib/auth/credentials";
-import { authMessage, classifyAuthError, retryMessage, type AuthFailure } from "@/lib/auth/errors";
+import {
+  authMessage,
+  classifyAuthError,
+  retryMessage,
+  revealsAccount,
+  type AuthFailure,
+} from "@/lib/auth/errors";
 import { logAuthEvent, type AuthOperation } from "@/lib/auth/log";
 import { PENDING_EMAIL_COOKIE, pendingEmailCookieOptions } from "@/lib/auth/pending-email";
 import { checkAuthRateLimit, type LimitedOperation } from "@/lib/auth/rate-limit";
@@ -158,10 +164,9 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
   if (error) {
     const failure = classifyAuthError(error);
     log(ctx, "sign_up", "failure", failure);
-    // Занятый адрес не выдаём: ответ — как при успехе. С включённым
-    // подтверждением почты GoTrue и сам так делает; это — на случай, если
-    // подтверждение когда-нибудь выключат.
-    if (failure !== "user_exists") {
+    // Занятый адрес и «письмо уже отправлено» не выдаём: ответ — как при
+    // успехе. Если письма и правда нет, на «Проверь почту» есть «ещё раз».
+    if (!revealsAccount(failure)) {
       return { error: authMessage(failure), field: fieldOf(failure), email };
     }
   } else {
@@ -178,8 +183,8 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
 
 /**
  * «Забыли пароль?» — письмо со ссылкой восстановления. Ответ одинаковый,
- * есть аккаунт с такой почтой или нет; сказать можно только про частоту —
- * она одинакова для любого адреса.
+ * есть аккаунт с такой почтой или нет; сказать можно только про частоту
+ * нашего лимита — она одинакова для любого адреса.
  */
 export async function requestPasswordReset(_: AuthState, form: FormData): Promise<AuthState> {
   const email = normalizeEmail(form.get("email"));
@@ -198,7 +203,7 @@ export async function requestPasswordReset(_: AuthState, form: FormData): Promis
   if (error) {
     const failure = classifyAuthError(error);
     log(ctx, "password_reset_request", "failure", failure);
-    if (failure === "rate_limited") return { error: authMessage(failure), field: null, email };
+    if (!revealsAccount(failure)) return { error: authMessage(failure), field: null, email };
   } else {
     log(ctx, "password_reset_request", "ok");
   }
@@ -230,7 +235,7 @@ export async function resendConfirmation(_: AuthState, form: FormData): Promise<
   if (error) {
     const failure = classifyAuthError(error);
     log(ctx, "resend_confirmation", "failure", failure);
-    if (failure === "rate_limited") return { error: authMessage(failure), field: null, email };
+    if (!revealsAccount(failure)) return { error: authMessage(failure), field: null, email };
   } else {
     log(ctx, "resend_confirmation", "ok");
   }

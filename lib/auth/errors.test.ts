@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { AUTH_MESSAGES, authMessage, classifyAuthError, retryMessage, type AuthFailure } from "./errors";
+import {
+  AUTH_MESSAGES,
+  authMessage,
+  classifyAuthError,
+  retryMessage,
+  revealsAccount,
+  type AuthFailure,
+} from "./errors";
 
 describe("classifyAuthError — по коду Supabase", () => {
   const cases: Array<[string, AuthFailure]> = [
@@ -66,5 +73,19 @@ describe("тексты для экрана", () => {
     expect(retryMessage(30)).toMatch(/минуту/);
     expect(retryMessage(600)).toMatch(/через 10 мин/);
     expect(retryMessage(5000)).toMatch(/через час/);
+  });
+});
+
+describe("revealsAccount — что нельзя показывать в регистрации, сбросе и повторном письме", () => {
+  it("«занят» и «слишком часто» от GoTrue выдают, что аккаунт есть", () => {
+    expect(revealsAccount("user_exists")).toBe(true);
+    // GoTrue ограничивает частоту писем только существующим аккаунтам.
+    expect(revealsAccount("rate_limited")).toBe(true);
+  });
+
+  it("остальное от наличия аккаунта не зависит — можно сказать", () => {
+    for (const failure of ["invalid_email", "weak_password", "signup_disabled", "unknown"] as const) {
+      expect(revealsAccount(failure)).toBe(false);
+    }
   });
 });

@@ -96,6 +96,17 @@ export function classifyAuthError(error: AuthErrorLike | null | undefined): Auth
   return "unknown";
 }
 
+/**
+ * Отказы GoTrue, по которым видно, есть ли аккаунт: «занят» — очевидно,
+ * «слишком часто» — тоже, потому что GoTrue ограничивает частоту писем
+ * только адресам, у которых аккаунт есть. Регистрация, сброс и повторное
+ * письмо отвечают на них как на успех; о частоте говорит только наш лимит
+ * (0043) — он одинаков для любой почты.
+ */
+export function revealsAccount(failure: AuthFailure): boolean {
+  return failure === "user_exists" || failure === "rate_limited";
+}
+
 export function authMessage(failure: AuthFailure): string {
   return AUTH_MESSAGES[failure];
 }
