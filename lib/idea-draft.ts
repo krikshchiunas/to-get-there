@@ -8,7 +8,7 @@
  */
 
 import { DAY_MS, HOUR_MS, pluralRu } from "@/lib/format";
-import type { Place } from "@/lib/place";
+import { DEFAULT_CITY, type Place } from "@/lib/place";
 import type { ChatAccess, GeoMode, GeoRadius, PostView, University } from "@/lib/types";
 
 export const TITLE_MAX = 70;
@@ -86,12 +86,17 @@ export function geoFromPost(post: PostView): GeoDraft {
  * огрубит её до километра. Область — точка, выбранная на карте, и подсказка
  * словами. Город — только город. Город обязателен в любом режиме.
  */
-export function geoInputOf(geo: GeoDraft, place: Place, university: Pick<University, "city" | "short_name">) {
+export function geoInputOf(
+  geo: GeoDraft,
+  place: Place,
+  university: Pick<University, "city" | "short_name"> | null,
+) {
   if (geo.mode === "radius") {
     return {
       geoMode: "radius" as const,
-      geoCity: university.city,
-      geoAddress: place.source === "campus" ? `Рядом с кампусом ${university.short_name}` : null,
+      geoCity: university?.city ?? DEFAULT_CITY,
+      geoAddress:
+        place.source === "campus" && university ? `Рядом с кампусом ${university.short_name}` : null,
       geoLat: place.lat,
       geoLng: place.lng,
       geoRadiusM: geo.radius_m,
@@ -100,7 +105,7 @@ export function geoInputOf(geo: GeoDraft, place: Place, university: Pick<Univers
   if (geo.mode === "area") {
     return {
       geoMode: "area" as const,
-      geoCity: university.city,
+      geoCity: university?.city ?? DEFAULT_CITY,
       geoAddress: geo.meeting_point.trim(),
       geoLat: geo.point?.lat ?? null,
       geoLng: geo.point?.lng ?? null,

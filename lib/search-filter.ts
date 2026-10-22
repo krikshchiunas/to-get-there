@@ -94,7 +94,7 @@ export function filterUsers(users: UserView[], query: string, viewerId: string):
   return users.filter((user) => {
     if (!user.privacy_settings.visible_in_search) return false;
     if (user.id === viewerId) return false;
-    return [user.nickname, user.faculty ?? "", user.university.short_name, ...user.interests]
+    return [user.nickname, user.faculty ?? "", user.university?.short_name ?? "", ...user.interests]
       .join(" ")
       .toLowerCase()
       .includes(needle);

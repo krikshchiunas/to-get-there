@@ -48,7 +48,7 @@ export default async function DirectConversationPage({ params }: PageParams) {
         subtitle={
           // Путь в профиль — текстом: его называют вслух и находят Tab'ом.
           <Link href={`/u/${partner.nickname}`} className="underline-offset-2 hover:text-ink hover:underline">
-            {partner.university.short_name} · профиль
+            {partner.university ? `${partner.university.short_name} · профиль` : "профиль"}
           </Link>
         }
         action={

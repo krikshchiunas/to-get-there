@@ -14,7 +14,7 @@ import type { FeedTab } from "@/lib/types";
  * остальное, линию снизу рисует `Segmented`. Её высота — то, под что
  * подлипает `DayGroup`.
  */
-export async function FeedHeader({ tab }: { tab: FeedTab }) {
+export async function FeedHeader({ tab, hasUniversity }: { tab: FeedTab; hasUniversity: boolean }) {
   const unreadNotificationCount = await getUnreadNotificationCount();
   const hasUnread = unreadNotificationCount > 0;
 
@@ -53,7 +53,8 @@ export async function FeedHeader({ tab }: { tab: FeedTab }) {
         active={tab}
         items={[
           { value: "following", label: "Подписки", href: "/?tab=following" },
-          { value: "university", label: "Университет", href: "/?tab=university" },
+          // Без вуза (0043) вторая вкладка — все идеи: вузовской ленты у человека нет.
+          { value: "university", label: hasUniversity ? "Университет" : "Все", href: "/?tab=university" },
         ]}
       />
     </header>

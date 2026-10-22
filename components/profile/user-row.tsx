@@ -18,7 +18,7 @@ import { FollowButton } from "./follow-button";
  */
 export function UserRow({ user, viewerId }: { user: UserView; viewerId: string }) {
   const isViewer = user.id === viewerId;
-  const place = user.faculty ? `${user.university.short_name} · ${user.faculty}` : user.university.short_name;
+  const place = [user.university?.short_name, user.faculty].filter(Boolean).join(" · ");
 
   return (
     <div className={`${listRow} items-center`}>

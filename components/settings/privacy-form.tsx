@@ -29,34 +29,47 @@ interface AudienceOption<T extends string> {
 
 const FRIENDS_LINE = "Друзья — вы подписаны друг на друга.";
 
-function profileOptions(shortName: string): AudienceOption<ProfileAudience>[] {
-  return [
+/**
+ * «Мой университет» — только когда вуз есть. Без вуза (0043) этот вариант
+ * не открыл бы профиль никому, и предлагать его — путать. Если он уже
+ * выбран (вуз пропал), он остаётся видимым, чтобы выбор не стал невидимым.
+ */
+function profileOptions(
+  shortName: string | null,
+  keepUniversity: boolean,
+): AudienceOption<ProfileAudience>[] {
+  const options: AudienceOption<ProfileAudience>[] = [
     {
       value: "everyone",
       label: "Все",
-      description: "Любой студент в приложении.",
+      description: "Любой, кто вошёл в приложение.",
       icon: "globe",
     },
-    {
+  ];
+  if (shortName || keepUniversity) {
+    options.push({
       value: "university",
       label: "Мой университет",
-      description: `Все из ${shortName} — и только они.`,
+      description: shortName
+        ? `Все из ${shortName} — и только они.`
+        : "Вуза в профиле нет — не видит никто, кроме тебя.",
       icon: "shield",
-    },
-    {
-      value: "friends",
-      label: "Только друзья",
-      description: FRIENDS_LINE,
-      icon: "person",
-    },
-  ];
+    });
+  }
+  options.push({
+    value: "friends",
+    label: "Только друзья",
+    description: FRIENDS_LINE,
+    icon: "person",
+  });
+  return options;
 }
 
 const messageOptions: AudienceOption<MessageAudience>[] = [
   {
     value: "everyone",
     label: "Все",
-    description: "Любой студент может написать тебе первым.",
+    description: "Любой, кто вошёл, может написать тебе первым.",
     icon: "chat",
   },
   {
@@ -97,8 +110,11 @@ export function PrivacyForm({ user }: { user: UserView }) {
   const [confirmed, setConfirmed] = useState(false);
 
   const dirty = !same(draft, saved);
-  const shortName = user.university.short_name;
-  const audiences = profileOptions(shortName);
+  const shortName = user.university?.short_name ?? null;
+  const keepUniversity =
+    user.privacy_settings.who_can_see_profile === "university" ||
+    user.privacy_settings.who_can_see_interests === "university";
+  const audiences = profileOptions(shortName, keepUniversity);
 
   function patch(change: Partial<PrivacySettings>) {
     setDraft((current) => ({ ...current, ...change }));
@@ -132,7 +148,11 @@ export function PrivacyForm({ user }: { user: UserView }) {
         <AudienceGroup
           name="privacy-profile"
           legend="Кто видит твой профиль"
-          hint={`Профиль — это описание, факультет, счётчики подписок и твои идеи. Вариант «Мой университет» означает всех, у кого в профиле ${shortName}.`}
+          hint={
+            shortName
+              ? `Профиль — это описание, факультет, счётчики подписок и твои идеи. Вариант «Мой университет» означает всех, у кого в профиле ${shortName}.`
+              : "Профиль — это описание, факультет, счётчики подписок и твои идеи."
+          }
           options={audiences}
           value={draft.who_can_see_profile}
           onChange={(raw) => patch({ who_can_see_profile: toProfileAudience(raw) })}

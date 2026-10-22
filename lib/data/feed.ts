@@ -52,7 +52,7 @@ export async function toPostViews(rows: PostRow[]): Promise<PostView[]> {
   ]);
 
   return rows.flatMap((row) => {
-    if (!row.author || !row.university || !row.category) return [];
+    if (!row.author || !row.category) return [];
 
     return [
       {
@@ -74,7 +74,7 @@ export async function toPostViews(rows: PostRow[]): Promise<PostView[]> {
         university_id: row.university_id,
         created_at: row.created_at,
         author: toUserView(row.author, counts.get(row.author_id) ?? noSocialFacts),
-        university: toUniversity(row.university),
+        university: row.university ? toUniversity(row.university) : null,
         category: toCategory(row.category),
         participant_count: participantCountOf(row),
         viewer_role: roleIn(
@@ -116,8 +116,9 @@ export async function getFeed(tab: FeedTab, now: Date, limit: number): Promise<P
     if (authors.length === 0) return [];
     query = query.in("author_id", authors);
   } else {
+    // Своя лента вуза; у кого вуза нет (0043) — все идеи («Все»).
     const viewer = await loadViewer();
-    query = query.eq("university_id", viewer.university_id);
+    if (viewer.university_id) query = query.eq("university_id", viewer.university_id);
   }
 
   const { data, error } = await query;

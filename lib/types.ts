@@ -64,7 +64,12 @@ export interface User {
   id: UUID;
   nickname: string;
   avatar_url: string | null;
-  university_id: UUID;
+  /**
+   * Вуз по домену подтверждённой почты (0043). null — без вуза: регистрация
+   * открыта любой почте, а вуз нельзя выбрать вручную — иначе «мой вуз» в
+   * настройках приватности перестал бы значить проверенный вуз.
+   */
+  university_id: UUID | null;
   faculty: string | null;
   bio: string | null;
   interests: string[];
@@ -78,7 +83,7 @@ export interface User {
 
 /** The author block on a card: enough to render, nothing private. */
 export interface UserView extends User {
-  university: University;
+  university: University | null;
   follower_count: number;
   following_count: number;
   /** Relationship of the signed-in viewer to this user. */
@@ -121,7 +126,8 @@ export interface Post {
   /** Author closed the sign-up. The post leaves the feed, the chat stays. */
   is_closed: boolean;
   chat_access: ChatAccess;
-  university_id: UUID;
+  /** Вуз автора на момент создания; null — у автора нет вуза. */
+  university_id: UUID | null;
   created_at: Timestamp;
 }
 
@@ -129,7 +135,7 @@ export type ChatRole = "author" | "moderator" | "participant" | "guest";
 
 export interface PostView extends Post {
   author: UserView;
-  university: University;
+  university: University | null;
   category: Category;
   participant_count: number;
   /** Role of the signed-in viewer in this idea. */
@@ -391,4 +397,6 @@ export type IconName =
   | "block"
   | "copy"
   | "download"
-  | "warning";
+  | "warning"
+  | "eye"
+  | "eye-off";

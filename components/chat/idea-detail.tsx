@@ -302,9 +302,8 @@ export function IdeaDetail({
                 {post.author.is_verified ? <Verified size={14} className="shrink-0" /> : null}
               </Link>
               <p className="mt-0.5 text-[14px] leading-[1.4] text-ink-soft">
-                {post.author.faculty
-                  ? `${post.author.university.name} · ${post.author.faculty}`
-                  : post.author.university.name}
+                {[post.author.university?.name, post.author.faculty].filter(Boolean).join(" · ") ||
+                  "Без вуза"}
               </p>
             </div>
           </div>

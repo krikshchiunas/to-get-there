@@ -111,7 +111,7 @@ describe("toCategory / toUserView / roleIn", () => {
     });
   });
 
-  it("без университета профиль не собрать — ошибка, а не пустой вуз", () => {
+  it("вуз указан, а строка вуза не пришла — ошибка, а не пустой вуз", () => {
     const row = {
       id: "u",
       auth_user_id: null,
@@ -126,6 +126,27 @@ describe("toCategory / toUserView / roleIn", () => {
       university: null,
     };
     expect(() => toUserView(row, noSocialFacts)).toThrow(/университет/);
+  });
+
+  it("без вуза (0043) — профиль собирается, вуз null", () => {
+    const view = toUserView(
+      {
+        id: "u",
+        auth_user_id: null,
+        nickname: "nick",
+        avatar_url: null,
+        university_id: null,
+        faculty: null,
+        bio: null,
+        is_verified: false,
+        privacy_settings: {},
+        created_at: "2026-01-01T00:00:00Z",
+        university: null,
+      },
+      noSocialFacts,
+    );
+    expect(view.university).toBeNull();
+    expect(view.university_id).toBeNull();
   });
 
   it("скрытые базой интересы и чужие настройки — пустые списки и значения по умолчанию", () => {

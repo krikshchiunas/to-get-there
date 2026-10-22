@@ -13,9 +13,7 @@ const USER_SELECT = PROFILE_FIELDS;
 export async function toUserViews(rows: UserRecord[]): Promise<UserView[]> {
   if (rows.length === 0) return [];
   const counts = await loadFollowCounts(rows.map((row) => row.id));
-  return rows.flatMap((row) =>
-    row.university ? [toUserView(row, counts.get(row.id) ?? noSocialFacts)] : [],
-  );
+  return rows.map((row) => toUserView(row, counts.get(row.id) ?? noSocialFacts));
 }
 
 export async function getUserByNickname(nickname: string): Promise<UserView | undefined> {

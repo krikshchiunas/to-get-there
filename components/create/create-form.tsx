@@ -272,11 +272,12 @@ export function CreateForm({
           <div className="rounded-field bg-sunken px-3.5 py-3">
             <p className="flex items-center gap-2 text-[15px]">
               <Icon name="shield" size={16} className="shrink-0 text-ink-soft" />
-              {viewer.university.name}
+              {viewer.university?.name ?? "Без вуза"}
             </p>
             <p className="mt-1 text-[12px] text-ink-soft">
-              Берётся из профиля, здесь не меняется. Идея попадёт в ленту «Университет» у{" "}
-              {viewer.university.short_name}.
+              {viewer.university
+                ? `Берётся из профиля, здесь не меняется. Идея попадёт в ленту «Университет» у ${viewer.university.short_name}.`
+                : "У тебя в профиле нет вуза — идею увидят в ленте «Все», в поиске и у твоих подписчиков."}
             </p>
           </div>
         </Field>

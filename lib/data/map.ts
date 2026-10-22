@@ -201,12 +201,14 @@ export const noSocialFacts: SocialFacts = {
 };
 
 export function toUserView(row: UserRecord, facts: SocialFacts): UserView {
-  if (!row.university) {
+  // Вуза может не быть (0043), но если он указан — он обязан прийти вместе
+  // со строкой: справочник вузов читают все вошедшие.
+  if (row.university_id && !row.university) {
     throw new Error(`У пользователя ${row.nickname} не загружен университет`);
   }
   return {
     ...toUser(row),
-    university: toUniversity(row.university),
+    university: row.university ? toUniversity(row.university) : null,
     ...facts,
   };
 }

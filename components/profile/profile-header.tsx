@@ -27,7 +27,7 @@ export async function ProfileHeader({ user }: { user: UserView }) {
   const showInterests = canSeeInterests(user, viewer);
   const hasTags = user.interests.length > 0 || user.goals.length > 0;
   const canWrite = canMessage(user, viewer);
-  const place = user.faculty ? `${user.university.name} · ${user.faculty}` : user.university.name;
+  const place = [user.university?.name, user.faculty].filter(Boolean).join(" · ");
 
   return (
     <header className="u-feed-divider px-4 pt-5 pb-5">
@@ -164,7 +164,9 @@ function TagGroup({ title, items }: { title: string; items: string[] }) {
 function interestsReason(user: UserView): string {
   return user.privacy_settings.who_can_see_interests === "friends"
     ? `${user.nickname} показывает интересы и цели только друзьям.`
-    : `${user.nickname} показывает интересы и цели только студентам ${user.university.short_name}.`;
+    : user.university
+      ? `${user.nickname} показывает интересы и цели только студентам ${user.university.short_name}.`
+      : `${user.nickname} показывает интересы и цели только студентам своего вуза.`;
 }
 
 function messageReason(user: UserView): string {

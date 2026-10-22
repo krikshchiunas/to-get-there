@@ -15,7 +15,7 @@ const STORAGE_KEY = "tgt-place";
  * спрашивали снова. В localStorage её нет: на чужом компьютере она не
  * переживёт закрытие вкладки.
  */
-export function usePlace(university: Pick<University, "short_name" | "campus_lat" | "campus_lng">) {
+export function usePlace(university: Pick<University, "short_name" | "campus_lat" | "campus_lng"> | null) {
   const campus = campusPlace(university);
   const [device, setDevice] = useState<Place | null>(null);
   const [locating, setLocating] = useState(false);

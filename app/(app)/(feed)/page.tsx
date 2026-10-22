@@ -5,7 +5,7 @@ import { FeedHeader } from "@/components/feed/feed-header";
 import { ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { dayKey, formatDayLabel } from "@/lib/format";
-import { FEED_MAX, FEED_PAGE, getFeed } from "@/lib/data";
+import { FEED_MAX, FEED_PAGE, getFeed, getViewer } from "@/lib/data";
 import type { FeedTab, PostView } from "@/lib/types";
 
 /** The feed depends on the clock, so it is rendered per request. */
@@ -55,13 +55,14 @@ export default async function FeedPage({
   const params = await searchParams;
   const tab = tabFrom(params.tab);
   const pages = pagesFrom(params.pages);
-  const { posts, hasMore } = await getFeed(tab, now, pages * FEED_PAGE);
+  const [{ posts, hasMore }, viewer] = await Promise.all([getFeed(tab, now, pages * FEED_PAGE), getViewer()]);
+  const hasUniversity = viewer.university !== null;
   const groups = groupByDay(posts);
   const canGrow = hasMore && (pages + 1) * FEED_PAGE <= FEED_MAX;
 
   return (
     <>
-      <FeedHeader tab={tab} />
+      <FeedHeader tab={tab} hasUniversity={hasUniversity} />
 
       {groups.length === 0 ? (
         tab === "following" ? (
@@ -78,7 +79,7 @@ export default async function FeedPage({
         ) : (
           <EmptyState
             icon="plus"
-            title="В твоём вузе пока ничего не задумали"
+            title={hasUniversity ? "В твоём вузе пока ничего не задумали" : "Пока ничего не задумали"}
             body="Предложи идею первым. Хватит одной фразы: что хочешь сделать, когда и где."
             action={
               <ButtonLink href="/create" size="md">

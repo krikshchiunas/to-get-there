@@ -34,7 +34,9 @@ export default async function SettingsPage() {
 
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[15px] font-medium">{viewer.nickname}</span>
-            <span className="block truncate text-[14px] text-ink-soft">{viewer.university.name}</span>
+            <span className="block truncate text-[14px] text-ink-soft">
+              {viewer.university?.name ?? "Без вуза"}
+            </span>
           </span>
 
           <Icon name="chevron" size={18} className="shrink-0 text-ink-faint" />
@@ -120,16 +122,22 @@ export default async function SettingsPage() {
 
         <Group
           title="Аккаунт"
-          description="Университет закреплён за аккаунтом по почте, с которой ты регистрировался: он решает, какую ленту «Университет» ты видишь."
+          description={
+            viewer.university
+              ? "Университет закреплён за аккаунтом по почте, с которой ты регистрировался: он решает, какую ленту «Университет» ты видишь."
+              : "Вуз подставляется сам, если почта — на домене вуза из списка. Без вуза вместо ленты «Университет» — лента «Все»."
+          }
         >
           <div className="flex items-center gap-3 px-4 py-3.5">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-soft">
               <Icon name="book" size={18} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[15px]">{viewer.university.name}</span>
+              <span className="block text-[15px]">{viewer.university?.name ?? "Без вуза"}</span>
               <span className="block text-[14px] text-ink-soft">
-                Почта на домене {viewer.university.domain}
+                {viewer.university
+                  ? `Почта на домене ${viewer.university.domain}`
+                  : "Почта не на домене вуза из списка"}
               </span>
             </span>
           </div>
