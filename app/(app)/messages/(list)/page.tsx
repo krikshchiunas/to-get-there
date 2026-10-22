@@ -28,9 +28,9 @@ export default async function MessagesPage({
 
   const now = new Date();
   const [viewer, ideaChats, conversations] = await Promise.all([
-    await getViewer(),
-    await getMyIdeaChats(),
-    await getConversations(),
+    getViewer(),
+    getMyIdeaChats(),
+    getConversations(),
   ]);
   const unreadDirect = conversations.reduce((sum, entry) => sum + entry.unread_count, 0);
 

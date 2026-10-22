@@ -30,6 +30,13 @@ const nextConfig: NextConfig = {
   // затирает .next запущенного dev-сервера.
   distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
+  experimental: {
+    // Вернуться на вкладку, открытую меньше 30 секунд назад, — без похода
+    // на сервер: экран берётся из памяти браузера. Свежесть держат не
+    // часы, а события: любое действие с revalidatePath и каждый сигнал
+    // LiveRefresh (lib/live.ts) сбрасывают этот кэш целиком.
+    staleTimes: { dynamic: 30 },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

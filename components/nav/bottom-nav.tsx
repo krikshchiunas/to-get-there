@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { IconName } from "@/lib/types";
 import { Icon } from "@/components/ui/icon";
 
@@ -22,6 +23,13 @@ export function Nav({
   profileNickname: string;
 }) {
   const pathname = usePathname();
+  // Нажатую вкладку подсвечиваем сразу, ещё до ответа сервера: палец видит
+  // отклик за кадр, а не через сетевой круг. Как только адрес сменился,
+  // подсветка снова следует за ним. onNavigate — только настоящий переход
+  // внутри приложения: не Cmd-клик и не «открыть в новой вкладке».
+  const [tapped, setTapped] = useState<{ from: string; href: string } | null>(null);
+  const shown = tapped && tapped.from === pathname ? tapped.href : pathname;
+  const tap = (href: string) => () => setTapped({ from: pathname, href });
 
   const items: Item[] = [
     { href: "/", label: "Идеи", icon: "feed" },
@@ -35,7 +43,13 @@ export function Nav({
     { href: "/settings", label: "Настройки", icon: "settings" },
   ];
 
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const matches = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  // Подсветка — куда идём; aria-current — где на самом деле.
+  const state = (href: string) => ({
+    active: matches(shown, href),
+    current: matches(pathname, href),
+    onNavigate: tap(href),
+  });
 
   return (
     <>
@@ -47,7 +61,7 @@ export function Nav({
         <ul className="mx-auto flex max-w-[34rem] items-stretch justify-between px-2">
           {items.slice(0, 2).map((item) => (
             <li key={item.href} className="flex-1">
-              <NavTab item={item} active={isActive(item.href)} />
+              <NavTab item={item} {...state(item.href)} />
             </li>
           ))}
 
@@ -63,7 +77,7 @@ export function Nav({
 
           {items.slice(2).map((item) => (
             <li key={item.href} className="flex-1">
-              <NavTab item={item} active={isActive(item.href)} />
+              <NavTab item={item} {...state(item.href)} />
             </li>
           ))}
         </ul>
@@ -81,7 +95,7 @@ export function Nav({
         </Link>
 
         {items.map((item) => (
-          <NavRow key={item.href} item={item} active={isActive(item.href)} />
+          <NavRow key={item.href} item={item} {...state(item.href)} />
         ))}
 
         <Link
@@ -94,7 +108,7 @@ export function Nav({
 
         <div className="mt-auto space-y-1">
           {railExtras.map((item) => (
-            <NavRow key={item.href} item={item} active={isActive(item.href)} />
+            <NavRow key={item.href} item={item} {...state(item.href)} />
           ))}
         </div>
       </nav>
@@ -102,11 +116,14 @@ export function Nav({
   );
 }
 
-function NavTab({ item, active }: { item: Item; active: boolean }) {
+type TabState = { active: boolean; current: boolean; onNavigate: () => void };
+
+function NavTab({ item, active, current, onNavigate }: { item: Item } & TabState) {
   return (
     <Link
       href={item.href}
-      aria-current={active ? "page" : undefined}
+      onNavigate={onNavigate}
+      aria-current={current ? "page" : undefined}
       className={`flex flex-col items-center gap-1 py-2.5 text-[11px] ${
         active ? "text-signal" : "text-ink-faint"
       }`}
@@ -121,11 +138,12 @@ function NavTab({ item, active }: { item: Item; active: boolean }) {
   );
 }
 
-function NavRow({ item, active }: { item: Item; active: boolean }) {
+function NavRow({ item, active, current, onNavigate }: { item: Item } & TabState) {
   return (
     <Link
       href={item.href}
-      aria-current={active ? "page" : undefined}
+      onNavigate={onNavigate}
+      aria-current={current ? "page" : undefined}
       className={`flex items-center gap-3 rounded-pill px-3 py-2.5 text-[15px] font-medium transition-colors ${
         active ? "bg-signal-wash text-signal" : "text-ink-soft hover:bg-sunken hover:text-ink"
       }`}

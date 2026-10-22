@@ -7,6 +7,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { verifiedAuthUserId } from "@/lib/auth/identity";
 import { profileIdFor } from "@/lib/auth/profile";
 
 const usingMocks = process.env.NEXT_PUBLIC_USE_MOCKS !== "false";
@@ -18,17 +19,17 @@ export async function getActor() {
   if (usingMocks) return null;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  // Подпись токена; отзыв сессии на этом запросе проверил middleware
+  // (lib/auth/identity.ts).
+  const authUserId = await verifiedAuthUserId(supabase);
+  if (!authUserId) return null;
 
   // Своя строка users видна по RLS — то же сопоставление, что делает
   // private.current_user_id() в политиках (auth_user_id = auth.uid()).
-  const viewerId = await profileIdFor(supabase, user.id);
+  const viewerId = await profileIdFor(supabase, authUserId);
   if (!viewerId) return null;
 
-  return { supabase, viewerId, authUserId: user.id };
+  return { supabase, viewerId, authUserId };
 }
 
 export const notSignedIn: ActionResult = {

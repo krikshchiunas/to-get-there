@@ -38,19 +38,17 @@ export async function generateMetadata({ params, searchParams }: FollowsPageProp
 
 export default async function FollowsPage({ params, searchParams }: FollowsPageProps) {
   const { nickname } = await params;
-  const user = await getUserByNickname(nickname);
+  const [user, viewer] = await Promise.all([getUserByNickname(nickname), getViewer()]);
 
   if (!user) notFound();
   // The follow graph is part of the profile: if the profile is closed to the
   // viewer, this list is too.
-  const viewer = await getViewer();
   if (!canSeeProfile(user, viewer)) notFound();
 
   const { tab } = await searchParams;
   const active = tabFrom(tab);
 
-  const followers = await getFollowers(user.id);
-  const following = await getFollowing(user.id);
+  const [followers, following] = await Promise.all([getFollowers(user.id), getFollowing(user.id)]);
   const people = active === "followers" ? followers : following;
   const base = `/u/${user.nickname}/follows`;
 

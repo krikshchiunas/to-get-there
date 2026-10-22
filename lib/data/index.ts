@@ -29,6 +29,7 @@ import type {
   University,
   UserView,
 } from "@/lib/types";
+import { cache } from "react";
 import * as mock from "@/lib/mock";
 import * as dbFeed from "./feed";
 import { FEED_MAX, FEED_PAGE } from "./feed";
@@ -104,9 +105,14 @@ export async function getFeed(
   return { posts: list.slice(0, take), hasMore: list.length > take };
 }
 
-export async function getPost(id: string): Promise<PostView | undefined> {
+/**
+ * Идея и профиль по адресу нужны дважды за запрос — заголовку вкладки
+ * (generateMetadata) и самой странице; cache() отдаёт второму вызову
+ * ответ первого, а не идёт в базу снова.
+ */
+export const getPost = cache(async (id: string): Promise<PostView | undefined> => {
   return usingMocks ? mock.getPost(id) : dbPosts.getPost(id);
-}
+});
 
 export async function getParticipants(postId: string): Promise<ParticipantView[]> {
   return usingMocks ? mock.getParticipants(postId) : dbPosts.getParticipants(postId);
@@ -138,9 +144,9 @@ export async function getMyIdeaChats(): ReturnType<typeof dbPosts.getMyIdeaChats
 
 /* ── люди ───────────────────────────────────────────────────────── */
 
-export async function getUserByNickname(nickname: string): Promise<UserView | undefined> {
+export const getUserByNickname = cache(async (nickname: string): Promise<UserView | undefined> => {
   return usingMocks ? mock.getUserByNickname(nickname) : dbPeople.getUserByNickname(nickname);
-}
+});
 
 export async function getUserById(id: string): Promise<UserView | undefined> {
   return usingMocks ? mock.getUserById(id) : dbPeople.getUserById(id);

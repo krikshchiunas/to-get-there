@@ -33,12 +33,12 @@ export async function generateMetadata({ params }: ProfilePageProps): Promise<Me
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { nickname } = await params;
-  const user = await getUserByNickname(nickname);
+  // Зритель уже грузится для макета (cache) — ждём его вместе с профилем, а не после.
+  const [user, viewer] = await Promise.all([getUserByNickname(nickname), getViewer()]);
 
   if (!user) notFound();
 
   const now = new Date();
-  const viewer = await getViewer();
   const isViewer = user.id === viewer.id;
 
   return (

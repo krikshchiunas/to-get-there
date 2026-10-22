@@ -19,9 +19,9 @@ import type { PostView, UserView } from "@/lib/types";
  */
 export async function ProfilePosts({ user, now }: { user: UserView; now: Date }) {
   const [viewer, open, over] = await Promise.all([
-    await getViewer(),
-    await getActivePostsByAuthor(user.id, now),
-    await getPastPostsByAuthor(user.id, now),
+    getViewer(),
+    getActivePostsByAuthor(user.id, now),
+    getPastPostsByAuthor(user.id, now),
   ]);
   const isViewer = user.id === viewer.id;
 
